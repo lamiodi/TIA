@@ -347,6 +347,14 @@ const CheckoutPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
+  }, []);
   
   useEffect(() => {
     const fetchCartAndAddresses = async () => {
@@ -621,6 +629,7 @@ const CheckoutPage = () => {
           toast.error('We had trouble updating your account. Please contact support if you see this discount again.');
         }
       }
+
   
       const paymentCurrency = 'NGN';
       const paymentAmount = baseTotal;

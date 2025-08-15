@@ -1,4 +1,3 @@
-// Frontend/vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -6,21 +5,21 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  assetsInclude: ['**/*.mp4'],
+  base: '/', // Ensure assets are served from root
+  assetsInclude: ['**/*.mp4', '**/*.jpg', '**/*.png'], // Include common asset types
   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://tia-backend-r331.onrender.com ',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api'), // Preserve /api prefix
-      },
-    },
-    allowedHosts: [
-      'localhost',
-      '473124b010fb.ngrok-free.app'
-    ]
+        secure: false
+      }
+    }
   },
-  envPrefix: ['VITE_', 'REACT_APP_'], // Allow REACT_APP_ prefixes
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  },
+  envPrefix: 'VITE_' // Simplify if REACT_APP_ is not needed
 });
