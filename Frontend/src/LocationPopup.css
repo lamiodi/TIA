@@ -1,0 +1,63 @@
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.group:hover .animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.react-flags-select__container {
+  border-radius: 0.75rem !important;
+  border: 2px solid #e5e7eb !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.react-flags-select__option:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.react-flags-select__option--is-focused {
+  background-color: #dbeafe !important;
+}
+
+@media (max-width: 640px) {
+  .group {
+    animation: slideUpMobile 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  /* Center horizontally, align to bottom vertically on mobile */
+  .fixed.inset-0 {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+}
+
+@media (min-width: 641px) {
+  .group {
+    animation: slideLeftDesktop 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes slideUpMobile {
+  0% {
+    transform: translateY(100%) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideLeftDesktop {
+  0% {
+    transform: translateX(-100%) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
