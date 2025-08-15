@@ -5,9 +5,9 @@ import {
   Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import Pic1 from '../assets/images/Loginpic1.jpg';
-import Pic2 from '../assets/images/Loginpic2.jpg';
-import Pic3 from '../assets/images/Loginpic3.jpg';
+import Pic1 from '../assets/images/Loginpic1.JPG';
+import Pic2 from '../assets/images/Loginpic2.JPG';
+import Pic3 from '../assets/images/Loginpic3.JPG';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
