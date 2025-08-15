@@ -1,4 +1,3 @@
-// LoginPage.jsx
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -8,6 +7,14 @@ import { useAuth } from '../context/AuthContext';
 import Pic1 from '../assets/images/Loginpic1.JPG';
 import Pic2 from '../assets/images/Loginpic2.JPG';
 import Pic3 from '../assets/images/Loginpic3.JPG';
+import axios from 'axios';
+
+// Create API instance with environment variable support
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 10000,
+});
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
@@ -131,22 +138,13 @@ const Login = () => {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      // Step 1: Actual API call
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+      // Step 1: Actual API call using the configured API instance
+      const response = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw { response: { status: res.status, data: errorData } };
-      }
-      const data = await res.json();
+      
+      const data = response.data;
       const { token, user } = data;
       
       // Step 2: Block admin users (optional rule)

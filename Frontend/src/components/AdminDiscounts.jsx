@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Pencil, Trash2, PlusCircle } from "lucide-react";
+import { Pencil, Trash2, PlusCircle, CheckCircle } from "lucide-react";
+
+// Use environment variable for backend
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function AdminDiscounts() {
   const [discounts, setDiscounts] = useState([]);
@@ -11,37 +14,54 @@ export default function AdminDiscounts() {
     active: true,
   });
   const [editingId, setEditingId] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Fetch discounts from backend
+  // Fetch discounts
   useEffect(() => {
     fetchDiscounts();
   }, []);
 
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = useCallback(async () => {
     try {
-      const res = await axios.get("/api/discounts");
+      const res = await axios.get(`${API_BASE_URL}/api/discounts`);
       setDiscounts(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch discounts:", err);
+      showToast("Failed to fetch discounts", "error");
     }
-  };
+  }, []);
 
+  // Toast helper
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+  }, []);
+
+  // Submit form (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = { ...form, value: parseFloat(form.value) };
+
       if (editingId) {
-        await axios.put(`/api/discounts/${editingId}`, form);
+        await axios.put(`${API_BASE_URL}/api/discounts/${editingId}`, payload);
+        showToast("Discount updated successfully", "success");
       } else {
-        await axios.post("/api/discounts", form);
+        await axios.post(`${API_BASE_URL}/api/discounts`, payload);
+        showToast("Discount added successfully", "success");
       }
+
+      // Reset form
       setForm({ code: "", type: "percentage", value: "", active: true });
       setEditingId(null);
       fetchDiscounts();
     } catch (err) {
-      console.error(err);
+      console.error("Submit error:", err);
+      showToast("Failed to save discount", "error");
     }
   };
 
+  // Edit discount
   const handleEdit = (discount) => {
     setForm({
       code: discount.code,
@@ -52,13 +72,16 @@ export default function AdminDiscounts() {
     setEditingId(discount.id);
   };
 
+  // Delete discount
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this discount?")) return;
     try {
-      await axios.delete(`/api/discounts/${id}`);
+      await axios.delete(`${API_BASE_URL}/api/discounts/${id}`);
+      showToast("Discount deleted successfully", "success");
       fetchDiscounts();
     } catch (err) {
-      console.error(err);
+      console.error("Delete error:", err);
+      showToast("Failed to delete discount", "error");
     }
   };
 
@@ -108,7 +131,11 @@ export default function AdminDiscounts() {
           type="submit"
           className="col-span-1 md:col-span-4 bg-blue-600 text-white py-2 px-4 rounded flex items-center justify-center"
         >
-          <PlusCircle className="w-5 h-5 mr-2" />
+          {editingId ? (
+            <CheckCircle className="w-5 h-5 mr-2" />
+          ) : (
+            <PlusCircle className="w-5 h-5 mr-2" />
+          )}
           {editingId ? "Update Discount" : "Add Discount"}
         </button>
       </form>
@@ -158,6 +185,17 @@ export default function AdminDiscounts() {
           )}
         </tbody>
       </table>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div
+          className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300 ${
+            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

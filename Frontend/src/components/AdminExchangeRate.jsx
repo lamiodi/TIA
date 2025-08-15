@@ -1,43 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const AdminExchangeRate = () => {
   const [rate, setRate] = useState(0.0006);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Fetch exchange rate
+  const fetchRate = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/exchange-rate`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setRate(response.data.rate);
+    } catch (err) {
+      console.error('Error fetching rate:', err);
+      showToast('Failed to load exchange rate.', 'error');
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchRate = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/exchange-rate`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        setRate(response.data.rate);
-      } catch (err) {
-        console.error('AdminExchangeRate: Error fetching rate:', err);
-        setError('Failed to load exchange rate.');
-      }
-    };
     fetchRate();
+  }, [fetchRate]);
+
+  // Toast helper
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
       await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL}/api/exchange-rate`,
+        `${API_BASE_URL}/api/exchange-rate`,
         { rate },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      setSuccess('Exchange rate updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      showToast('Exchange rate updated successfully!', 'success');
     } catch (err) {
-      console.error('AdminExchangeRate: Error updating rate:', err);
-      setError('Failed to update exchange rate.');
+      console.error('Error updating rate:', err);
+      showToast('Failed to update exchange rate.', 'error');
     } finally {
       setLoading(false);
     }
@@ -46,8 +52,6 @@ const AdminExchangeRate = () => {
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
       <h2 className="text-xl font-semibold mb-4">Manage NGN to USD Exchange Rate</h2>
-      {error && <p className="text-red-600">{error}</p>}
-      {success && <p className="text-green-600">{success}</p>}
       <form onSubmit={handleSubmit}>
         <label className="block text-sm font-medium text-gray-700">
           Fixed Exchange Rate (NGN to USD)
@@ -68,6 +72,17 @@ const AdminExchangeRate = () => {
           {loading ? 'Updating...' : 'Update Rate'}
         </button>
       </form>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div
+          className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300 ${
+            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 };

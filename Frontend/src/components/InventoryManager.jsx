@@ -14,8 +14,9 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api/inventory',
+  baseURL: `${API_BASE_URL}/api/inventory`,
   timeout: 10000,
 });
 

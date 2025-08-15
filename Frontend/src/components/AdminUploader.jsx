@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const api = axios.create({ baseURL: API_BASE_URL });
+
 
 export default function AdminUploader() {
   const [colors, setColors] = useState([]);
@@ -25,8 +27,8 @@ export default function AdminUploader() {
     const fetchMeta = async () => {
       try {
         const [colorRes, sizeRes] = await Promise.all([
-          api.get('/meta/colors'),
-          api.get('/meta/sizes'),
+          api.get('/api/meta/colors'),
+          api.get('/api/meta/sizes'),
         ]);
         setColors(colorRes.data);
         setSizes(sizeRes.data);

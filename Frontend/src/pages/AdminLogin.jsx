@@ -3,9 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { toast } from 'react-toastify';
 import { Mail, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import axios from 'axios';
+
+// Create API instance with environment variable support
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 10000,
+});
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MIN_LENGTH = 7;
 
 const AdminLogin = () => {
   const { admin, adminLoading, adminLogin } = useAdminAuth();
@@ -67,7 +75,16 @@ const AdminLogin = () => {
     setLoading(true);
     
     try {
-      const response = await adminLogin(formData.email, formData.password);
+      // Use the configured API instance instead of the context method
+      const response = await api.post('/auth/admin-login', {
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      const { token, admin } = response.data;
+      
+      // Use the adminLogin method from context to update state
+      await adminLogin(admin, token);
       
       setSuccessMsg('Admin login successful! Redirecting...');
       toast.success('Admin login successful!');

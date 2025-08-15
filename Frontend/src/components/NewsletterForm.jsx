@@ -3,6 +3,10 @@ import Newsletterimage from '../assets/images/Newsletterimage.png';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
+// Use environment variable for base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const api = axios.create({ baseURL: API_BASE_URL });
+
 const NewsletterForm = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -11,7 +15,7 @@ const NewsletterForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Basic email validation
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       setStatus('error');
@@ -23,12 +27,12 @@ const NewsletterForm = () => {
     setStatus('idle');
 
     try {
-      // Send to your backend endpoint
-      const response = await axios.post('/api/newsletter/subscribe', { email });
-      
+      // Call the correct endpoint
+      const response = await api.post('/api/newsletter/subscribe', { email });
+
       if (response.data.success) {
         setStatus('success');
-        setMessage(response.data.message); // Use message from backend
+        setMessage(response.data.message);
         setEmail('');
       } else {
         throw new Error(response.data.message || 'Subscription failed');
@@ -46,16 +50,12 @@ const NewsletterForm = () => {
   };
 
   return (
-    <div className="flex justify-center items-center relative max-w-[1390px]  2xl:max-w-[2300px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 mt-15">
-      <div className="relative w-[93vw]   z-10 bg-Primarycolor rounded-[20px] overflow-visible pt-12 sm:pt-14 md:pt-16 lg:pt-18 xl:pt-20 2xl:pt-30 pb-8 sm:pb-10 px-4 sm:px-6 md:px-12">
+    <div className="flex justify-center items-center relative max-w-[1390px] 2xl:max-w-[2300px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 mt-15">
+      <div className="relative w-[93vw] z-10 bg-Primarycolor rounded-[20px] overflow-visible pt-12 sm:pt-14 md:pt-16 lg:pt-18 xl:pt-20 2xl:pt-30 pb-8 sm:pb-10 px-4 sm:px-6 md:px-12">
         
-        {/* Image - Smaller and positioned to come out from top */}
+        {/* Image */}
         <div className="absolute top-[-3.5em] left-6 sm:top-[-4.5em] sm:left-6 md:top-[-5.5em] md:left-8 lg:top-[-6em] lg:left-10 xl:top-[-8em] xl:left-12 2xl:top-[-9em] 2xl:left-16 w-37 sm:w-53 md:w-60 lg:w-70 xl:w-82 2xl:w-96 z-0">
-          <img
-            src={Newsletterimage}
-            alt="Newsletter Illustration"
-            className="w-full h-auto object-contain"
-          />
+          <img src={Newsletterimage} alt="Newsletter Illustration" className="w-full h-auto object-contain" />
         </div>
         
         {/* Text + Form */}
@@ -74,7 +74,6 @@ const NewsletterForm = () => {
               <p className="text-green-700 text-sm">{message}</p>
             </div>
           )}
-          
           {status === 'error' && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
               <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
@@ -82,7 +81,7 @@ const NewsletterForm = () => {
             </div>
           )}
 
-          {/* Form - Enhanced responsiveness */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="mt-4 sm:mt-6 w-full max-w-[95vw] sm:max-w-[75vw] md:max-w-[50vw] lg:max-w-[40vw] xl:max-w-[35vw] ml-auto lg:ml-48 xl:ml-60 2xl:ml-130">
             <div className="flex bg-Secondarycolor font-Manrope rounded-md overflow-hidden shadow-sm">
               <input
@@ -109,12 +108,10 @@ const NewsletterForm = () => {
                 )}
               </button>
             </div>
-             <p className="text-xs text-gray-500 mt-4 text-center">
-            We respect your privacy. Unsubscribe at any time.
-          </p>
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              We respect your privacy. Unsubscribe at any time.
+            </p>
           </form>
-          
-         
         </div>
       </div>
     </div>

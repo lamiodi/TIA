@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Copy, CheckCircle, AlertCircle, Users, Calendar } from 'lucide-react';
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 const AdminNewsletterDashboard = () => {
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ const AdminNewsletterDashboard = () => {
   const fetchSubscribers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/newsletter/subscribers');
+      const response = await axios.get(`${API_BASE_URL}/api/newsletter/subscribers`);
       setSubscribers(response.data);
       setError('');
     } catch (err) {
