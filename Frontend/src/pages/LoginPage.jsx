@@ -5,9 +5,9 @@ import {
   Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import Pic1 from '../assets/images/Loginpic1.jpg';
-import Pic2 from '../assets/images/Loginpic2.jpg';
-import Pic3 from '../assets/images/Loginpic3.jpg';
+import Loginpic1 from '../assets/images/LoginLoginpic1.jpg';
+import Loginpic2 from '../assets/images/LoginLoginpic2.jpg';
+import Loginpic3 from '../assets/images/LoginLoginpic3.jpg';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
@@ -20,21 +20,21 @@ const Login = () => {
   // Image carousel data
   const carouselImages = [
     {
-      src: Pic1,
+      src: Loginpic1,
       title: 'Unleash Your Potential',
       description:
         'Step into performance-ready gymwear and briefs crafted for movement, comfort, and confidence.',
       placeholder: { bg: '#1E1E1E', pattern: 'circles' },
     },
     {
-      src: Pic2,
+      src: Loginpic2,
       title: 'Built for Every Body',
       description:
         'From intense workouts to everyday comfort — our pieces are designed to move with you.',
       placeholder: { bg: '#6E6E6E', pattern: 'squares' },
     },
     {
-      src: Pic3,
+      src: Loginpic3,
       title: 'Style Meets Strength',
       description:
         'Elevate your activewear with bold designs and breathable fabrics made to perform.',
