@@ -41,13 +41,15 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://thetiabrand.org',
-    'https://www.thetiabrand.org', // <--- add this
+    'https://www.thetiabrand.org',
     'https://tia.vercel.app',
     'https://tia-steel.vercel.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
+
 
 
 app.use(express.json({ limit: '50mb' }));

@@ -535,7 +535,7 @@ export const setDeliveryFee = async (req, res) => {
 
       // Trigger email via emailRoutes (assumes email.js handles /api/email/send-delivery-fee-email)
       await axios.post(
-        `${process.env.API_BASE_URL || 'http://localhost:5000'}/api/email/send-delivery-fee-email`,
+        `${process.env.API_BASE_URL || 'https://tia-backend-r331.onrender.com'}/api/email/send-delivery-fee-email`,
         { orderId, fee, paymentLink },
         {
           headers: {
