@@ -70,6 +70,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 // Health check
 app.get('/', (req, res) => res.send('TIA Backend is running 🚀'));
 
