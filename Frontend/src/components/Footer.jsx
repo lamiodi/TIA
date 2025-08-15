@@ -2,7 +2,7 @@ import React from 'react';
 import threadsicon from '../assets/icons/threads.png'
 import instagramicon from '../assets/icons/instagram.png';
 import Logo from '../assets/icons/logo.svg';
-import Footerimage from '../assets/images/footer.jpg';
+import Footerimage from '../assets/images/footer.JPG';
 import { Link } from 'react-router-dom';
 
 
