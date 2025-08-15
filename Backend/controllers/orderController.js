@@ -1,0 +1,552 @@
+import sql from '../db/index.js';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import { Country } from 'country-state-city';
+import { sendOrderConfirmationEmail, sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
+
+dotenv.config();
+
+const shippingOptions = [
+  { id: 1, method: 'Delivery within Lagos', total_cost: 4000, estimated_delivery: '3–5 business days' },
+  { id: 2, method: 'GIG Logistics (Outside Lagos)', total_cost: 6000, estimated_delivery: '5–7 business days' },
+  { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
+];
+
+export const createOrder = async (req, res) => {
+  const {
+    user_id,
+    address_id,
+    billing_address_id,
+    cart_id,
+    total,
+    discount = 0,
+    delivery_option,
+    shipping_method_id,
+    shipping_cost,
+    payment_method,
+    currency,
+    reference,
+    items,
+    note,
+    exchange_rate,
+    base_currency_total,
+    converted_total,
+  } = req.body;
+  
+  console.log('📥 Create order request:', {
+    user_id,
+    cart_id,
+    delivery_option,
+    shipping_method_id,
+    shipping_cost,
+    currency,
+    payment_method,
+    exchange_rate,
+    discount,
+  });
+  console.log('📋 Items:', items);
+  
+  try {
+    await sql.begin(async (sql) => {
+      const [user] = await sql`
+        SELECT id, first_name, last_name FROM users 
+        WHERE id = ${user_id} AND deleted_at IS NULL
+      `;
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      const [address] = await sql`
+        SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
+        WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+      `;
+      if (!address) {
+        throw new Error('Shipping address not found');
+      }
+      
+      const [billingAddress] = await sql`
+        SELECT id FROM billing_addresses 
+        WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+      `;
+      if (!billingAddress) {
+        throw new Error('Billing address not found');
+      }
+      
+      const [cart] = await sql`
+        SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
+      `;
+      if (!cart) {
+        throw new Error('Cart not found');
+      }
+      
+      if (discount < 0) {
+        throw new Error('Discount cannot be negative');
+      }
+      
+      if (!['standard', 'international'].includes(delivery_option)) {
+        throw new Error('Invalid delivery option');
+      }
+      
+      if (currency !== 'NGN' && currency !== 'USD') {
+        throw new Error('Invalid currency');
+      }
+      
+      let calculatedSubtotal = 0;
+      const orderItems = [];
+      
+      for (const item of items) {
+        if (!item.variant_id && !item.bundle_id) {
+          throw new Error('Item must have either variant_id or bundle_id');
+        }
+        if (item.variant_id && item.bundle_id) {
+          throw new Error('Item cannot have both variant_id and bundle_id');
+        }
+        if (item.price <= 0) {
+          throw new Error(`Invalid price for item: ${item.variant_id || item.bundle_id}`);
+        }
+        
+        let product;
+        if (item.variant_id) {
+          const [variant] = await sql`
+            SELECT pv.id, p.name, p.base_price, pi.image_url, c.color_name, s.size_name
+            FROM product_variants pv
+            JOIN products p ON pv.product_id = p.id
+            JOIN colors c ON pv.color_id = c.id
+            JOIN sizes s ON s.id = ${item.size_id}
+            LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
+            WHERE pv.id = ${item.variant_id}
+          `;
+          
+          if (!variant) {
+            throw new Error(`Product variant ${item.variant_id} not found`);
+          }
+          
+          const [variantSize] = await sql`
+            SELECT stock_quantity FROM variant_sizes 
+            WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+          `;
+          
+          if (!variantSize) {
+            throw new Error(`Size ${item.size_id} not found for variant ${item.variant_id}`);
+          }
+          
+          const { stock_quantity } = variantSize;
+          if (stock_quantity < item.quantity) {
+            throw new Error(`Insufficient stock for variant ${item.variant_id}`);
+          }
+          
+          // Validate price in the order's currency
+          const expectedPrice = currency === 'USD' && exchange_rate > 0 
+            ? Number((variant.base_price * exchange_rate).toFixed(2)) 
+            : variant.base_price;
+          if (Math.abs(expectedPrice - item.price) > 0.01) {
+            throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+          }
+          
+          calculatedSubtotal += item.price * item.quantity;
+          orderItems.push({
+            variant_id: item.variant_id,
+            size_id: item.size_id,
+            quantity: item.quantity,
+            price: item.price,
+            product_name: variant.name,
+            image_url: variant.image_url,
+            color_name: variant.color_name,
+            size_name: variant.size_name,
+          });
+        } else if (item.bundle_id) {
+          const [bundle] = await sql`
+            SELECT b.id, b.name, b.bundle_price, bi.image_url
+            FROM bundles b
+            LEFT JOIN bundle_images bi ON b.id = bi.bundle_id AND bi.is_primary = true
+            WHERE b.id = ${item.bundle_id}
+          `;
+          
+          if (!bundle) {
+            throw new Error(`Bundle ${item.bundle_id} not found`);
+          }
+          
+          const bundleItemsDetails = [];
+          for (const bi of item.bundle_items || []) {
+            const [variant] = await sql`
+              SELECT pv.id AS variant_id, pv.product_id, p.name AS product_name, 
+                     c.color_name, s.size_name, pi.image_url
+              FROM product_variants pv
+              JOIN products p ON pv.product_id = p.id
+              JOIN colors c ON pv.color_id = c.id
+              JOIN sizes s ON s.id = ${bi.size_id}
+              LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
+              WHERE pv.id = ${bi.variant_id}
+            `;
+            
+            if (!variant) {
+              throw new Error(`Bundle item variant ${bi.variant_id} not found`);
+            }
+            
+            const [variantSize] = await sql`
+              SELECT stock_quantity FROM variant_sizes 
+              WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
+            `;
+            
+            if (!variantSize || variantSize.stock_quantity < item.quantity) {
+              throw new Error(`Insufficient stock for bundle item variant ${bi.variant_id}, size ${bi.size_id}`);
+            }
+            
+            bundleItemsDetails.push({
+              variant_id: bi.variant_id,
+              size_id: bi.size_id,
+              product_name: variant.product_name,
+              color_name: variant.color_name,
+              size_name: variant.size_name,
+              image_url: variant.image_url,
+            });
+          }
+          
+          const expectedPrice = currency === 'USD' && exchange_rate > 0 
+            ? Number((bundle.bundle_price * exchange_rate).toFixed(2)) 
+            : bundle.bundle_price;
+          if (Math.abs(expectedPrice - item.price) > 0.01) {
+            throw new Error(`Price mismatch for bundle ${item.bundle_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+          }
+          
+          calculatedSubtotal += item.price * item.quantity;
+          orderItems.push({
+            bundle_id: item.bundle_id,
+            quantity: item.quantity,
+            price: item.price,
+            product_name: bundle.name,
+            image_url: bundle.image_url,
+            bundle_details: JSON.stringify(bundleItemsDetails),
+          });
+        }
+      }
+      
+      if (delivery_option === 'standard' && address.country.toLowerCase() === 'nigeria') {
+        if (shipping_cost < 0) {
+          throw new Error('Invalid shipping cost');
+        }
+        calculatedSubtotal += shipping_cost;
+      } else if (delivery_option === 'international') {
+        calculatedSubtotal += 0; // Shipping cost to be determined later
+      }
+      
+      const calculatedTax = delivery_option === 'international' ? Number((calculatedSubtotal * 0.05).toFixed(2)) : 0;
+      const calculatedTotal = Number((calculatedSubtotal - discount + calculatedTax).toFixed(2));
+      if (Math.abs(calculatedTotal - total) > 0.01) {
+        throw new Error(`Total mismatch: calculated ${calculatedTotal} ${currency}, provided ${total} ${currency}, discount ${discount}`);
+      }
+      
+      // Validate base_currency_total
+      const expectedBaseTotal = currency === 'USD' && exchange_rate > 0 
+        ? Math.round(total / exchange_rate) 
+        : total;
+      if (Math.abs(expectedBaseTotal - base_currency_total) > 1) {
+        throw new Error(`Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);
+      }
+      
+      const [order] = await sql`
+        INSERT INTO orders (
+          user_id, address_id, billing_address_id, cart_id, total, discount, tax, shipping_method_id, shipping_cost,
+          shipping_country, payment_method, payment_status, status, currency, reference, note, exchange_rate,
+          base_currency_total, converted_total, delivery_fee_paid
+        ) VALUES (
+          ${user_id}, ${address_id}, ${billing_address_id}, ${cart_id}, ${total}, ${discount}, 
+          ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
+          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
+          ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
+          ${address.country.toLowerCase() === 'nigeria' ? true : false}
+        )
+        RETURNING id
+      `;
+      const orderId = order.id;
+      
+      for (const item of orderItems) {
+        await sql`
+          INSERT INTO order_items (
+            order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url, 
+            color_name, size_name, bundle_details
+          ) VALUES (
+            ${orderId}, ${item.variant_id || null}, ${item.bundle_id || null}, ${item.quantity}, 
+            ${item.price}, ${item.size_id || null}, ${item.product_name}, ${item.image_url},
+            ${item.color_name || null}, ${item.size_name || null}, ${item.bundle_details || '[]'}
+          )
+        `;
+        
+        if (item.variant_id) {
+          // Update the stock quantity for the specific variant and size
+          const [updateResult] = await sql`
+            UPDATE variant_sizes 
+            SET stock_quantity = stock_quantity - ${item.quantity} 
+            WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+            RETURNING stock_quantity
+          `;
+          
+          console.log(`Updated stock for variant ${item.variant_id}, size ${item.size_id}: ${updateResult.stock_quantity}`);
+        } else if (item.bundle_id) {
+          const bundleItems = item.bundle_details ? JSON.parse(item.bundle_details) : [];
+          for (const bi of bundleItems) {
+            const [updateResult] = await sql`
+              UPDATE variant_sizes 
+              SET stock_quantity = stock_quantity - ${item.quantity} 
+              WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
+              RETURNING stock_quantity
+            `;
+            
+            console.log(`Updated stock for bundle item variant ${bi.variant_id}, size ${bi.size_id}: ${updateResult.stock_quantity}`);
+          }
+        }
+      }
+      
+      await sql`DELETE FROM cart_items WHERE cart_id = ${cart_id}`;
+      
+      if (address.country.toLowerCase() !== 'nigeria') {
+        await sendAdminDeliveryFeeNotification(
+          orderId,
+          `${user.first_name} ${user.last_name}`,
+          address.country,
+          {
+            address_line_1: address.address_line_1,
+            city: address.city,
+            state: address.state || '',
+            zip_code: address.zip_code,
+          }
+        );
+      }
+      
+      console.log(`✅ Created order ${orderId} for user ${user_id} with reference ${reference}, discount ${discount}`);
+      res.status(201).json({ order: { id: orderId, reference, discount } });
+    });
+  } catch (err) {
+    console.error('❌ Error creating order:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const verifyPayment = async (req, res) => {
+  const { reference } = req.body;
+  if (!reference) {
+    return res.status(400).json({ error: 'Reference is required' });
+  }
+  
+  try {
+    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    });
+    
+    const { status, data } = response.data;
+    if (!status || data.status !== 'success') {
+      return res.status(400).json({ error: 'Payment verification failed' });
+    }
+    
+    await sql.begin(async (sql) => {
+      const [order] = await sql`
+        UPDATE orders 
+        SET payment_status = 'completed', updated_at = NOW() 
+        WHERE reference = ${reference} AND deleted_at IS NULL 
+        RETURNING id, reference, discount
+      `;
+      
+      if (!order) {
+        throw new Error('Order not found');
+      }
+      
+      const [user] = await sql`
+        SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
+      `;
+      
+      console.log(`📧 Sending order confirmation email for order ${order.id} to ${user.email}`);
+      await sendOrderConfirmationEmail(
+        user.email,
+        `${user.first_name} ${user.last_name}`,
+        order.id,
+        order.total,
+        order.currency
+      );
+      
+      console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
+      res.status(200).json({ message: 'Payment verified successfully', order });
+    });
+  } catch (err) {
+    console.error('❌ Error verifying payment:', err.message);
+    res.status(500).json({ error: 'Failed to verify payment' });
+  }
+};
+
+export const verifyOrderByReference = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    if (!reference) {
+      return res.status(400).json({ error: 'Reference is required' });
+    }
+    
+    const [order] = await sql`
+      SELECT 
+        o.id, o.user_id, o.total, o.discount, o.tax, o.shipping_method_id, o.shipping_cost, o.shipping_country, 
+        o.payment_method, o.payment_status, o.status, o.created_at, o.reference, o.note, o.currency,
+        o.delivery_fee_paid
+      FROM orders o
+      WHERE o.reference = ${reference} AND o.deleted_at IS NULL
+    `;
+    
+    if (!order) {
+      console.log(`❌ Order not found for reference: ${reference}`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log(`✅ verifyOrderByReference: Fetched order with reference ${reference}:`, order);
+    res.status(200).json(order);
+  } catch (err) {
+    console.error('❌ Error verifying order by reference:', err.message);
+    res.status(500).json({ error: 'Failed to verify order' });
+  }
+};
+
+export const cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    await sql.begin(async (sql) => {
+      const [order] = await sql`SELECT * FROM orders WHERE id = ${orderId}`;
+      if (!order) {
+        throw new Error('Order not found');
+      }
+      
+      const items = await sql`SELECT * FROM order_items WHERE order_id = ${orderId}`;
+      const bundleItems = await sql`SELECT * FROM order_bundle_items WHERE order_id = ${orderId}`;
+      
+      for (const item of items) {
+        const [cartItem] = await sql`
+          SELECT size_id FROM cart_items 
+          WHERE variant_id = ${item.variant_id} AND cart_id = ${order.cart_id}
+        `;
+        
+        if (cartItem && cartItem.size_id) {
+          await sql`
+            UPDATE variant_sizes 
+            SET stock_quantity = stock_quantity + ${item.quantity} 
+            WHERE variant_id = ${item.variant_id} AND size_id = ${cartItem.size_id}
+          `;
+        }
+      }
+      
+      for (const item of bundleItems) {
+        const bundleItemsDetails = await sql`
+          SELECT bi.variant_id, vs.size_id, vs.stock_quantity
+          FROM bundle_items bi
+          JOIN variant_sizes vs ON vs.variant_id = bi.variant_id
+          WHERE bi.bundle_id = ${item.bundle_id}
+        `;
+        
+        for (const bi of bundleItemsDetails) {
+          await sql`
+            UPDATE variant_sizes 
+            SET stock_quantity = stock_quantity + ${item.quantity} 
+            WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
+          `;
+        }
+      }
+      
+      await sql`DELETE FROM order_bundle_items WHERE order_id = ${orderId}`;
+      await sql`DELETE FROM order_items WHERE order_id = ${orderId}`;
+      await sql`DELETE FROM orders WHERE id = ${orderId}`;
+      
+      console.log(`✅ Cancelled order ${orderId}`);
+      res.json({ message: 'Order cancelled and stock restored' });
+    });
+  } catch (err) {
+    console.error('❌ Error cancelling order:', err.message);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+};
+
+export const getOrdersByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (req.user.id !== parseInt(userId) && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Unauthorized access' });
+    }
+    
+    const orders = await sql`
+      SELECT 
+        o.id, o.user_id, o.total, o.discount, o.tax, o.shipping_method, o.shipping_cost, o.shipping_country, 
+        o.payment_method, o.payment_status, o.status, o.created_at, o.reference, o.note, o.currency
+      FROM orders o
+      WHERE o.user_id = ${userId}
+      ORDER BY o.created_at DESC
+    `;
+    
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
+    }));
+    
+    console.log(`getOrdersByUser: Fetched orders for user ${userId}:`, orders);
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error('❌ Error fetching user orders:', err.message);
+    res.status(500).json({ error: 'Failed to fetch user orders' });
+  }
+};
+
+export const getOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user has permission to access this order
+    if (!req.user.isAdmin) {
+      const [orderCheck] = await sql`SELECT user_id FROM orders WHERE id = ${id}`;
+      if (!orderCheck || req.user.id !== orderCheck.user_id) {
+        return res.status(403).json({ error: 'Unauthorized access' });
+      }
+    }
+    
+    const [order] = await sql`
+      SELECT 
+        o.*, 
+        u.first_name, u.last_name, u.email,
+        a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country_code,
+        ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number, 
+        ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
+        ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN addresses a ON o.address_id = a.id
+      JOIN billing_addresses ba ON o.billing_address_id = ba.id
+      WHERE o.id = ${id}
+    `;
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const items = await sql`
+      SELECT oi.*, p.name as product_name
+      FROM order_items oi
+      LEFT JOIN product_variants pv ON oi.variant_id = pv.id
+      LEFT JOIN products p ON pv.product_id = p.id
+      WHERE oi.order_id = ${id}
+    `;
+    
+    const bundleItems = await sql`
+      SELECT obi.*, b.name as bundle_name
+      FROM order_bundle_items obi
+      JOIN bundles b ON obi.bundle_id = b.id
+      WHERE obi.order_id = ${id}
+    `;
+    
+    const formattedOrder = {
+      ...order,
+      shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
+      items,
+      bundle_items: bundleItems,
+    };
+    
+    console.log(`getOrderById: Fetched order ${id}:`, formattedOrder);
+    res.status(200).json(formattedOrder);
+  } catch (err) {
+    console.error('❌ Error fetching order:', err.message);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+};

@@ -1,0 +1,77 @@
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { v2 as cloudinary } from 'cloudinary';
+import productRoutes from './routes/products.js';
+import orderRoutes from './routes/orders.js';
+import paystackRouter from './routes/paystack.js';
+import bundleRoutes from './routes/bundleRoutes.js';
+import inventoryRoutes from './routes/inventory.js';
+import metaRoutes from './routes/meta.js';
+import cartRoutes from './routes/cart.js';
+import shopallRoutes from './routes/shopallRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
+import addressRoutes from './routes/addressRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import reviewRouter from './routes/reviewRouter.js';
+import billingAddressRoutes from './routes/billingAddressRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import newsletterRoutes from './routes/newsletterRoutes.js';
+import emailRoutes from './routes/email.js';
+import { EventEmitter } from 'events';
+
+EventEmitter.defaultMaxListeners = 40;
+
+dotenv.config();
+
+// Initialize Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173', // Your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use('/uploads', express.static('Uploads'));
+
+// Route mounting
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/bundles', bundleRoutes);
+app.use('/api/paystack', paystackRouter);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/meta', metaRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/shopall', shopallRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/billing-addresses', billingAddressRoutes);
+app.use('/api/reviews', reviewRouter);
+app.use('/api/admin', adminRoutes);
+app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/email', emailRoutes);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] Error in ${req.method} ${req.url}:`, err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Health check
+app.get('/', (req, res) => res.send('E-commerce API running!'));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
