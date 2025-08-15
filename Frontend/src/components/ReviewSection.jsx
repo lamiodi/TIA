@@ -7,7 +7,7 @@ import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ReviewSection = ({ productId, bundleId, productName }) => {
   const { user, loading: authLoading } = useContext(AuthContext);
