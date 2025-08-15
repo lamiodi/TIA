@@ -36,7 +36,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: ['https://thetiabrand.org', 'https://tia.vercel.app', 'http://localhost:5173'],
+  origin: ['https://thetiabrand.org', 'https://tia.vercel.app', 'https://tia-steel.vercel.app', 'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
