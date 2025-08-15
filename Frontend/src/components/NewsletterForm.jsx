@@ -4,7 +4,7 @@ import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 // Use environment variable for base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const api = axios.create({ baseURL: API_BASE_URL });
 
 const NewsletterForm = () => {

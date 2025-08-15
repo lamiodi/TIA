@@ -6,7 +6,7 @@ import { Mail, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 // Create API instance with environment variable support
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com').replace(/\/$/, '');
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,

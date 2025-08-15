@@ -4,7 +4,7 @@ import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 // Create API instance with environment variable support
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api`
+  baseURL: `${import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com'}/api`
 });
 
 export default function BundleCreator() {

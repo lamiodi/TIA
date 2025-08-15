@@ -8,7 +8,7 @@ import Pic1 from '../assets/images/Signuppic1.JPG';
 import Pic2 from '../assets/images/Signuppic2.JPG';
 import Pic3 from '../assets/images/Signuppic3.JPG';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
 const SignupPage = () => {
   const navigate = useNavigate();

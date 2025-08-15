@@ -3,7 +3,7 @@ import axios from "axios";
 import { Pencil, Trash2, PlusCircle, CheckCircle } from "lucide-react";
 
 // Use environment variable for backend
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tia-backend-r331.onrender.com";
 
 export default function AdminDiscounts() {
   const [discounts, setDiscounts] = useState([]);

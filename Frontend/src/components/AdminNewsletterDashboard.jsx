@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Copy, CheckCircle, AlertCircle, Users, Calendar } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
 const AdminNewsletterDashboard = () => {
   const [subscribers, setSubscribers] = useState([]);
