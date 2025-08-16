@@ -47,7 +47,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Allow non-browser tools like Postman
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -55,9 +55,10 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Only if you need cookies/auth headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-country'], // <- Add your custom header
+  credentials: true
 }));
+cd
 
 
 app.use(express.json({ limit: '50mb' }));
