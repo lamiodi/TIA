@@ -37,11 +37,34 @@ cloudinary.config({
 const app = express();
 
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://thetiabrand.org',
+  'https://www.thetiabrand.org',
+  'https://tia.vercel.app',
+  'https://tia-steel.vercel.app'
+];
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://thetiabrand.org',
+  'https://www.thetiabrand.org',
+  'https://tia.vercel.app',
+  'https://tia-steel.vercel.app'
+];
+
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Allow non-browser tools like Postman
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-  // Remove credentials: true when using origin: '*'
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Only if you need cookies/auth headers
 }));
 
 
