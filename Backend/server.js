@@ -37,13 +37,7 @@ cloudinary.config({
 const app = express();
 
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://thetiabrand.org',
-  'https://www.thetiabrand.org',
-  'https://tia.vercel.app',
-  'https://tia-steel.vercel.app'
-];
+
 
 const allowedOrigins = [
   'http://localhost:5173',
