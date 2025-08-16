@@ -58,7 +58,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-country'], // <- Add your custom header
   credentials: true
 }));
-cd
+
 
 
 app.use(express.json({ limit: '50mb' }));
