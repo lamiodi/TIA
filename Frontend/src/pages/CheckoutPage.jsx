@@ -612,10 +612,11 @@ const CheckoutPage = () => {
         try {
           const response = await axios({
             method: 'PATCH',
-            url: `${API_BASE_URL}/api/users/${userId}`,
+            url: `${API_BASE_URL}/api/auth/users/${userId}`, 
             data: { first_order: false },
             headers: { Authorization: `Bearer ${token}` }
           });
+          console.log('Updated first_order to false for user:', userId);
           
           // Update user context with new first_order status
           if (response.data && response.data.user) {
@@ -668,18 +669,19 @@ const CheckoutPage = () => {
         localStorage.setItem('lastOrderReference', orderData.reference);
         
         const paystack = new PaystackPop();
-        paystack.resumeTransaction(accessCode, {
-          onSuccess: (response) => {
+        paystack.newTransaction({ // Changed from resumeTransaction to newTransaction
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY, // Ensure this is set in Vercel
+          email: paymentData.email,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          reference: paymentData.reference,
+          callback: (response) => {
             toast.success('Payment successful!');
             window.location.href = callbackUrl;
           },
-          onCancel: () => {
+          onClose: () => {
             toast.info('Payment window closed. You can complete payment later from your orders page.');
             window.location.href = `${window.location.origin}/orders?orderId=${orderId}`;
-          },
-          onError: (error) => {
-            console.error('Paystack error:', error);
-            toast.error(`Payment error: ${error.message || 'Unknown payment error'}`);
           }
         });
       } else if (authorizationUrl) {
