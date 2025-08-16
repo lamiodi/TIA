@@ -7,6 +7,8 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from './CurrencyContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 // Lazy load non-critical components
 const WhatsAppChatWidget = lazy(() => import('../components/WhatsAppChatWidget'));
 const Footer = lazy(() => import('../components/Footer'));
@@ -149,7 +151,7 @@ const Cart = () => {
         console.log('Cart: Fetching cart for userId=', userId, 'URL=', `/api/cart/${userId}`);
         
         const authAxios = getAuthAxios();
-        const response = await authAxios.get(`/api/cart/${userId}`);
+        const response = await authAxios.get(`${API_BASE_URL}/api/cart/${userId}`);
         
         if (response.status !== 200) {
           throw new Error(`HTTP error ${response.status}`);
