@@ -15,6 +15,10 @@ const HeroSection = () => {
         muted
         loop
         playsInline
+        controls={false}
+        preload="auto"
+        disablePictureInPicture
+        style={{ pointerEvents: 'none' }}
         className="absolute top-0 left-0 object-cover w-full h-full lg:hidden"
       ></video>
       <video
@@ -24,6 +28,10 @@ const HeroSection = () => {
         muted
         loop
         playsInline
+        controls={false}
+        preload="auto"
+        disablePictureInPicture
+        style={{ pointerEvents: 'none' }}
         className="absolute top-0 left-0 object-cover w-full h-full hidden lg:block"
       ></video>
 
