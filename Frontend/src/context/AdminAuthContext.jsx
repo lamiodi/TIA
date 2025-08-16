@@ -6,7 +6,7 @@ export const AdminAuthProvider = ({ children }) => {
   const [adminLoading, setAdminLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AdminAuthProvider: Checking for existing admin auth');
+    
     const token = localStorage.getItem('adminToken');
     const storedAdmin = localStorage.getItem('admin');
     
@@ -29,12 +29,12 @@ export const AdminAuthProvider = ({ children }) => {
         setAdmin(null);
       }
     }
-    console.log('AdminAuthProvider: Setting adminLoading to false');
+    
     setAdminLoading(false);
   }, []);
 
   const adminLogin = async (email, password) => {
-    console.log('AdminAuthProvider: Admin login called with email', email);
+    
     
     try {
       const response = await fetch('/api/auth/admin-login', {
@@ -60,7 +60,7 @@ export const AdminAuthProvider = ({ children }) => {
       localStorage.setItem('admin', JSON.stringify(adminToSave));
       setAdmin(adminToSave);
       
-      console.log('AdminAuthProvider: Admin login completed, admin state set', adminToSave);
+      
       return { admin: adminToSave, token };
     } catch (error) {
       console.error('AdminAuthProvider: Admin login error:', error);

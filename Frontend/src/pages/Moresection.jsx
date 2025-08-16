@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, MessageCircle, Info, HeartHandshake, FileText, Eye, Shield, Users, Award, Zap, CheckCircle, Star, HelpCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, MessageCircle, Info, HeartHandshake, FileText, Eye, Shield, Users, Award, Zap, CheckCircle, Star, HelpCircle, RefreshCw, ChevronRight, ShoppingCart, CreditCard, Truck, Shirt, Building, Monitor } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 
@@ -14,14 +14,178 @@ const MorePage = () => {
     { id: 'privacy', label: 'Privacy', icon: Eye },
     { id: 'support', label: 'Support', icon: HeartHandshake }
   ];
-
+  
   const toggleSection = (section) => {
     setExpandedSection(expandedSection === section ? null : section);
   };
-
+  
   // Get the label for the active tab
   const activeTabLabel = moreItems.find((item) => item.id === activeTab)?.label || 'More';
-
+  
+  // Help topics content
+  const helpTopicsContent = {
+    'help-0': {
+      title: 'Order Status & Tracking',
+      icon: <Package className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            You can check your order status at any time by logging into your account on our website. 
+            Once your order is placed, you'll receive a confirmation email with your order details.
+          </p>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="font-Jost text-blue-800 font-medium flex items-center">
+              <Mail className="w-4 h-4 mr-2" />
+              Email Notifications
+            </p>
+            <p className="font-Jost text-blue-700 text-sm mt-2">
+              Our admin team automatically sends email updates whenever your order status changes. 
+              You'll receive notifications when:
+            </p>
+            <ul className="list-disc list-inside font-Jost text-blue-700 text-sm mt-2 space-y-1">
+              <li>Your order is confirmed</li>
+              <li>Your payment is processed</li>
+              <li>Your order is being prepared</li>
+              <li>Your order ships (with tracking information)</li>
+              <li>Your order is delivered</li>
+            </ul>
+          </div>
+          <p className="font-Jost text-gray-600">
+            To track your package, use the tracking number provided in the shipping confirmation email 
+            on our website or the courier's website.
+          </p>
+        </div>
+      )
+    },
+    'help-1': {
+      title: 'Size Exchange',
+      icon: <Shirt className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            If you need a different size, we offer free size exchanges within 30 days of purchase. 
+            The item must be unworn, unwashed, and in its original packaging with all tags attached.
+          </p>
+          <div className="bg-green-50 p-4 rounded-lg">
+            <p className="font-Jost text-green-800 font-medium">Exchange Process:</p>
+            <ol className="list-decimal list-inside font-Jost text-green-700 text-sm mt-2 space-y-1">
+              <li>Contact our support team with your order number</li>
+              <li>We'll send you a return shipping label via email</li>
+              <li>Package the item securely and attach the label</li>
+              <li>Drop off the package at any courier location</li>
+              <li>Once received, we'll ship your new size immediately</li>
+            </ol>
+          </div>
+          <p className="font-Jost text-gray-600">
+            You'll receive email notifications at each step of the exchange process, including when 
+            we receive your return and when your replacement ships.
+          </p>
+        </div>
+      )
+    },
+    'help-2': {
+      title: 'Payment Issues',
+      icon: <CreditCard className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            If you're experiencing payment issues, here are some common solutions:
+          </p>
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <p className="font-Jost text-yellow-800 font-medium">Troubleshooting Tips:</p>
+            <ul className="list-disc list-inside font-Jost text-yellow-700 text-sm mt-2 space-y-1">
+              <li>Ensure your card details are entered correctly</li>
+              <li>Check that your card has sufficient funds</li>
+              <li>Verify your card is enabled for online transactions</li>
+              <li>Try a different payment method or browser</li>
+              <li>Contact your bank if the issue persists</li>
+            </ul>
+          </div>
+          <p className="font-Jost text-gray-600">
+            If your payment is successful but you don't receive a confirmation email within 30 minutes, 
+            please check your spam folder or contact our support team.
+          </p>
+        </div>
+      )
+    },
+    'help-3': {
+      title: 'Product Care Instructions',
+      icon: <Shirt className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            To ensure the longevity of your Tia products, please follow these care instructions:
+          </p>
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <p className="font-Jost text-purple-800 font-medium">General Care Guidelines:</p>
+            <ul className="list-disc list-inside font-Jost text-purple-700 text-sm mt-2 space-y-1">
+              <li>Machine wash cold with similar colors</li>
+              <li>Use mild detergent, avoid bleach</li>
+              <li>Tumble dry low or hang to dry</li>
+              <li>Do not iron directly on elastic or prints</li>
+              <li>Wash inside out to preserve color and fabric</li>
+            </ul>
+          </div>
+          <p className="font-Jost text-gray-600">
+            For specific product care instructions, refer to the label on your garment or the product 
+            page on our website.
+          </p>
+        </div>
+      )
+    },
+    'help-4': {
+      title: 'Wholesale Inquiries',
+      icon: <Building className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            Interested in becoming a Tia brand retailer or distributor? We offer wholesale partnerships 
+            for qualified businesses.
+          </p>
+          <div className="bg-indigo-50 p-4 rounded-lg">
+            <p className="font-Jost text-indigo-800 font-medium">Wholesale Benefits:</p>
+            <ul className="list-disc list-inside font-Jost text-indigo-700 text-sm mt-2 space-y-1">
+              <li>Competitive wholesale pricing</li>
+              <li>Marketing materials and support</li>
+              <li>Exclusive access to new collections</li>
+              <li>Flexible order quantities</li>
+              <li>Dedicated account manager</li>
+            </ul>
+          </div>
+          <p className="font-Jost text-gray-600">
+            To apply for a wholesale account, please email us at <strong>Thetiabrand1@gmail.com</strong> with 
+            your business information, including your company name, location, and type of retail establishment.
+          </p>
+        </div>
+      )
+    },
+    'help-5': {
+      title: 'Technical Support',
+      icon: <Monitor className="w-5 h-5" />,
+      content: (
+        <div className="mt-4 pl-2 space-y-3">
+          <p className="font-Jost text-gray-600">
+            Experiencing technical issues with our website or your account? Our technical support team is here to help.
+          </p>
+          <div className="bg-red-50 p-4 rounded-lg">
+            <p className="font-Jost text-red-800 font-medium">Common Issues We Resolve:</p>
+            <ul className="list-disc list-inside font-Jost text-red-700 text-sm mt-2 space-y-1">
+              <li>Account login problems</li>
+              <li>Website navigation difficulties</li>
+              <li>Checkout process errors</li>
+              <li>Mobile app functionality issues</li>
+              <li>Data privacy concerns</li>
+            </ul>
+          </div>
+          <p className="font-Jost text-gray-600">
+            For technical support, please email us with a detailed description of the issue, screenshots if applicable, 
+            and your device/browser information. Our technical team will respond within 24 hours with a solution.
+          </p>
+        </div>
+      )
+    }
+  };
+  
   const renderContent = () => {
     switch (activeTab) {
       case 'about':
@@ -562,30 +726,36 @@ const MorePage = () => {
                 </h4>
                 <div className="space-y-3">
                   {[
-                    { topic: 'Order Status & Tracking', desc: 'Check your order progress and delivery status' },
-                    { topic: 'Size Exchange', desc: 'Request a different size for your purchase' },
-                    { topic: 'Payment Issues', desc: 'Resolve payment and billing problems' },
-                    { topic: 'Product Care Instructions', desc: 'Learn how to care for your Tia products' },
-                    { topic: 'Wholesale Inquiries', desc: 'Bulk orders and business partnerships' },
-                    { topic: 'Technical Support', desc: 'Website issues and account problems' }
-                  ].map((item, idx) => (
+                    { id: 'help-0', topic: 'Order Status & Tracking', desc: 'Check your order progress and delivery status', icon: <Package className="w-5 h-5" /> },
+                    { id: 'help-1', topic: 'Size Exchange', desc: 'Request a different size for your purchase', icon: <Shirt className="w-5 h-5" /> },
+                    { id: 'help-2', topic: 'Payment Issues', desc: 'Resolve payment and billing problems', icon: <CreditCard className="w-5 h-5" /> },
+                    { id: 'help-3', topic: 'Product Care Instructions', desc: 'Learn how to care for your Tia products', icon: <Shirt className="w-5 h-5" /> },
+                    { id: 'help-4', topic: 'Wholesale Inquiries', desc: 'Bulk orders and business partnerships', icon: <Building className="w-5 h-5" /> },
+                    { id: 'help-5', topic: 'Technical Support', desc: 'Website issues and account problems', icon: <Monitor className="w-5 h-5" /> }
+                  ].map((item) => (
                     <div 
-                      key={idx} 
-                      className={`p-4 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors cursor-pointer ${
-                        expandedSection === `help-${idx}` ? 'bg-accent text-black' : 'bg-gray-100 text-gray-700'
+                      key={item.id} 
+                      className={`p-4 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer ${
+                        expandedSection === item.id ? 'bg-accent text-black' : 'bg-gray-50 text-gray-700'
                       }`}
-                      onClick={() => toggleSection(`help-${idx}`)}
+                      onClick={() => toggleSection(item.id)}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="font-medium font-Manrope text-Primarycolor">{item.topic}</h5>
-                          <p className="text-sm font-Jost text-gray-600 mt-1">{item.desc}</p>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-gray-500">
+                            {item.icon}
+                          </div>
+                          <div>
+                            <h5 className="font-medium font-Manrope text-Primarycolor">{item.topic}</h5>
+                            <p className="text-sm font-Jost text-gray-600 mt-1">{item.desc}</p>
+                          </div>
                         </div>
-                        {expandedSection === `help-${idx}` ? 
+                        {expandedSection === item.id ? 
                           <ChevronUp className="w-4 h-4 text-gray-400" /> : 
                           <ChevronDown className="w-4 h-4 text-gray-400" />
                         }
                       </div>
+                      {expandedSection === item.id && helpTopicsContent[item.id]?.content}
                     </div>
                   ))}
                 </div>
@@ -637,7 +807,7 @@ const MorePage = () => {
               </h4>
               <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-4">
-                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-red-600 text-sm font-bold">!</span>
@@ -651,7 +821,7 @@ const MorePage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-blue-600 text-sm font-bold">?</span>
@@ -667,7 +837,7 @@ const MorePage = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-yellow-600 text-sm font-bold">⚠</span>
@@ -681,7 +851,7 @@ const MorePage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors">
+                  <div className="p-5 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-green-600 text-sm font-bold">₦</span>
@@ -731,7 +901,7 @@ const MorePage = () => {
         return null;
     }
   };
-
+  
   return (
     <div className="flex flex-col min-h-screen" style={{
       '--color-Primarycolor': '#1E1E1E',

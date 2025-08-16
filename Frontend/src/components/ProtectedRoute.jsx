@@ -44,13 +44,11 @@ const ProtectedRoute = ({ children }) => {
   });
   
   if (!user && (!token || !storedUser)) {
-    console.log('ProtectedRoute: No user found in context or localStorage, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   // If we have user in context, use it
   if (user) {
-    console.log('ProtectedRoute: User authenticated, rendering children');
     return children;
   }
   
@@ -58,7 +56,6 @@ const ProtectedRoute = ({ children }) => {
   if (token && storedUser) {
     try {
       const parsedUser = JSON.parse(storedUser);
-      console.log('ProtectedRoute: Using user from localStorage:', parsedUser);
       return children;
     } catch (err) {
       console.error('ProtectedRoute: Error parsing user from localStorage:', err);

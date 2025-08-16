@@ -73,7 +73,6 @@ const Login = () => {
       );
       return JSON.parse(jsonPayload);
     } catch (err) {
-      console.error('LoginPage: Error decoding token:', err);
       return null;
     }
   };
@@ -165,8 +164,7 @@ const Login = () => {
       }
       
       // Step 4: Persist user in context
-      console.log('LoginPage: Login response data:', data);
-      console.log('LoginPage: Calling login with:', { user: userWithId, token });
+     
       await login(userWithId, token);
       
       // Step 5: Remember email if user checked the box
@@ -176,11 +174,6 @@ const Login = () => {
         localStorage.removeItem('userEmail');
       }
       
-      // Step 6: Log localStorage for debugging
-      console.log('LoginPage: Login completed, checking localStorage:', {
-        token: localStorage.getItem('token'),
-        user: localStorage.getItem('user'),
-      });
       
       // Step 7: Redirect to intended page
       setSuccessMsg('Login successful! Redirecting...');
