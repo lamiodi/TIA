@@ -227,7 +227,7 @@ const ShopAllPage = () => {
 
   if (loading || contextLoading) {
     return (
-      <div className="typography container-padding flex flex-col min-h-screen">
+      <div className="container-padding typography  flex flex-col min-h-screen">
         <Navbar />
         <div className={`grid gap-2 sm:gap-3 md:gap-4 lg:gap-5 mb-8 ${
           mobileLayout === 'one' 
