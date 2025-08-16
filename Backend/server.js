@@ -20,8 +20,6 @@ import adminRoutes from './routes/adminRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
 import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
-// CORS configuration
-import cors from 'cors';
 
 EventEmitter.defaultMaxListeners = 40;
 
