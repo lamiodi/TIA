@@ -17,11 +17,7 @@ const ProtectedRoute = ({ children }) => {
     return () => clearTimeout(timer);
   }, []);
   
-  console.log('ProtectedRoute: State:', { 
-    user: user ? JSON.stringify(user) : null, 
-    loading, 
-    isChecking 
-  });
+ 
   
   if (loading || isChecking) {
     return (
@@ -38,10 +34,7 @@ const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   const storedUser = localStorage.getItem('user');
   
-  console.log('ProtectedRoute: Fallback check:', { 
-    token: token ? 'exists' : 'none',
-    storedUser: storedUser ? 'exists' : 'none'
-  });
+  
   
   if (!user && (!token || !storedUser)) {
     return <Navigate to="/login" state={{ from: location }} replace />;

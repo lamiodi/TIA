@@ -104,7 +104,7 @@ const BillingAddressForm = ({
         ...billingForm 
       };
       
-      console.log('BillingAddressForm: Sending billing address:', payload);
+      
       
       const token = getToken();
       const response = await axios.post(`${API_BASE_URL}/api/billing-addresses`, payload, {

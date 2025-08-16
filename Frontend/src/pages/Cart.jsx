@@ -161,7 +161,7 @@ const Cart = () => {
           throw new Error('Received HTML instead of JSON; check Vite proxy configuration');
         }
         
-        console.log('Cart: Fetched cart:', JSON.stringify(response.data, null, 2));
+        
         setCart(response.data);
         setError('');
         toast.success('Cart loaded successfully');
@@ -365,7 +365,7 @@ const Cart = () => {
         return;
       }
       
-      console.log(`Cart: Clearing cart for userId=${getUserId()}`);
+     
       
       const authAxios = getAuthAxios();
       const response = await authAxios.delete(`/api/cart/clear/${getUserId()}`);

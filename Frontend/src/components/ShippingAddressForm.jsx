@@ -110,7 +110,7 @@ const ShippingAddressForm = ({
         phone_number: shippingForm.phone_number || ''
       };
       
-      console.log('ShippingAddressForm: Sending shipping address:', payload);
+      
       
       const token = getToken();
       const response = await axios.post(`${API_BASE_URL}/api/addresses`, payload, {
