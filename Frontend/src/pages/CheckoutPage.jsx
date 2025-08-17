@@ -17,7 +17,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r
 const WHATSAPP_NUMBER = '2348104117122';
 
 const CheckoutPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  // Added updateUser from the AuthContext
+  const { user, loading: authLoading, updateUser } = useAuth();
   
   let currencyContext;
   try {
@@ -118,14 +119,41 @@ const CheckoutPage = () => {
     return !!getToken();
   };
   
-  // Calculate first order discount
+  // Add function to refresh user data from server
+  const refreshUserData = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update the user in context if updateUser function is available
+      if (updateUser) {
+        updateUser(response.data.user);
+      }
+      
+      return response.data.user;
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
+      return null;
+    }
+  };
+  
+  // Calculate first order discount with additional logging
   useEffect(() => {
     const currentSubtotal = cart.subtotal; // Always in NGN
+    console.log('Calculating first order discount:', {
+      userFirstOrder: user?.first_order,
+      currentSubtotal
+    });
+    
     if (user?.first_order && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
+      console.log('Applied first order discount:', discountAmount);
     } else {
       setFirstOrderDiscount(0);
+      console.log('No first order discount applied');
     }
   }, [user?.first_order, cart.subtotal]);
   
@@ -137,11 +165,9 @@ const CheckoutPage = () => {
       setCouponError('Please enter a coupon code');
       return;
     }
-
     setCouponLoading(true);
     setCouponError('');
     setCouponSuccess('');
-
     try {
       const token = getToken();
       const response = await axios.post(
@@ -183,7 +209,7 @@ const CheckoutPage = () => {
       setCouponLoading(false);
     }
   };
-
+  
   // Remove coupon
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
@@ -347,7 +373,7 @@ const CheckoutPage = () => {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
@@ -610,27 +636,36 @@ const CheckoutPage = () => {
       // Update user's first_order status if applicable
       if (user.first_order) {
         try {
+          console.log('Updating first_order status for user:', userId);
+          
           const response = await axios({
             method: 'PATCH',
             url: `${API_BASE_URL}/api/auth/users/${userId}`, 
             data: { first_order: false },
             headers: { Authorization: `Bearer ${token}` }
           });
-          console.log('Updated first_order to false for user:', userId);
           
-          // Update user context with new first_order status
-          if (response.data && response.data.user) {
-            // Assuming you have a function to update user context
-            updateUserContext(response.data.user);
+          console.log('Update response:', response.data);
+          
+          if (response.data && response.data.success) {
+            // Refresh user data from server
+            const updatedUser = await refreshUserData();
+            
+            if (updatedUser && !updatedUser.first_order) {
+              console.log('User data refreshed, first_order is now false');
+            } else {
+              console.warn('User data refresh failed or first_order is still true');
+            }
           }
-          
-          console.log('Updated first_order to false for user:', userId);
         } catch (err) {
           console.error('Failed to update first_order status:', err);
-          toast.error('We had trouble updating your account. Please contact support if you see this discount again.');
+          
+          // Only show error toast if it's a server error
+          if (err.response) {
+            toast.error('We had trouble updating your account. Please contact support if you see this discount again.');
+          }
         }
       }
-
   
       const paymentCurrency = 'NGN';
       const paymentAmount = baseTotal;
