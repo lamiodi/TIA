@@ -55,7 +55,7 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-country'], // <- Add your custom header
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-country', 'Cache-Control', 'Pragma'],
   credentials: true
 }));
 
