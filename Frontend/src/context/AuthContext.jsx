@@ -35,15 +35,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
   
-  // ====== THIS IS THE ONLY FUNCTION YOU NEED TO ADD ======
-  const updateUser = (userData) => {
-    // Update the state
-    setUser(userData);
-    
-    // Also update localStorage to keep it in sync
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-  
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -133,7 +124,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
   
-  // ====== AND THIS IS THE ONLY CHANGE YOU NEED TO MAKE HERE ======
+  // ====== ADD THIS FUNCTION ======
+  const updateUser = (userData) => {
+    if (userData) {
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+  };
+  
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
