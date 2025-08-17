@@ -1,11 +1,10 @@
-// AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Helper function to decode JWT token
   const decodeToken = (token) => {
     try {
@@ -20,7 +19,7 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   };
-  
+
   // Check if token is expired
   const isTokenExpired = (token) => {
     try {
@@ -35,16 +34,7 @@ export const AuthProvider = ({ children }) => {
       return true;
     }
   };
-  
-  // Add this updateUser function
-  const updateUser = (userData) => {
-    // Update the state
-    setUser(userData);
-    
-    // Also update localStorage to keep it in sync
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-  
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -106,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     
     checkAuth();
   }, []);
-  
+
   const login = async (userData, tokenData) => {
     try {
       // FIXED: Ensure the user object has both 'id' and 'userId' properties
@@ -127,16 +117,15 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
-  
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
   };
-  
-  // Add updateUser to the context value
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
