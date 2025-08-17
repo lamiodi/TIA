@@ -8,6 +8,7 @@ import BillingAddressForm from '../components/BillingAddressForm';
 import ShippingAddressForm from '../components/ShippingAddressForm';
 import WhatsAppChatWidget from '../components/WhatsAppChatWidget';
 import { useAuth } from '../context/AuthContext';
+import { useUserManager } from '../hooks/useUserManager'; // Import the custom hook
 import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,8 +18,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r
 const WHATSAPP_NUMBER = '2348104117122';
 
 const CheckoutPage = () => {
-  // Added updateUser from the AuthContext
-  const { user, loading: authLoading, updateUser } = useAuth();
+  // Get user data from both AuthContext and our custom hook
+  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: hookUser, refreshUser, refreshCount } = useUserManager();
+  
+  // Use the user from our custom hook, fall back to AuthContext if needed
+  const user = hookUser || authUser;
   
   let currencyContext;
   try {
@@ -122,30 +127,22 @@ const CheckoutPage = () => {
     return !!getToken();
   };
   
-  // Add function to refresh user data from server
+  // Replace your refreshUserData function with this
   const refreshUserData = async () => {
     try {
-      const token = getToken();
       console.log('Refreshing user data...');
       
-      const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
+      // Use the refreshUser function from our custom hook
+      const updatedUser = await refreshUser();
       
-      console.log('Refreshed user data:', response.data.user);
-      
-      // Update the user in context if updateUser function is available
-      if (updateUser) {
-        updateUser(response.data.user);
-        console.log('User context updated');
+      if (updatedUser) {
+        console.log('User data refreshed successfully');
         setUserDataRefreshed(true);
+        return updatedUser;
+      } else {
+        console.warn('Failed to refresh user data');
+        return null;
       }
-      
-      return response.data.user;
     } catch (err) {
       console.error('Failed to refresh user data:', err);
       return null;
@@ -164,17 +161,17 @@ const CheckoutPage = () => {
         }
       }
     };
-
     refreshUserDataOnMount();
   }, [user, userDataRefreshed]);
   
-  // Calculate first order discount with additional logging
+  // Update the useEffect that calculates the first order discount
   useEffect(() => {
     const currentSubtotal = cart.subtotal; // Always in NGN
     console.log('Calculating first order discount:', {
       userFirstOrder: user?.first_order,
       currentSubtotal,
-      userDataRefreshed
+      userDataRefreshed,
+      refreshCount
     });
     
     if (user?.first_order && currentSubtotal > 0) {
@@ -185,7 +182,7 @@ const CheckoutPage = () => {
       setFirstOrderDiscount(0);
       console.log('No first order discount applied');
     }
-  }, [user?.first_order, cart.subtotal, userDataRefreshed]);
+  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
   
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
@@ -666,19 +663,19 @@ const CheckoutPage = () => {
       // Update user's first_order status if applicable
       if (user.first_order) {
         try {
-          console.log('Updating first_order status for user:', userId);
+          console.log('Updating first_order status for user:', getUserId());
           
           const response = await axios({
             method: 'PATCH',
-            url: `${API_BASE_URL}/api/auth/users/${userId}`, 
+            url: `${API_BASE_URL}/api/auth/users/${getUserId()}`, 
             data: { first_order: false },
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${getToken()}` }
           });
           
           console.log('Update response:', response.data);
           
           if (response.data && response.data.success) {
-            // Refresh user data from server
+            // Refresh user data from server using our custom hook
             const updatedUser = await refreshUserData();
             
             if (updatedUser && !updatedUser.first_order) {
