@@ -89,6 +89,9 @@ const CheckoutPage = () => {
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
   
+  // Add state to track if user data has been refreshed
+  const [userDataRefreshed, setUserDataRefreshed] = useState(false);
+  
   const decodeToken = (token) => {
     try {
       const base64Url = token.split('.')[1];
@@ -123,13 +126,23 @@ const CheckoutPage = () => {
   const refreshUserData = async () => {
     try {
       const token = getToken();
+      console.log('Refreshing user data...');
+      
       const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
+      
+      console.log('Refreshed user data:', response.data.user);
       
       // Update the user in context if updateUser function is available
       if (updateUser) {
         updateUser(response.data.user);
+        console.log('User context updated');
+        setUserDataRefreshed(true);
       }
       
       return response.data.user;
@@ -139,12 +152,29 @@ const CheckoutPage = () => {
     }
   };
   
+  // Force refresh user data on component mount
+  useEffect(() => {
+    const refreshUserDataOnMount = async () => {
+      if (user && isAuthenticated() && !userDataRefreshed) {
+        try {
+          await refreshUserData();
+          console.log('User data refreshed on component mount');
+        } catch (err) {
+          console.error('Failed to refresh user data on mount:', err);
+        }
+      }
+    };
+
+    refreshUserDataOnMount();
+  }, [user, userDataRefreshed]);
+  
   // Calculate first order discount with additional logging
   useEffect(() => {
     const currentSubtotal = cart.subtotal; // Always in NGN
     console.log('Calculating first order discount:', {
       userFirstOrder: user?.first_order,
-      currentSubtotal
+      currentSubtotal,
+      userDataRefreshed
     });
     
     if (user?.first_order && currentSubtotal > 0) {
@@ -155,7 +185,7 @@ const CheckoutPage = () => {
       setFirstOrderDiscount(0);
       console.log('No first order discount applied');
     }
-  }, [user?.first_order, cart.subtotal]);
+  }, [user?.first_order, cart.subtotal, userDataRefreshed]);
   
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
@@ -826,6 +856,26 @@ const CheckoutPage = () => {
           <ArrowLeft className="h-5 w-5 mr-1" /> Back to Cart
         </Link>
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
+        
+        {/* Debug Panel - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
+            <p className="text-sm text-yellow-700">
+              User ID: {user?.id}<br />
+              First Order (DB): {user?.first_order?.toString()}<br />
+              First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
+              Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
+              User Data Refreshed: {userDataRefreshed?.toString()}
+            </p>
+            <button 
+              onClick={refreshUserData}
+              className="mt-2 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+            >
+              Refresh User Data
+            </button>
+          </div>
+        )}
         
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
