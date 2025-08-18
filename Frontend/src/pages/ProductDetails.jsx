@@ -449,11 +449,11 @@ const ProductDetails = () => {
             <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white">
               <div className="space-y-6">
                 {/* Main Image */}
-                <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] bg-white rounded-2xl overflow-hidden shadow-lg group">
+                <div className="relative aspect-square bg-white rounded-2xl overflow-hidden shadow-lg group">
                   <img
                     src={images[selectedImage] || 'https://via.placeholder.com/500'}
                     alt="Product"
-                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Bundle Badge */}
                   {!isProduct && (
