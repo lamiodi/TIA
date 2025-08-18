@@ -297,12 +297,7 @@ export const createOrder = async (req, res) => {
         }
       }
       
-      await sql`
-        UPDATE cart 
-        SET status = 'processing' 
-        WHERE id = ${cart_id}
-      `;
-      
+  
       
       if (address.country.toLowerCase() !== 'nigeria') {
         await sendAdminDeliveryFeeNotification(
@@ -347,11 +342,11 @@ export const verifyPayment = async (req, res) => {
     
     await sql.begin(async (sql) => {
       const [order] = await sql`
-  UPDATE orders 
-  SET payment_status = 'completed', updated_at = NOW() 
-  WHERE reference = ${reference} AND deleted_at IS NULL 
-  RETURNING id, reference, discount, cart_id  // Add cart_id here
-`;
+        UPDATE orders 
+        SET payment_status = 'completed', updated_at = NOW() 
+        WHERE reference = ${reference} AND deleted_at IS NULL 
+        RETURNING id, reference, discount
+      `;
       
       if (!order) {
         throw new Error('Order not found');
@@ -376,7 +371,7 @@ export const verifyPayment = async (req, res) => {
       console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
       res.status(200).json({ message: 'Payment verified successfully', order });
         // NOW delete the cart items after payment is verified
-        await sql`DELETE FROM cart_items WHERE cart_id = ${order.cart_id}`;
+        await sql`DELETE FROM cart_items WHERE cart_id = ${cart_id}`;
     });
   } catch (err) {
     console.error('❌ Error verifying payment:', err.message);
