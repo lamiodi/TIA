@@ -527,6 +527,36 @@ const CheckoutPage = () => {
     }
   }, [shippingAddresses, shippingAddressId, country]);
   
+  // Add this useEffect to check for pending orders
+  useEffect(() => {
+    const checkPendingOrder = async () => {
+      const pendingOrderId = localStorage.getItem('pendingOrderId');
+      if (pendingOrderId) {
+        try {
+          const token = getToken();
+          const response = await axios.get(`${API_BASE_URL}/api/orders/${pendingOrderId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          const order = response.data;
+          if (order.payment_status === 'pending') {
+            toast.info('You have a pending order. Please complete the payment.');
+            navigate(`/orders/${pendingOrderId}`);
+            return;
+          }
+        } catch (err) {
+          console.error('Error checking pending order:', err);
+        } finally {
+          localStorage.removeItem('pendingOrderId');
+        }
+      }
+    };
+    
+    if (user && !authLoading && !contextLoading) {
+      checkPendingOrder();
+    }
+  }, [user, authLoading, contextLoading, navigate]);
+  
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
@@ -729,26 +759,52 @@ const CheckoutPage = () => {
       if (accessCode) {
         toast.success('Order placed successfully. Opening payment popup...');
         localStorage.setItem('lastOrderReference', orderData.reference);
+        localStorage.setItem('pendingOrderId', orderId); // Store the order ID
         
         const paystack = new PaystackPop();
-        paystack.newTransaction({ // Changed from resumeTransaction to newTransaction
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY, // Ensure this is set in Vercel
+        paystack.newTransaction({
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
           email: paymentData.email,
           amount: paymentData.amount,
           currency: paymentData.currency,
           reference: paymentData.reference,
           callback: (response) => {
             toast.success('Payment successful!');
-            window.location.href = callbackUrl;
+            // Use navigate instead of window.location.href
+            navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
           },
           onClose: () => {
-            toast.info('Payment window closed. You can complete payment later from your orders page.');
-            window.location.href = `${window.location.origin}/orders?orderId=${orderId}`;
+            // Check if payment was completed by verifying with backend
+            const checkPaymentStatus = async () => {
+              try {
+                const token = getToken();
+                const paymentResponse = await axios.post(
+                  `${API_BASE_URL}/api/paystack/verify`,
+                  { reference: orderData.reference },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+                
+                if (paymentResponse.data.order?.payment_status === 'completed') {
+                  toast.success('Payment was successful!');
+                  navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
+                } else {
+                  toast.info('Payment window closed. You can complete payment later from your orders page.');
+                  navigate(`/orders/${orderId}`);
+                }
+              } catch (err) {
+                console.error('Error checking payment status:', err);
+                toast.info('Payment window closed. You can complete payment later from your orders page.');
+                navigate(`/orders/${orderId}`);
+              }
+            };
+            
+            checkPaymentStatus();
           }
         });
       } else if (authorizationUrl) {
         toast.success('Order placed successfully. Redirecting to payment page...');
         localStorage.setItem('lastOrderReference', orderData.reference);
+        localStorage.setItem('pendingOrderId', orderId);
         window.location.href = authorizationUrl;
       } else {
         console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
@@ -823,7 +879,24 @@ const CheckoutPage = () => {
     );
   }
   
+  // Updated empty cart handling to check for pending orders
   if (!cart?.items?.length) {
+    // Check if there's a pending order
+    const pendingOrderId = localStorage.getItem('pendingOrderId');
+    if (pendingOrderId) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center text-Accent py-8 font-Jost">
+            <p>Your order is pending payment.</p>
+            <Link to={`/orders/${pendingOrderId}`} className="mt-4 inline-flex items-center text-Accent hover:text-Primarycolor">
+              View Order
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    
+    // Original empty cart message
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-Accent py-8 font-Jost">
