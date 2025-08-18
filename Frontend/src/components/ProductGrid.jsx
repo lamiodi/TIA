@@ -138,7 +138,7 @@ const ProductGrid = () => {
         </div>
       </div>
       {loading || contextLoading ? (
-        <div className="container-padding px-2">
+        <div className="p-1">
           <div className="flex justify-end sm:hidden mb-2">
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
