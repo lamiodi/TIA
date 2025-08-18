@@ -350,10 +350,10 @@ const HelpPage = () => {
                 <h4 className="font-semibold font-Manrope text-Primarycolor mb-2">Email Us</h4>
                 <p className="font-Jost text-gray-600 mb-4 text-sm">Get in touch via email</p>
                 <a 
-                  href="mailto:Tiabrand1@gmail.com"
+                  href="mailto:thetiabrand1@gmail.com"
                   className="text-blue-600 hover:text-blue-800 font-medium font-Jost transition-colors"
                 >
-                  Tiabrand1@gmail.com
+                  thetiabrand1@gmail.com
                 </a>
               </div>
               <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">

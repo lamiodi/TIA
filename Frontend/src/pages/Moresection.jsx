@@ -193,12 +193,12 @@ const MorePage = () => {
           <div className="space-y-8 animate-fade-in">
             {/* Hero Section */}
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-8 rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300">
-              <h3 className="text-3xl font-bold font-Manrope text-Primarycolor mb-4">About Tiabrand</h3>
+              <h3 className="text-3xl font-bold font-Manrope text-Primarycolor mb-4">About The Tia brand</h3>
               <p className="text-xl font-Jost text-gray-600 leading-relaxed mb-4">
                 Premium comfort, tailored for everyday movement.
               </p>
               <p className="font-Jost text-gray-600 leading-relaxed">
-                Founded with a vision to revolutionize men's underwear and activewear, Tiabrand combines cutting-edge design with uncompromising comfort.
+                Founded with a vision to revolutionize men's underwear and activewear,The Tia brand combines cutting-edge design with uncompromising comfort.
               </p>
             </div>
             {/* Mission & Vision */}
@@ -209,7 +209,7 @@ const MorePage = () => {
                 </div>
                 <h4 className="text-xl font-semibold font-Manrope text-Primarycolor mb-4">Our Mission</h4>
                 <p className="font-Jost text-gray-600 leading-relaxed mb-6">
-                  At Tiabrand, we believe that comfort shouldn't compromise style. We create premium 
+                  At Tia brand, we believe that comfort shouldn't compromise style. We create premium 
                   underwear and activewear that moves with you, providing unmatched comfort for your 
                   everyday adventures.
                 </p>
