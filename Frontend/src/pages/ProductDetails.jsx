@@ -449,7 +449,7 @@ const ProductDetails = () => {
             <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white">
               <div className="space-y-6">
                 {/* Main Image */}
-                <div className="relative aspect-square bg-white rounded-2xl overflow-hidden shadow-lg group">
+                <div className="relative aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-lg group">
                   <img
                     src={images[selectedImage] || 'https://via.placeholder.com/500'}
                     alt="Product"
