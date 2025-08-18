@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+
+// Directly use the backup server URL
+const API_BASE_URL = 'https://tia-backend-r331.onrender.com';
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 10000,
+});
 
 export const AdminAuthContext = createContext();
 export const AdminAuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [adminLoading, setAdminLoading] = useState(true);
-
+  
   useEffect(() => {
-    
     const token = localStorage.getItem('adminToken');
     const storedAdmin = localStorage.getItem('admin');
     
@@ -32,49 +39,23 @@ export const AdminAuthProvider = ({ children }) => {
     
     setAdminLoading(false);
   }, []);
-
-  const adminLogin = async (email, password) => {
+  
+  const adminLogin = async (user, token) => {
+    // Store the admin data and token
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('admin', JSON.stringify(user));
+    setAdmin(user);
     
-    
-    try {
-      const response = await fetch('/api/auth/admin-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw { response: { status: response.status, data: errorData } };
-      }
-
-      const data = await response.json();
-      const { user, token } = data;
-      
-      // Standardize the admin object by mapping 'userId' to 'id'
-      const adminToSave = { ...user, id: user.userId };
-      
-      localStorage.setItem('adminToken', token);
-      localStorage.setItem('admin', JSON.stringify(adminToSave));
-      setAdmin(adminToSave);
-      
-      
-      return { admin: adminToSave, token };
-    } catch (error) {
-      console.error('AdminAuthProvider: Admin login error:', error);
-      throw error;
-    }
+    return { admin: user, token };
   };
-
+  
   const adminLogout = () => {
     console.log('AdminAuthProvider: Admin logging out');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('admin');
     setAdmin(null);
   };
-
+  
   return (
     <AdminAuthContext.Provider value={{ admin, adminLoading, adminLogin, adminLogout }}>
       {children}

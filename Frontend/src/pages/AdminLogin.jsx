@@ -5,9 +5,8 @@ import { toast } from 'react-toastify';
 import { Mail, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
-// Create API instance with environment variable support
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com').replace(/\/$/, '');
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com').replace(/\/$/, '');
+// Directly use the backup server URL
+const API_BASE_URL = 'https://tia-backend-r331.onrender.com';
 console.log('API_BASE_URL:', API_BASE_URL);
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -77,16 +76,16 @@ const AdminLogin = () => {
     setLoading(true);
     
     try {
-      // Use the configured API instance instead of the context method
+      // Use the configured API instance
       const response = await api.post('/auth/admin-login', {
         email: formData.email,
         password: formData.password,
       });
       
-      const { token, admin } = response.data;
+      const { token, user } = response.data;
       
       // Use the adminLogin method from context to update state
-      await adminLogin(admin, token);
+      await adminLogin(user, token);
       
       setSuccessMsg('Admin login successful! Redirecting...');
       toast.success('Admin login successful!');
