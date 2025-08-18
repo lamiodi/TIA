@@ -138,7 +138,7 @@ const ProductGrid = () => {
         </div>
       </div>
       {loading || contextLoading ? (
-        <div className="container-padding">
+        <div className="container-padding px-2">
           <div className="flex justify-end sm:hidden mb-2">
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
@@ -232,7 +232,7 @@ const ProductGrid = () => {
                   </button>
                 </div>
               </div>
-              <div className={`grid px-[0.5em] gap-x-2 gap-y-[0.7em] sm:gap-x-3 sm:gap-y-[1.05em] md:gap-x-4 md:gap-y-[1.4em] lg:gap-x-3 lg:gap-y-[0.95em] mb-8 ${
+              <div className={`grid px-0 gap-x-2 gap-y-[0.7em] sm:gap-x-3 sm:gap-y-[1.05em] md:gap-x-4 md:gap-y-[1.4em] lg:gap-x-3 lg:gap-y-[0.95em] mb-8 ${
                 mobileLayout === 'one' 
                   ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                   : 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
