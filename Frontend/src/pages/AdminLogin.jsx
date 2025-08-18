@@ -7,6 +7,8 @@ import axios from 'axios';
 
 // Create API instance with environment variable support
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com').replace(/\/$/, '');
+console.log('API_BASE_URL:', API_BASE_URL);
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,

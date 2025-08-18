@@ -13,7 +13,7 @@ export default defineConfig({
       '/api': {
         target: 'https://tia-backend-r331.onrender.com',
         changeOrigin: true,
-        secure: false
+        secure: true
       }
     }
   },
