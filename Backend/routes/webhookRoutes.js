@@ -1,4 +1,4 @@
-// paystackRoutes.js
+// webhookRoutes.js
 import express from 'express';
 import crypto from 'crypto';
 import sql from '../db/index.js';

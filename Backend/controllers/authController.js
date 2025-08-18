@@ -71,7 +71,6 @@ export const adminLogin = async (req, res) => {
         email: user.email,
         phone_number: user.phone_number,
         isAdmin: user.is_admin,
-        first_order: user.first_order,
       },
     });
   } catch (err) {
