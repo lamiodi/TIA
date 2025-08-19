@@ -12,6 +12,11 @@ export const cleanupOldOrders = async () => {
       AND deleted_at IS NULL
     `;
 
+    if (oldOrders.length === 0) {
+      console.log('No old pending or failed orders to clean up.');
+      return;
+    }
+
     for (const order of oldOrders) {
       await sql.begin(async sql => {
         const orderItems = await sql`
@@ -23,7 +28,7 @@ export const cleanupOldOrders = async () => {
           if (item.variant_id && item.size_id) {
             await sql`
               UPDATE variant_sizes
-              SET stock = stock + ${item.quantity}
+              SET stock_quantity = stock_quantity + ${item.quantity}
               WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
             `;
             console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
@@ -47,5 +52,5 @@ export const cleanupOldOrders = async () => {
   }
 };
 
-// Run every day at midnight
+// Schedule to run daily at midnight
 cron.schedule('0 0 * * *', cleanupOldOrders);

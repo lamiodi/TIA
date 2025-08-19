@@ -2,7 +2,8 @@ import express from 'express';
 import sql from '../db/index.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import { sendOrderConfirmation } from '../utils/emailService.js';
+import axios from 'axios';
+import { sendOrderConfirmationEmail } from '../utils/emailService.js';
 
 dotenv.config();
 
@@ -52,7 +53,7 @@ router.post('/webhook', async (req, res) => {
       });
 
       if (!order.email_sent) {
-        await sendOrderConfirmation(user.email, { orderId: order.id, userName: user.first_name });
+        await sendOrderConfirmationEmail(user.email, { orderId: order.id, userName: user.first_name });
         await sql`UPDATE orders SET email_sent = true WHERE id = ${order.id}`;
       }
       console.log(`✅ Processed charge.success for reference=${reference}`);
@@ -72,7 +73,6 @@ router.post('/webhook', async (req, res) => {
         return res.status(200).json({ message: 'Order already processed' });
       }
 
-      // Restock inventory
       const orderItems = await sql`
         SELECT variant_id, size_id, quantity 
         FROM order_items 
@@ -83,13 +83,12 @@ router.post('/webhook', async (req, res) => {
           if (item.variant_id && item.size_id) {
             await sql`
               UPDATE variant_sizes
-              SET stock = stock + ${item.quantity}
+              SET stock_quantity = stock_quantity + ${item.quantity}
               WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
             `;
             console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
           }
         }
-        // Mark order as failed instead of deleting to allow retries
         await sql`
           UPDATE orders 
           SET payment_status = 'failed', updated_at = NOW()
@@ -133,7 +132,6 @@ router.post('/verify', async (req, res) => {
     const { status, data } = response.data;
 
     if (!status || data.status !== 'success') {
-      // Update order to failed and restock inventory
       const orderItems = await sql`
         SELECT variant_id, size_id, quantity 
         FROM order_items 
@@ -144,7 +142,7 @@ router.post('/verify', async (req, res) => {
           if (item.variant_id && item.size_id) {
             await sql`
               UPDATE variant_sizes
-              SET stock = stock + ${item.quantity}
+              SET stock_quantity = stock_quantity + ${item.quantity}
               WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
             `;
             console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
@@ -173,7 +171,7 @@ router.post('/verify', async (req, res) => {
     });
 
     if (!order.email_sent) {
-      await sendOrderConfirmation(user.email, { orderId: order.id, userName: user.first_name });
+      await sendOrderConfirmationEmail(user.email, { orderId: order.id, userName: user.first_name });
       await sql`UPDATE orders SET email_sent = true WHERE id = ${order.id}`;
     }
 
