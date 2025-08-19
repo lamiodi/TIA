@@ -32,7 +32,9 @@ router.post('/webhook', async (req, res) => {
         return res.status(200).json({ message: 'Webhook received, payment not successful' });
       }
 
-      // Wrap all DB operations in a transaction
+      let updatedOrder;
+      
+      // First, complete the transaction to update the order status
       await sql.begin(async (sql) => {
         // Check if order exists and is not already completed
         const [order] = await sql`
@@ -59,7 +61,7 @@ router.post('/webhook', async (req, res) => {
         `;
         
         // Get UPDATED order details with user information for email
-        const [updatedOrder] = await sql`
+        [updatedOrder] = await sql`
           SELECT 
             o.*, u.email, u.first_name, u.last_name
           FROM orders o
@@ -68,35 +70,39 @@ router.post('/webhook', async (req, res) => {
         `;
         
         console.log(`✅ Payment verified via webhook for order ${updatedOrder.id}, reference=${reference}`);
-        
-        // Send confirmation email only if not already sent
-        if (!updatedOrder.email_sent) {
-          try {
-            await sendOrderConfirmationEmail(
-              updatedOrder.email,
-              `${updatedOrder.first_name} ${updatedOrder.last_name}`,
-              updatedOrder.id,
-              updatedOrder.total,
-              updatedOrder.currency
-            );
-            console.log(`✅ Order confirmation email sent to ${updatedOrder.email}`);
-            
-            // Mark email as sent
-            await sql`
-              UPDATE orders 
-              SET email_sent = true 
-              WHERE id = ${updatedOrder.id}
-            `;
-          } catch (emailError) {
-            console.error('❌ Failed to send confirmation email:', emailError.message);
-            // Continue even if email fails
-          }
-        } else {
-          console.log(`ℹ️ Email already sent for order ${updatedOrder.id}`);
-        }
       });
       
+      // Send response to Paystack immediately to acknowledge receipt
       res.status(200).json({ message: 'Webhook processed' });
+      
+      // Now send the email outside of the transaction
+      if (updatedOrder && !updatedOrder.email_sent) {
+        try {
+          await sendOrderConfirmationEmail(
+            updatedOrder.email,
+            `${updatedOrder.first_name} ${updatedOrder.last_name}`,
+            updatedOrder.id,
+            updatedOrder.total,
+            updatedOrder.currency,
+            'completed' // Explicitly pass the payment status
+          );
+          console.log(`✅ Order confirmation email sent to ${updatedOrder.email}`);
+          
+          // Mark email as sent
+          await sql`
+            UPDATE orders 
+            SET email_sent = true 
+            WHERE id = ${updatedOrder.id}
+          `;
+        } catch (emailError) {
+          console.error('❌ Failed to send confirmation email:', emailError.message);
+          // Continue even if email fails
+        }
+      } else if (updatedOrder) {
+        console.log(`ℹ️ Email already sent for order ${updatedOrder.id}`);
+      }
+      
+      return; // Exit early to prevent further processing
     } 
     else if (event === 'charge.failed') {
       console.log(`⚠️ Payment failed for reference=${data.reference}`);
@@ -129,6 +135,8 @@ router.post('/verify', async (req, res) => {
     if (!reference) {
       return res.status(400).json({ error: 'Reference is required' });
     }
+    
+    let orderDetails;
     
     await sql.begin(async (sql) => {
       // First verify with Paystack API
@@ -164,7 +172,7 @@ router.post('/verify', async (req, res) => {
       }
       
       // Get updated order with user and address details
-      const [orderDetails] = await sql`
+      [orderDetails] = await sql`
         SELECT 
           o.*, u.email, u.first_name, u.last_name,
           a.address_line_1, a.city, a.state, a.country AS shipping_country,
@@ -175,33 +183,35 @@ router.post('/verify', async (req, res) => {
         JOIN billing_addresses ba ON o.billing_address_id = ba.id
         WHERE o.id = ${order.id}
       `;
-      
-      // Send confirmation email
-      if (orderDetails) {
-        const formattedName = `${orderDetails.first_name} ${orderDetails.last_name}`;
-        try {
-          await sendOrderConfirmationEmail(
-            orderDetails.email,
-            formattedName,
-            orderDetails.id,
-            orderDetails.total,
-            orderDetails.currency
-          );
-          console.log(`✅ Order confirmation email sent to ${orderDetails.email}`);
-          
-          // Mark email as sent
-          await sql`
-            UPDATE orders 
-            SET email_sent = true 
-            WHERE id = ${orderDetails.id}
-          `;
-        } catch (emailError) {
-          console.error('❌ Failed to send confirmation email:', emailError.message);
-        }
-      }
-      
-      res.status(200).json({ order: orderDetails });
     });
+    
+    // Send response to client
+    res.status(200).json({ order: orderDetails });
+    
+    // Send email outside of transaction
+    if (orderDetails) {
+      const formattedName = `${orderDetails.first_name} ${orderDetails.last_name}`;
+      try {
+        await sendOrderConfirmationEmail(
+          orderDetails.email,
+          formattedName,
+          orderDetails.id,
+          orderDetails.total,
+          orderDetails.currency,
+          'completed' // Explicitly pass the payment status
+        );
+        console.log(`✅ Order confirmation email sent to ${orderDetails.email}`);
+        
+        // Mark email as sent
+        await sql`
+          UPDATE orders 
+          SET email_sent = true 
+          WHERE id = ${orderDetails.id}
+        `;
+      } catch (emailError) {
+        console.error('❌ Failed to send confirmation email:', emailError.message);
+      }
+    }
   } catch (err) {
     console.error('❌ Error verifying payment:', err.message);
     res.status(500).json({ error: 'Failed to verify payment' });

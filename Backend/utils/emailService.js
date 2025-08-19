@@ -1,7 +1,6 @@
 import { Resend } from 'resend';
 import sql from '../db/index.js';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -100,7 +99,8 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
   console.log(`✅ Sent admin delivery fee notification for order ${orderId}`);
 };
 
-export const sendOrderConfirmationEmail = async (to, name, orderId, total, currency) => {
+// Updated function to accept payment status as a parameter
+export const sendOrderConfirmationEmail = async (to, name, orderId, total, currency, paymentStatus = null) => {
   try {
     // Fetch order details, items, shipping, and billing addresses
     const [orderDetails, itemsResult] = await Promise.all([
@@ -129,15 +129,20 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         WHERE oi.order_id = ${orderId}
       `,
     ]);
-
+    
     if (orderDetails.length === 0) {
       throw new Error('Order not found');
     }
-
+    
     const [order] = orderDetails;
+    // Override payment status if explicitly provided
+    if (paymentStatus) {
+      order.payment_status = paymentStatus;
+    }
+    
     const items = itemsResult;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-
+    
     // Collect variant IDs for bundle items needing images
     const variantsNeedingImages = [];
     const bundleItems = [];
@@ -160,7 +165,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         item.bundle_details = bundleContents;
       }
     });
-
+    
     // Fetch missing images
     let variantImages = {};
     if (variantsNeedingImages.length > 0) {
@@ -174,7 +179,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         variantImages[row.variant_id] = row.image_url;
       });
     }
-
+    
     // Process items to include images in bundle_details
     const processedItems = items.map((item) => {
       if (item.bundle_id && item.bundle_details) {
@@ -185,7 +190,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
       }
       return item;
     });
-
+    
     // Format currency
     const formatCurrency = (amount, curr) => {
       if (curr === 'NGN') {
@@ -196,9 +201,9 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
       }
       return `${amount} ${curr}`;
     };
-
+    
     const formattedTotal = formatCurrency(total, currency);
-
+    
     // Generate items HTML
     const itemsHtml = processedItems
       .map((item) => {
@@ -219,7 +224,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
               ${item.color_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">Color: ${item.color_name}</p>` : ''}
               ${item.size_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">Size: ${item.size_name}</p>` : ''}
         `;
-
+        
         if (item.bundle_id && item.bundle_details && item.bundle_details.length > 0) {
           itemDetails += `
             <div style="margin-top: 12px;">
@@ -241,11 +246,11 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
             </div>
           `;
         }
-
+        
         return itemDetails + '</div></li>';
       })
       .join('');
-
+    
     // Generate order summary HTML
     const orderSummaryHtml = `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
@@ -271,7 +276,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-
+    
     // Generate shipping address HTML
     const shippingAddressHtml = order.shipping_address_title ? `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
@@ -292,7 +297,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         <p style="font-size: 14px; color: #6b7280;">No shipping address provided</p>
       </div>
     `;
-
+    
     // Generate billing address HTML
     const billingAddressHtml = order.billing_address_full_name ? `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
@@ -314,7 +319,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         <p style="font-size: 14px; color: #6b7280;">No billing address provided</p>
       </div>
     `;
-
+    
     // Generate payment and shipping method HTML
     const paymentShippingHtml = `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
@@ -328,7 +333,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-
+    
     // Complete email HTML
     const html = `
       <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
@@ -359,14 +364,14 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-
+    
     await resend.emails.send({
       from: 'The Tia Brand <onboarding@resend.dev>',
       to,
       subject: `Order Confirmation - Order #${orderId}`,
       html,
     });
-    console.log(`✅ Sent order confirmation email to ${to} for order ${orderId}`);
+    console.log(`✅ Sent order confirmation email to ${to} for order ${orderId} with status: ${order.payment_status}`);
   } catch (error) {
     console.error(`❌ Error sending order confirmation email to ${to}:`, error.message);
     throw error;
