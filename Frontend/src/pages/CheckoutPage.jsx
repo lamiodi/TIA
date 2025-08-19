@@ -770,9 +770,11 @@ const CheckoutPage = () => {
           reference: paymentData.reference,
           callback: (response) => {
             toast.success('Payment successful!');
+            // Use navigate instead of window.location.href
             navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
           },
           onClose: () => {
+            // Check if payment was completed by verifying with backend
             const checkPaymentStatus = async () => {
               try {
                 const token = getToken();
@@ -785,31 +787,43 @@ const CheckoutPage = () => {
                 if (paymentResponse.data.order?.payment_status === 'completed') {
                   toast.success('Payment was successful!');
                   navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
-                } else if (paymentResponse.data.order?.payment_status === 'failed') {
-                  toast.error('Payment failed. You can retry payment or create a new order.');
-                  navigate(`/orders/${orderId}`);
                 } else {
                   toast.info('Payment window closed. You can complete payment later from your orders page.');
                   navigate(`/orders/${orderId}`);
                 }
               } catch (err) {
                 console.error('Error checking payment status:', err);
-                toast.error('Failed to verify payment. Please try again or contact support.');
+                toast.info('Payment window closed. You can complete payment later from your orders page.');
                 navigate(`/orders/${orderId}`);
               }
             };
+            
             checkPaymentStatus();
           }
         });
-      } catch (err) {
-        console.error('Payment processing error:', err);
-        const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      } else if (authorizationUrl) {
+        toast.success('Order placed successfully. Redirecting to payment page...');
+        localStorage.setItem('lastOrderReference', orderData.reference);
+        localStorage.setItem('pendingOrderId', orderId);
+        window.location.href = authorizationUrl;
+      } else {
+        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
+        throw new Error('Failed to get payment information');
+      }
+    } catch (err) {
+      console.error('Payment processing error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      if (err.response?.data?.code === 'unsupported_currency') {
+        setError('Payments in USD are not supported at this time. Please select a shipping address in Nigeria or contact support.');
+        toast.error('Payments in USD are not supported. Please select a Nigeria address or contact support.');
+      } else {
         setError(`Failed to process order: ${errorMessage}`);
         toast.error(`Failed to process order: ${errorMessage}`);
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleWhatsAppPayment = () => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
