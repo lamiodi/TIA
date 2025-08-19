@@ -1,3 +1,4 @@
+// Cart.jsx
 import { useState, useEffect, useContext, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle } from 'lucide-react';
@@ -161,10 +162,8 @@ const Cart = () => {
           throw new Error('Received HTML instead of JSON; check Vite proxy configuration');
         }
         
-        
         setCart(response.data);
         setError('');
-        toast.success('Cart loaded successfully');
       } catch (err) {
         console.error('Cart: Fetch error details:', {
           message: err.message,
@@ -364,8 +363,6 @@ const Cart = () => {
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
-      
-     
       
       const authAxios = getAuthAxios();
       const response = await authAxios.delete(`/api/cart/clear/${getUserId()}`);
