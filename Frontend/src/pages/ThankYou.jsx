@@ -38,8 +38,33 @@ const ThankYou = () => {
         const response = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrder(response.data);
-        console.log('✅ Order verified:', response.data);
+        
+        const orderData = response.data;
+        setOrder(orderData);
+        console.log('✅ Order verified:', orderData);
+        
+        // If payment is still pending, set up a polling mechanism
+        if (orderData.payment_status === 'pending') {
+          const pollInterval = setInterval(async () => {
+            try {
+              const pollResponse = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              
+              if (pollResponse.data.payment_status === 'completed') {
+                setOrder(pollResponse.data);
+                clearInterval(pollInterval);
+                toast.success('Payment verified successfully!');
+              }
+            } catch (err) {
+              console.error('Error polling payment status:', err);
+            }
+          }, 5000); // Poll every 5 seconds
+          
+          // Clear interval after 2 minutes to prevent infinite polling
+          setTimeout(() => clearInterval(pollInterval), 120000);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('❌ Error verifying order:', err.response?.data || err.message);
@@ -63,6 +88,7 @@ const ThankYou = () => {
     
     verifyOrder();
   }, [reference, navigate, retryCount]);
+
 
   const handleManualVerify = async () => {
     if (!reference) return;
@@ -129,6 +155,21 @@ const ThankYou = () => {
           '--font-Jost': '"Jost", "sans-serif"'
         }}
       >
+
+{order && order.payment_status === 'pending' && (
+  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+    <div className="flex">
+      <div className="flex-shrink-0">
+        <Loader2 className="h-5 w-5 text-yellow-400 animate-spin" />
+      </div>
+      <div className="ml-3">
+        <p className="text-sm text-yellow-700">
+          Payment is still being processed. This page will update automatically once payment is confirmed.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
