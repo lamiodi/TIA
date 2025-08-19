@@ -91,37 +91,33 @@ export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.query;
     if (!reference) return res.status(400).json({ error: 'Reference is required' });
-
     console.log(`🔎 Verifying Paystack payment: reference=${reference}`);
-
+    
     // Check if order exists
     const orderCheck = await sql`
       SELECT id, user_id, payment_status, total, currency
       FROM orders
       WHERE reference = ${reference}
     `;
-
     if (orderCheck.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
-
     const order = orderCheck[0];
     if (order.payment_status === 'completed') {
       return res.redirect(`/thank-you?reference=${reference}&status=already_verified`);
     }
-
+    
     const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
       headers: {
         Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
     });
-
     const { status } = response.data.data;
     if (status !== 'success') {
       return res.status(400).json({ error: 'Payment not successful' });
     }
-
+    
     // Use transaction
     await sql.begin(async sql => {
       // Update order
@@ -134,34 +130,30 @@ export const verifyPayment = async (req, res) => {
         RETURNING id, user_id, total, currency
       `;
       const updatedOrder = updatedOrders[0];
-
-      // Get user info
-      const users = await sql`
-        SELECT email, first_name, last_name
-        FROM users
-        WHERE id = ${updatedOrder.user_id}
-      `;
-      const user = users[0];
-
-      console.log(`📧 Sending order confirmation email for order ${updatedOrder.id} to ${user.email}`);
-
-      try {
-        const { sendOrderConfirmationEmail } = await import('../utils/emailService.js');
-        await sendOrderConfirmationEmail(
-          user.email,
-          `${user.first_name} ${user.last_name}`,
-          updatedOrder.id,
-          updatedOrder.total,
-          updatedOrder.currency
-        );
-      } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
+      
+      // Only for manual verification (POST request) we delete the cart items
+      if (req.method === 'POST') {
+        // We need the cart_id, so we fetch it
+        const [orderWithCart] = await sql`
+          SELECT cart_id FROM orders WHERE reference = ${reference}
+        `;
+        if (orderWithCart && orderWithCart.cart_id) {
+          await sql`DELETE FROM cart_items WHERE cart_id = ${orderWithCart.cart_id}`;
+        }
       }
+      
+      // Note: We are not sending the email here anymore
     });
-
+    
     console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
-    return res.redirect(`/thank-you?reference=${reference}&status=success`);
-
+    
+    // If this is a callback (GET request), redirect to thank you page
+    if (req.method === 'GET') {
+      return res.redirect(`/thank-you?reference=${reference}&status=success`);
+    }
+    
+    // If this is a manual verification (POST request), return JSON response
+    res.status(200).json({ message: 'Payment verified successfully', order: updatedOrder });
   } catch (err) {
     console.error('❌ Error verifying Paystack payment:', err.message);
     res.status(500).json({ error: 'Failed to verify payment' });

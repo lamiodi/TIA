@@ -16,80 +16,78 @@ router.post('/webhook', async (req, res) => {
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest('hex');
-
     if (hash !== req.headers['x-paystack-signature']) {
       console.error('❌ Invalid Paystack webhook signature');
       return res.status(400).json({ error: 'Invalid signature' });
     }
-
     const { event, data } = req.body;
     console.log(`📥 Webhook received: event=${event}, reference=${data.reference}`);
-
     if (event === 'charge.success') {
       const { reference, status } = data;
-
       if (status !== 'success') {
         console.log(`ℹ️ Payment not successful for reference=${reference}`);
         return res.status(200).json({ message: 'Webhook received, payment not successful' });
       }
-
       // Wrap all DB operations in a transaction
       await sql.begin(async (sql) => {
         // Check if order exists and is not already completed
         const [order] = await sql`
-          SELECT id, payment_status, user_id, total, currency 
+          SELECT id, payment_status, user_id, total, currency, email_sent 
           FROM orders 
           WHERE reference = ${reference} AND deleted_at IS NULL
         `;
-
         if (!order) {
           console.error(`❌ Order not found for reference=${reference}`);
           return res.status(404).json({ error: 'Order not found' });
         }
-
         if (order.payment_status === 'completed') {
           console.log(`ℹ️ Payment already verified for reference=${reference}`);
           return res.status(200).json({ message: 'Payment already verified' });
         }
-
+        
         // Update order status
         await sql`
           UPDATE orders 
           SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
           WHERE reference = ${reference}
         `;
-
+        
         // Get user details for email
         const [user] = await sql`
           SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
         `;
-
         console.log(`✅ Payment verified via webhook for order ${order.id}, reference=${reference}`);
-
-        // Send confirmation email after successful commit
-        if (user) {
-          const formattedName = `${user.first_name} ${user.last_name}`;
+        
+        // Send confirmation email only if not already sent
+        if (!order.email_sent) {
           try {
             await sendOrderConfirmationEmail(
               user.email,
-              formattedName,
+              `${user.first_name} ${user.last_name}`,
               order.id,
               order.total,
               order.currency
             );
             console.log(`✅ Order confirmation email sent to ${user.email}`);
+            
+            // Mark email as sent
+            await sql`
+              UPDATE orders 
+              SET email_sent = true 
+              WHERE id = ${order.id}
+            `;
           } catch (emailError) {
             console.error('❌ Failed to send confirmation email:', emailError.message);
             // Continue even if email fails
           }
+        } else {
+          console.log(`ℹ️ Email already sent for order ${order.id}`);
         }
-
-        res.status(200).json({ message: 'Webhook processed' });
       });
+      res.status(200).json({ message: 'Webhook processed' });
     } 
     else if (event === 'charge.failed') {
       console.log(`⚠️ Payment failed for reference=${data.reference}`);
-
       try {
         await sql`
           UPDATE orders
@@ -100,7 +98,6 @@ router.post('/webhook', async (req, res) => {
       } catch (err) {
         console.error('❌ Error updating failed order:', err.message);
       }
-
       res.status(200).json({ message: 'Webhook processed' });
     } 
     else {
