@@ -457,18 +457,7 @@ export const verifyPayment = async (req, res) => {
      
       // Fetch user details for sending confirmation email
 
-      const [user] = await sql`
-        SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
-      `;
       
-      console.log(`📧 Sending order confirmation email for order ${order.id} to ${user.email}`);
-      await sendOrderConfirmationEmail(
-        user.email,
-        `${user.first_name} ${user.last_name}`,
-        order.id,
-        order.total,
-        order.currency
-      );
       
       console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
       res.status(200).json({ message: 'Payment verified successfully', order });
