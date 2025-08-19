@@ -1,3 +1,4 @@
+//authroutes
 import express from 'express';
 import { loginUser, adminLogin, signupUser, requestPasswordReset, resetPassword, getMe, updateProfile, updateUserFirstOrder } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';

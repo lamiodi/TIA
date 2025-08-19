@@ -24,13 +24,13 @@ export const sendResetEmail = async (to, token) => {
           This link expires in 15 minutes. If you didn't request this, you can safely ignore this message.
         </p>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The Tiabrand Team
+          — The The Tia Brand Team
         </p>
       </div>
     </div>
   `;
   await resend.emails.send({
-    from: 'Tiabrand <onboarding@resend.dev>',
+    from: 'The Tia Brand <onboarding@resend.dev>',
     to,
     subject: 'Password Reset Request',
     html,
@@ -52,16 +52,16 @@ export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, p
           </a>
         </div>
         <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
-          Please pay the delivery fee to complete your order. Contact support@tiabrand.com for assistance.
+          Please pay the delivery fee to complete your order. Contact support@The Tia Brand.com for assistance.
         </p>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The Tiabrand Team
+          — The The Tia Brand Team
         </p>
       </div>
     </div>
   `;
   await resend.emails.send({
-    from: 'Tiabrand <onboarding@resend.dev>',
+    from: 'The Tia Brand <onboarding@resend.dev>',
     to,
     subject: 'Your International Delivery Fee',
     html,
@@ -86,13 +86,13 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
           </a>
         </div>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The Tiabrand Team
+          — The The Tia Brand Team
         </p>
       </div>
     </div>
   `;
   await resend.emails.send({
-    from: 'Tiabrand <onboarding@resend.dev>',
+    from: 'The Tia Brand <onboarding@resend.dev>',
     to: process.env.ADMIN_EMAIL,
     subject: `Action Required: DHL Delivery Fee for Order ${orderId}`,
     html,
@@ -351,17 +351,17 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
             </a>
           </div>
           <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-            You can track your order status in your account. Contact <a href="mailto:support@tiabrand.com" style="color: #2563eb;">support@tiabrand.com</a> for assistance.
+            You can track your order status in your account. Contact <a href="mailto:support@The Tia Brand.com" style="color: #2563eb;">support@The Tia Brand.com</a> for assistance.
           </p>
           <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
-            — The Tiabrand Team
+            — The The Tia Brand Team
           </p>
         </div>
       </div>
     `;
 
     await resend.emails.send({
-      from: 'Tiabrand <onboarding@resend.dev>',
+      from: 'The Tia Brand <onboarding@resend.dev>',
       to,
       subject: `Order Confirmation - Order #${orderId}`,
       html,
@@ -395,16 +395,16 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
           </a>
         </div>
         <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-          You can track your order status in your account. Contact <a href="mailto:support@tiabrand.com" style="color: #2563eb;">support@tiabrand.com</a> for assistance.
+          You can track your order status in your account. Contact <a href="mailto:support@The Tia Brand.com" style="color: #2563eb;">support@The Tia Brand.com</a> for assistance.
         </p>
         <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
-          — The Tiabrand Team
+          — The The Tia Brand Team
         </p>
       </div>
     </div>
   `;
   await resend.emails.send({
-    from: 'Tiabrand <onboarding@resend.dev>',
+    from: 'The Tia Brand <onboarding@resend.dev>',
     to,
     subject: `${status === 'delivery_fee_paid' ? 'Delivery Fee Payment Confirmation' : 'Order Status Update'} - Order #${orderId}`,
     html,
@@ -438,13 +438,13 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
           </a>
         </div>
         <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
-          — The Tiabrand Team
+          — The The Tia Brand Team
         </p>
       </div>
     </div>
   `;
   await resend.emails.send({
-    from: 'Tiabrand <onboarding@resend.dev>',
+    from: 'The Tia Brand <onboarding@resend.dev>',
     to: process.env.ADMIN_EMAIL,
     subject: `Payment Confirmed for Order #${orderId}`,
     html,
