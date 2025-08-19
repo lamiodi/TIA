@@ -20,6 +20,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
 import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
+import { cleanupOldOrders } from './utils/cleanupOrders.js';
+
 
 EventEmitter.defaultMaxListeners = 40;
 
@@ -74,6 +76,9 @@ app.use((err, req, res, next) => {
   console.error(`[${new Date().toISOString()}] Error in ${req.method} ${req.url}:`, err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
+
+// Start cron job
+cleanupOldOrders(); // Optional: Run on startup
 
 
 app.get('/healthz', (req, res) => {

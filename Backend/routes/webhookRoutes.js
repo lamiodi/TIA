@@ -1,220 +1,186 @@
-// webhookRoutes.js
 import express from 'express';
-import crypto from 'crypto';
 import sql from '../db/index.js';
-import { sendOrderConfirmationEmail } from '../utils/emailService.js';
-import axios from 'axios';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+import { sendOrderConfirmation } from '../utils/emailService.js';
+
+dotenv.config();
 
 const router = express.Router();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
-// Handle Paystack webhook
 router.post('/webhook', async (req, res) => {
   try {
-    // Verify webhook signature
     const hash = crypto
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest('hex');
-      
     if (hash !== req.headers['x-paystack-signature']) {
-      console.error('❌ Invalid Paystack webhook signature');
+      console.error('Invalid Paystack webhook signature');
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
     const { event, data } = req.body;
-    console.log(`📥 Webhook received: event=${event}, reference=${data.reference}`);
+    const reference = data.reference;
 
     if (event === 'charge.success') {
-      const { reference, status } = data;
-      if (status !== 'success') {
-        console.log(`ℹ️ Payment not successful for reference=${reference}`);
-        return res.status(200).json({ message: 'Webhook received, payment not successful' });
+      const [order] = await sql`
+        SELECT id, payment_status, user_id, total, currency, email_sent, cart_id 
+        FROM orders 
+        WHERE reference = ${reference} AND deleted_at IS NULL
+      `;
+      if (!order) {
+        console.error(`Order not found for reference: ${reference}`);
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      if (order.payment_status === 'completed') {
+        console.warn(`Payment already verified for reference=${reference}`);
+        return res.status(200).json({ message: 'Payment already verified' });
       }
 
-      let updatedOrder;
-      
-      // First, complete the transaction to update the order status
-      await sql.begin(async (sql) => {
-        // Check if order exists and is not already completed
-        const [order] = await sql`
-          SELECT id, payment_status, user_id, total, currency, email_sent 
-          FROM orders 
-          WHERE reference = ${reference} AND deleted_at IS NULL
-        `;
-        
-        if (!order) {
-          console.error(`❌ Order not found for reference=${reference}`);
-          return res.status(404).json({ error: 'Order not found' });
-        }
-        
-        if (order.payment_status === 'completed') {
-          console.log(`ℹ️ Payment already verified for reference=${reference}`);
-          return res.status(200).json({ message: 'Payment already verified' });
-        }
-        
-        // Update order status
+      const [user] = await sql`SELECT email, first_name FROM users WHERE id = ${order.user_id}`;
+      await sql.begin(async sql => {
         await sql`
           UPDATE orders 
           SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
           WHERE reference = ${reference}
         `;
-        
-        // Get UPDATED order details with user information for email
-        [updatedOrder] = await sql`
-          SELECT 
-            o.*, u.email, u.first_name, u.last_name
-          FROM orders o
-          JOIN users u ON o.user_id = u.id
-          WHERE o.reference = ${reference} AND o.deleted_at IS NULL
-        `;
-        
-        console.log(`✅ Payment verified via webhook for order ${updatedOrder.id}, reference=${reference}`);
-      });
-      
-      // Send response to Paystack immediately to acknowledge receipt
-      res.status(200).json({ message: 'Webhook processed' });
-      
-      // Now send the email outside of the transaction
-      if (updatedOrder && !updatedOrder.email_sent) {
-        try {
-          await sendOrderConfirmationEmail(
-            updatedOrder.email,
-            `${updatedOrder.first_name} ${updatedOrder.last_name}`,
-            updatedOrder.id,
-            updatedOrder.total,
-            updatedOrder.currency,
-            'completed' // Explicitly pass the payment status
-          );
-          console.log(`✅ Order confirmation email sent to ${updatedOrder.email}`);
-          
-          // Mark email as sent
-          await sql`
-            UPDATE orders 
-            SET email_sent = true 
-            WHERE id = ${updatedOrder.id}
-          `;
-        } catch (emailError) {
-          console.error('❌ Failed to send confirmation email:', emailError.message);
-          // Continue even if email fails
+        if (order.cart_id) {
+          await sql`DELETE FROM cart_items WHERE cart_id = ${order.cart_id}`;
+          console.log(`✅ Cleared cart items for cart_id=${order.cart_id}, reference=${reference}`);
         }
-      } else if (updatedOrder) {
-        console.log(`ℹ️ Email already sent for order ${updatedOrder.id}`);
+      });
+
+      if (!order.email_sent) {
+        await sendOrderConfirmation(user.email, { orderId: order.id, userName: user.first_name });
+        await sql`UPDATE orders SET email_sent = true WHERE id = ${order.id}`;
       }
-      
-      return; // Exit early to prevent further processing
-    } 
-    else if (event === 'charge.failed') {
-      console.log(`⚠️ Payment failed for reference=${data.reference}`);
-      try {
+      console.log(`✅ Processed charge.success for reference=${reference}`);
+      return res.status(200).json({ message: 'Webhook processed successfully' });
+    } else if (event === 'charge.failed') {
+      const [order] = await sql`
+        SELECT id, payment_status, cart_id 
+        FROM orders 
+        WHERE reference = ${reference} AND deleted_at IS NULL
+      `;
+      if (!order) {
+        console.error(`Order not found for reference: ${reference}`);
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      if (order.payment_status !== 'pending') {
+        console.warn(`Order not in pending state for reference=${reference}`);
+        return res.status(200).json({ message: 'Order already processed' });
+      }
+
+      // Restock inventory
+      const orderItems = await sql`
+        SELECT variant_id, size_id, quantity 
+        FROM order_items 
+        WHERE order_id = ${order.id}
+      `;
+      await sql.begin(async sql => {
+        for (const item of orderItems) {
+          if (item.variant_id && item.size_id) {
+            await sql`
+              UPDATE variant_sizes
+              SET stock = stock + ${item.quantity}
+              WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+            `;
+            console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
+          }
+        }
+        // Mark order as failed instead of deleting to allow retries
         await sql`
-          UPDATE orders
-          SET payment_status = 'failed', status = 'cancelled', updated_at = NOW()
-          WHERE reference = ${data.reference}
+          UPDATE orders 
+          SET payment_status = 'failed', updated_at = NOW()
+          WHERE reference = ${reference}
         `;
-        console.log(`✅ Updated order status to failed for reference=${data.reference}`);
-      } catch (err) {
-        console.error('❌ Error updating failed order:', err.message);
-      }
-      res.status(200).json({ message: 'Webhook processed' });
-    } 
-    else {
-      console.log(`ℹ️ Unhandled webhook event: ${event}`);
-      res.status(200).json({ message: 'Webhook received' });
+      });
+      console.log(`✅ Processed charge.failed for reference=${reference}`);
+      return res.status(200).json({ message: 'Webhook processed successfully' });
     }
+
+    console.warn(`Unhandled webhook event: ${event}`);
+    return res.status(200).json({ message: 'Event not handled' });
   } catch (err) {
-    console.error('❌ Webhook error:', err.message);
-    res.status(500).json({ error: 'Failed to process webhook' });
+    console.error('Webhook processing error:', err.message);
+    return res.status(500).json({ error: 'Failed to process webhook' });
   }
 });
 
-// Manual verification endpoint (for admin use)
 router.post('/verify', async (req, res) => {
   try {
     const { reference } = req.body;
     if (!reference) {
       return res.status(400).json({ error: 'Reference is required' });
     }
-    
-    let orderDetails;
-    
-    await sql.begin(async (sql) => {
-      // First verify with Paystack API
-      const paystackResponse = await axios.get(
-        `https://api.paystack.co/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-          },
-        }
-      );
-      
-      const { status, data } = paystackResponse.data;
-      if (!status || data.status !== 'success') {
-        return res.status(400).json({ error: 'Payment verification failed' });
-      }
-      
-      // Get order details
-      const [order] = await sql`
-        SELECT * FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
-      `;
-      
-      if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
-      }
-      
-      if (order.payment_status !== 'completed') {
-        await sql`
-          UPDATE orders
-          SET payment_status = 'completed', status = 'processing', updated_at = NOW()
-          WHERE id = ${order.id}
-        `;
-      }
-      
-      // Get updated order with user and address details
-      [orderDetails] = await sql`
-        SELECT 
-          o.*, u.email, u.first_name, u.last_name,
-          a.address_line_1, a.city, a.state, a.country AS shipping_country,
-          ba.full_name AS billing_full_name, ba.email AS billing_email
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        JOIN addresses a ON o.address_id = a.id
-        JOIN billing_addresses ba ON o.billing_address_id = ba.id
-        WHERE o.id = ${order.id}
-      `;
+
+    const [order] = await sql`
+      SELECT id, payment_status, user_id, total, currency, cart_id, email_sent 
+      FROM orders 
+      WHERE reference = ${reference} AND deleted_at IS NULL
+    `;
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    if (order.payment_status === 'completed') {
+      return res.status(200).json({ message: 'Payment already verified', order });
+    }
+
+    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
     });
-    
-    // Send response to client
-    res.status(200).json({ order: orderDetails });
-    
-    // Send email outside of transaction
-    if (orderDetails) {
-      const formattedName = `${orderDetails.first_name} ${orderDetails.last_name}`;
-      try {
-        await sendOrderConfirmationEmail(
-          orderDetails.email,
-          formattedName,
-          orderDetails.id,
-          orderDetails.total,
-          orderDetails.currency,
-          'completed' // Explicitly pass the payment status
-        );
-        console.log(`✅ Order confirmation email sent to ${orderDetails.email}`);
-        
-        // Mark email as sent
+    const { status, data } = response.data;
+
+    if (!status || data.status !== 'success') {
+      // Update order to failed and restock inventory
+      const orderItems = await sql`
+        SELECT variant_id, size_id, quantity 
+        FROM order_items 
+        WHERE order_id = ${order.id}
+      `;
+      await sql.begin(async sql => {
+        for (const item of orderItems) {
+          if (item.variant_id && item.size_id) {
+            await sql`
+              UPDATE variant_sizes
+              SET stock = stock + ${item.quantity}
+              WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+            `;
+            console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
+          }
+        }
         await sql`
           UPDATE orders 
-          SET email_sent = true 
-          WHERE id = ${orderDetails.id}
+          SET payment_status = 'failed', updated_at = NOW()
+          WHERE reference = ${reference}
         `;
-      } catch (emailError) {
-        console.error('❌ Failed to send confirmation email:', emailError.message);
-      }
+      });
+      return res.status(400).json({ error: 'Payment not successful', order });
     }
+
+    const [user] = await sql`SELECT email, first_name FROM users WHERE id = ${order.user_id}`;
+    await sql.begin(async sql => {
+      await sql`
+        UPDATE orders 
+        SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
+        WHERE reference = ${reference}
+      `;
+      if (order.cart_id) {
+        await sql`DELETE FROM cart_items WHERE cart_id = ${order.cart_id}`;
+        console.log(`✅ Cleared cart items for cart_id=${order.cart_id}`);
+      }
+    });
+
+    if (!order.email_sent) {
+      await sendOrderConfirmation(user.email, { orderId: order.id, userName: user.first_name });
+      await sql`UPDATE orders SET email_sent = true WHERE id = ${order.id}`;
+    }
+
+    return res.status(200).json({ message: 'Payment verified successfully', order });
   } catch (err) {
-    console.error('❌ Error verifying payment:', err.message);
-    res.status(500).json({ error: 'Failed to verify payment' });
+    console.error('Error verifying payment:', err.message);
+    return res.status(500).json({ error: 'Failed to verify payment' });
   }
 });
 

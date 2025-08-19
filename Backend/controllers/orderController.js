@@ -1,6 +1,6 @@
+
 import sql from '../db/index.js';
 import dotenv from 'dotenv';
-import axios from 'axios';
 import { Country } from 'country-state-city';
 import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
 
@@ -80,7 +80,7 @@ export const createOrder = async (req, res) => {
 
       // Validate cart
       const [cart] = await sql`
-        SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
+        SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
       `;
       if (!cart) {
         console.error('Validation failed: Cart not found');
@@ -420,53 +420,6 @@ export const createOrder = async (req, res) => {
   } catch (err) {
     console.error('❌ Error creating order:', err.message, err.stack);
     res.status(500).json({ error: err.message });
-  }
-};
-
-
-export const verifyPayment = async (req, res) => {
-  const { reference } = req.body;
-  if (!reference) {
-    return res.status(400).json({ error: 'Reference is required' });
-  }
-  
-  try {
-    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      },
-    });
-    
-    const { status, data } = response.data;
-    if (!status || data.status !== 'success') {
-      return res.status(400).json({ error: 'Payment verification failed' });
-    }
-    
-    await sql.begin(async (sql) => {
-      const [order] = await sql`
-        UPDATE orders 
-        SET payment_status = 'completed', updated_at = NOW() 
-        WHERE reference = ${reference} AND deleted_at IS NULL 
-        RETURNING id, reference, discount
-      `;
-      
-      if (!order) {
-        throw new Error('Order not found');
-      }
-      
-     
-      // Fetch user details for sending confirmation email
-
-      
-      
-      console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
-      res.status(200).json({ message: 'Payment verified successfully', order });
-        // NOW delete the cart items after payment is verified
-        await sql`DELETE FROM cart_items WHERE cart_id = ${cart_id}`;
-    });
-  } catch (err) {
-    console.error('❌ Error verifying payment:', err.message);
-    res.status(500).json({ error: 'Failed to verify payment' });
   }
 };
 

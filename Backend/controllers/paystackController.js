@@ -41,7 +41,7 @@ export const initializePayment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount or currency' });
     }
 
-    const defaultCallbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you`;
+    const defaultCallbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL}/thank-you`;
     const finalCallbackUrl = callback_url || defaultCallbackUrl;
 
     const response = await axios.post(
@@ -87,73 +87,92 @@ export const initializePayment = async (req, res) => {
   }
 };
 
+
+
 export const verifyPayment = async (req, res) => {
   try {
-    const { reference } = req.query;
-    if (!reference) return res.status(400).json({ error: 'Reference is required' });
+    const { reference } = req.query || req.body;
+    if (!reference) {
+      console.error('Missing reference for payment verification');
+      return res.status(400).json({ error: 'Reference is required' });
+    }
     console.log(`🔎 Verifying Paystack payment: reference=${reference}`);
-    
-    // Check if order exists
+
     const orderCheck = await sql`
-      SELECT id, user_id, payment_status, total, currency
+      SELECT id, user_id, payment_status, total, currency, cart_id
       FROM orders
-      WHERE reference = ${reference}
+      WHERE reference = ${reference} AND deleted_at IS NULL
     `;
     if (orderCheck.length === 0) {
+      console.error(`Order not found for reference: ${reference}`);
       return res.status(404).json({ error: 'Order not found' });
     }
     const order = orderCheck[0];
     if (order.payment_status === 'completed') {
-      return res.redirect(`/thank-you?reference=${reference}&status=already_verified`);
+      console.warn(`Payment already verified for reference=${reference}`);
+      return req.method === 'GET'
+        ? res.redirect(`/thank-you?reference=${reference}&status=already_verified`)
+        : res.status(200).json({ message: 'Payment already verified', order });
     }
-    
+
     const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
       headers: {
         Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
     });
-    const { status } = response.data.data;
-    if (status !== 'success') {
-      return res.status(400).json({ error: 'Payment not successful' });
+    const { status, data } = response.data;
+    if (!status || data.status !== 'success') {
+      console.error(`Payment not successful for reference=${reference}`);
+      // Restock inventory
+      const orderItems = await sql`
+        SELECT variant_id, size_id, quantity 
+        FROM order_items 
+        WHERE order_id = ${order.id}
+      `;
+      await sql.begin(async sql => {
+        for (const item of orderItems) {
+          if (item.variant_id && item.size_id) {
+            await sql`
+              UPDATE variant_sizes
+              SET stock = stock + ${item.quantity}
+              WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+            `;
+            console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
+          }
+        }
+        await sql`
+          UPDATE orders 
+          SET payment_status = 'failed', updated_at = NOW()
+          WHERE reference = ${reference}
+        `;
+      });
+      return req.method === 'GET'
+        ? res.redirect(`/thank-you?reference=${reference}&status=failed`)
+        : res.status(400).json({ error: 'Payment not successful', order });
     }
-    
-    // Use transaction
+
     await sql.begin(async sql => {
-      // Update order
       const updatedOrders = await sql`
         UPDATE orders
         SET payment_status = 'completed',
             status = 'processing',
             updated_at = NOW()
-        WHERE reference = ${reference}
-        RETURNING id, user_id, total, currency
+        WHERE reference = ${reference} AND deleted_at IS NULL
+        RETURNING id, user_id, total, currency, cart_id
       `;
       const updatedOrder = updatedOrders[0];
-      
-      // Only for manual verification (POST request) we delete the cart items
-      if (req.method === 'POST') {
-        // We need the cart_id, so we fetch it
-        const [orderWithCart] = await sql`
-          SELECT cart_id FROM orders WHERE reference = ${reference}
-        `;
-        if (orderWithCart && orderWithCart.cart_id) {
-          await sql`DELETE FROM cart_items WHERE cart_id = ${orderWithCart.cart_id}`;
-        }
+      if (updatedOrder.cart_id) {
+        await sql`DELETE FROM cart_items WHERE cart_id = ${updatedOrder.cart_id}`;
+        console.log(`✅ Cleared cart items for cart_id=${updatedOrder.cart_id}, order_id=${updatedOrder.id}, reference=${reference}`);
       }
-      
-      // Note: We are not sending the email here anymore
     });
-    
+
     console.log(`✅ Payment verified for reference=${reference}, order_id=${order.id}`);
-    
-    // If this is a callback (GET request), redirect to thank you page
     if (req.method === 'GET') {
       return res.redirect(`/thank-you?reference=${reference}&status=success`);
     }
-    
-    // If this is a manual verification (POST request), return JSON response
-    res.status(200).json({ message: 'Payment verified successfully', order: updatedOrder });
+    res.status(200).json({ message: 'Payment verified successfully', order });
   } catch (err) {
     console.error('❌ Error verifying Paystack payment:', err.message);
     res.status(500).json({ error: 'Failed to verify payment' });

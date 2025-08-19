@@ -1,134 +1,5 @@
+// cartController.js
 import sql from '../db/index.js';
-
-// Common SQL query for fetching cart items
-const CART_ITEMS_QUERY = (cartId) => sql`
-  WITH aggregated_single_items AS (
-    SELECT
-      MIN(ci.id) AS id,
-      ci.variant_id,
-      ci.size_id,
-      COALESCE(SUM(ci.quantity), 0)::INTEGER AS quantity,
-      ci.price,
-      ci.color_name,
-      ci.size_name,
-      pv.product_id,
-      p.name AS product_name,
-      pi.image_url AS image_url,
-      vs.stock_quantity
-    FROM cart_items ci
-    JOIN product_variants pv ON ci.variant_id = pv.id
-    JOIN products p ON pv.product_id = p.id
-    LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
-    LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
-    WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NULL AND pv.deleted_at IS NULL AND p.deleted_at IS NULL
-    GROUP BY ci.variant_id, ci.size_id, ci.price, ci.color_name, ci.size_name, pv.product_id, p.name, pi.image_url, vs.stock_quantity
-  ),
-  bundle_items AS (
-    SELECT
-      ci.id,
-      ci.bundle_id,
-      ci.quantity::INTEGER,
-      ci.price,
-      b.name AS bundle_name,
-      bi_image.image_url AS bundle_image,
-      (
-        SELECT json_agg(
-          json_build_object(
-            'id', cbi.id,
-            'variant_id', cbi.variant_id,
-            'size_id', cbi.size_id,
-            'product_id', pv2.product_id,
-            'product_name', p2.name,
-            'image_url', pi2.image_url,
-            'color_name', c2.color_name,
-            'size_name', s2.size_name,
-            'stock_quantity', vs2.stock_quantity
-          ) ORDER BY cbi.id
-        )
-        FROM cart_bundle_items cbi
-        JOIN product_variants pv2 ON cbi.variant_id = pv2.id
-        JOIN products p2 ON pv2.product_id = p2.id
-        JOIN colors c2 ON pv2.color_id = c2.id
-        JOIN sizes s2 ON cbi.size_id = s2.id
-        LEFT JOIN (
-          SELECT DISTINCT ON (variant_id) variant_id, image_url
-          FROM product_images
-          WHERE is_primary = TRUE
-        ) pi2 ON pi2.variant_id = cbi.variant_id
-        LEFT JOIN variant_sizes vs2 ON vs2.variant_id = cbi.variant_id AND vs2.size_id = cbi.size_id
-        WHERE cbi.cart_item_id = ci.id AND pv2.deleted_at IS NULL AND p2.deleted_at IS NULL
-      ) AS bundle_items
-    FROM cart_items ci
-    JOIN bundles b ON ci.bundle_id = b.id
-    LEFT JOIN bundle_images bi_image ON bi_image.bundle_id = b.id AND bi_image.is_primary = TRUE
-    WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NOT NULL AND b.deleted_at IS NULL
-  )
-  SELECT
-    id,
-    quantity,
-    json_build_object(
-      'id', variant_id,
-      'name', product_name,
-      'price', price,
-      'image', image_url,
-      'size', size_name,
-      'size_id', size_id,
-      'color', color_name,
-      'is_product', true,
-      'stock_quantity', stock_quantity
-    ) AS item
-  FROM aggregated_single_items
-  UNION ALL
-  SELECT
-    id,
-    quantity,
-    json_build_object(
-      'id', bundle_id,
-      'name', bundle_name,
-      'price', price,
-      'image', bundle_image,
-      'is_product', false,
-      'items', bundle_items
-    ) AS item
-  FROM bundle_items
-`;
-
-// Helper function to calculate cart totals
-const calculateCartTotals = (items, country) => {
-  const subtotal = items.reduce((sum, row) => sum + (parseFloat(row.item.price) * row.quantity), 0);
-  const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-  const total = subtotal + tax;
-  return { subtotal, tax, total };
-};
-
-// Helper function to fetch cart items
-const fetchCartItems = async (sql, cartId) => {
-  const cartItems = await CART_ITEMS_QUERY(cartId);
-  return cartItems.map(row => ({
-    id: row.id,
-    quantity: row.quantity,
-    item: row.item
-  }));
-};
-
-// Helper function to update cart total
-const updateCartTotal = async (sql, cartId, country) => {
-  const [subtotalResult] = await sql`
-    SELECT COALESCE(SUM(ci.price * ci.quantity), 0) as subtotal
-    FROM cart_items ci
-    WHERE ci.cart_id = ${cartId}
-  `;
-  
-  const subtotal = subtotalResult.subtotal;
-  const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-  const total = subtotal + tax;
-  
-  await sql`
-    UPDATE cart SET total = ${total} WHERE id = ${cartId}
-  `;
-  
-  return { subtotal, tax, total };
-};
 
 // Helper function to validate single product
 const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
@@ -235,10 +106,139 @@ const findExistingBundle = async (sql, cart_id, bundle_id, sortedItems) => {
   return null;
 };
 
+// Helper function to calculate cart totals
+const calculateCartTotals = (items, country) => {
+  const subtotal = items.reduce((sum, row) => sum + (parseFloat(row.item.price) * row.quantity), 0);
+  const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+  const total = subtotal + tax;
+  return { subtotal, tax, total };
+};
+
+// Helper function to fetch cart items
+const fetchCartItems = async (sql, cartId) => {
+  const cartItems = await sql`
+    WITH aggregated_single_items AS (
+      SELECT
+        MIN(ci.id) AS id,
+        ci.variant_id,
+        ci.size_id,
+        COALESCE(SUM(ci.quantity), 0)::INTEGER AS quantity,
+        ci.price,
+        ci.color_name,
+        ci.size_name,
+        pv.product_id,
+        p.name AS product_name,
+        pi.image_url AS image_url,
+        vs.stock_quantity
+      FROM cart_items ci
+      JOIN product_variants pv ON ci.variant_id = pv.id
+      JOIN products p ON pv.product_id = p.id
+      LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
+      LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
+      WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NULL AND pv.deleted_at IS NULL AND p.deleted_at IS NULL
+      GROUP BY ci.variant_id, ci.size_id, ci.price, ci.color_name, ci.size_name, pv.product_id, p.name, pi.image_url, vs.stock_quantity
+    ),
+    bundle_items AS (
+      SELECT
+        ci.id,
+        ci.bundle_id,
+        ci.quantity::INTEGER,
+        ci.price,
+        b.name AS bundle_name,
+        bi_image.image_url AS bundle_image,
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', cbi.id,
+              'variant_id', cbi.variant_id,
+              'size_id', cbi.size_id,
+              'product_id', pv2.product_id,
+              'product_name', p2.name,
+              'image_url', pi2.image_url,
+              'color_name', c2.color_name,
+              'size_name', s2.size_name,
+              'stock_quantity', vs2.stock_quantity
+            ) ORDER BY cbi.id
+          )
+          FROM cart_bundle_items cbi
+          JOIN product_variants pv2 ON cbi.variant_id = pv2.id
+          JOIN products p2 ON pv2.product_id = p2.id
+          JOIN colors c2 ON pv2.color_id = c2.id
+          JOIN sizes s2 ON cbi.size_id = s2.id
+          LEFT JOIN (
+            SELECT DISTINCT ON (variant_id) variant_id, image_url
+            FROM product_images
+            WHERE is_primary = TRUE
+          ) pi2 ON pi2.variant_id = cbi.variant_id
+          LEFT JOIN variant_sizes vs2 ON vs2.variant_id = cbi.variant_id AND vs2.size_id = cbi.size_id
+          WHERE cbi.cart_item_id = ci.id AND pv2.deleted_at IS NULL AND p2.deleted_at IS NULL
+        ) AS bundle_items
+      FROM cart_items ci
+      JOIN bundles b ON ci.bundle_id = b.id
+      LEFT JOIN bundle_images bi_image ON bi_image.bundle_id = b.id AND bi_image.is_primary = TRUE
+      WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NOT NULL AND b.deleted_at IS NULL
+    )
+    SELECT
+      id,
+      quantity,
+      json_build_object(
+        'id', variant_id,
+        'name', product_name,
+        'price', price,
+        'image', image_url,
+        'size', size_name,
+        'size_id', size_id,
+        'color', color_name,
+        'is_product', true,
+        'stock_quantity', stock_quantity
+      ) AS item
+    FROM aggregated_single_items
+    UNION ALL
+    SELECT
+      id,
+      quantity,
+      json_build_object(
+        'id', bundle_id,
+        'name', bundle_name,
+        'price', price,
+        'image', bundle_image,
+        'is_product', false,
+        'items', bundle_items
+      ) AS item
+    FROM bundle_items
+  `;
+  
+  return cartItems.map(row => ({
+    id: row.id,
+    quantity: row.quantity,
+    item: row.item
+  }));
+};
+
+// Helper function to update cart total
+const updateCartTotal = async (sql, cartId, country) => {
+  const [subtotalResult] = await sql`
+    SELECT COALESCE(SUM(ci.price * ci.quantity), 0) as subtotal
+    FROM cart_items ci
+    WHERE ci.cart_id = ${cartId}
+  `;
+  
+  const subtotal = subtotalResult.subtotal;
+  const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+  const total = subtotal + tax;
+  
+  await sql`
+    UPDATE cart SET total = ${total} WHERE id = ${cartId}
+  `;
+  
+  return { subtotal, tax, total };
+};
+
 // Get cart
 export const getCart = async (req, res) => {
   const { userId } = req.params;
   const country = req.headers['x-user-country'] || 'Nigeria';
+  
   try {
     // Step 1: Get the cart for the user
     const [cart] = await sql`
@@ -255,139 +255,18 @@ export const getCart = async (req, res) => {
     const cartId = cart.id;
     
     // Step 3: Fetch all cart items
-    const cartItems = await sql`
-      SELECT 
-        ci.id,
-        ci.quantity,
-        ci.variant_id,
-        ci.bundle_id,
-        ci.size_id,
-        ci.color_name,
-        ci.size_name,
-        ci.price,
-        ci.is_bundle,
-        pv.product_id,
-        p.name AS product_name,
-        pi.image_url AS image_url,
-        vs.stock_quantity,
-        b.name AS bundle_name,
-        bi.image_url AS bundle_image
-      FROM cart_items ci
-      LEFT JOIN product_variants pv ON ci.variant_id = pv.id
-      LEFT JOIN products p ON pv.product_id = p.id
-      LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
-      LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
-      LEFT JOIN bundles b ON ci.bundle_id = b.id
-      LEFT JOIN bundle_images bi ON bi.bundle_id = b.id AND bi.is_primary = TRUE
-      WHERE ci.cart_id = ${cartId}
-        AND (ci.bundle_id IS NULL OR b.deleted_at IS NULL)
-        AND (ci.variant_id IS NULL OR (pv.deleted_at IS NULL AND p.deleted_at IS NULL))
-      ORDER BY ci.id
-    `;
+    const cartItems = await fetchCartItems(sql, cartId);
     
-    // Step 4: Group items by variant_id and size_id for single products and handle bundles separately
-    const singleItemsMap = new Map();
-    const bundleItemsMap = new Map(); // Use a Map to prevent duplicate bundles
+    // Step 4: Calculate cart totals
+    const { subtotal, tax, total } = calculateCartTotals(cartItems, country);
     
-    for (const item of cartItems) {
-      if (item.is_bundle) {
-        // Use bundle_id as the key to prevent duplicate bundles
-        const key = item.bundle_id;
-        if (!bundleItemsMap.has(key)) {
-          bundleItemsMap.set(key, item);
-        }
-      } else {
-        const key = `${item.variant_id}-${item.size_id}`;
-        if (singleItemsMap.has(key)) {
-          // If item already exists, log a warning and skip summing up quantities
-          console.warn(`Duplicate item detected for key: ${key}. Skipping.`);
-        } else {
-          singleItemsMap.set(key, { ...item });
-        }
-      }
-    }
-    
-    // Step 5: Transform single items to the expected format
-    const transformedSingleItems = Array.from(singleItemsMap.values()).map(item => ({
-      id: item.id,
-      quantity: item.quantity,
-      item: {
-        id: item.variant_id,
-        name: item.product_name,
-        price: item.price,
-        image: item.image_url,
-        size: item.size_name,
-        size_id: item.size_id,
-        color: item.color_name,
-        is_product: true,
-        stock_quantity: item.stock_quantity
-      }
-    }));
-    
-    // Step 6: Transform bundle items to the expected format
-    const bundleItems = Array.from(bundleItemsMap.values());
-    const transformedBundleItems = await Promise.all(bundleItems.map(async (row) => {
-      const bundleItems = await sql`
-        SELECT DISTINCT ON (cbi.variant_id, cbi.size_id)
-          cbi.id,
-          cbi.variant_id,
-          cbi.size_id,
-          pv.product_id,
-          p.name AS product_name,
-          pi.image_url AS image_url,
-          c.color_name AS color_name,
-          s.size_name AS size_name,
-          vs.stock_quantity
-        FROM cart_bundle_items cbi
-        JOIN product_variants pv ON cbi.variant_id = pv.id
-        JOIN products p ON pv.product_id = p.id
-        JOIN colors c ON pv.color_id = c.id
-        JOIN sizes s ON cbi.size_id = s.id
-        LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
-        LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = cbi.size_id
-        WHERE cbi.cart_item_id = ${row.id}
-          AND pv.deleted_at IS NULL
-          AND p.deleted_at IS NULL
-        ORDER BY cbi.variant_id, cbi.size_id
-      `;
-      
-      return {
-        id: row.id,
-        quantity: row.quantity,
-        item: {
-          id: row.bundle_id,
-          name: row.bundle_name,
-          price: row.price,
-          image: row.bundle_image,
-          is_product: false,
-          items: bundleItems.map(bi => ({
-            id: bi.id,
-            variant_id: bi.variant_id,
-            size_id: bi.size_id,
-            product_id: bi.product_id,
-            product_name: bi.product_name,
-            image_url: bi.image_url,
-            color_name: bi.color_name,
-            size_name: bi.size_name,
-            stock_quantity: bi.stock_quantity
-          }))
-        }
-      };
-    }));
-    
-    // Step 7: Combine single items and bundle items
-    const items = [...transformedSingleItems, ...transformedBundleItems];
-    
-    // Step 8: Calculate cart totals
-    const { subtotal, tax, total } = calculateCartTotals(items, country);
-    
-    // Step 9: Update cart total in case of discrepancies
+    // Step 5: Update cart total in case of discrepancies
     await sql`
       UPDATE cart SET total = ${total} WHERE id = ${cartId}
     `;
     
-    // Step 10: Return the cart payload
-    const payload = { cartId, subtotal, tax, total, items };
+    // Step 6: Return the cart payload
+    const payload = { cartId, subtotal, tax, total, items: cartItems };
     console.log('Get cart payload:', JSON.stringify(payload, null, 2));
     res.status(200).json(payload);
   } catch (err) {
@@ -395,9 +274,8 @@ export const getCart = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
-// Add to cart
-// Update the addToCart function in your cartController.js
 
+// Add to cart
 export const addToCart = async (req, res) => {
   try {
     const { user_id, product_type, variant_id, size_id, quantity, bundle_id, items } = req.body;
@@ -445,7 +323,7 @@ export const addToCart = async (req, res) => {
         const { base_price, color_name, size_name } = await validateSingleProduct(sql, variant_id, size_id, quantity);
         
         // First, let's check if there are any existing items for this variant and size
-        const [existingItems] = await sql`
+        const existingItems = await sql`
           SELECT id, quantity FROM cart_items 
           WHERE cart_id = ${cart_id} AND variant_id = ${variant_id} AND size_id = ${size_id} AND bundle_id IS NULL
         `;
@@ -567,7 +445,6 @@ export const addToCart = async (req, res) => {
     return res.status(400).json({ error: err.message || 'Failed to add to cart.' });
   }
 };
-
 
 // Remove from cart
 export const removeFromCart = async (req, res) => {
