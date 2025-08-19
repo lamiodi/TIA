@@ -143,8 +143,9 @@ export const requestPasswordReset = async (req, res) => {
   if (!email) return res.status(400).json({ message: 'Email is required' });
   
   try {
+    // Get the user's actual email from the database
     const [user] = await sql`
-      SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
+      SELECT id, email FROM users WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
     `;
     
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -155,10 +156,11 @@ export const requestPasswordReset = async (req, res) => {
     await sql`
       UPDATE users 
       SET reset_token = ${token}, reset_token_expires = ${expires} 
-      WHERE LOWER(email) = LOWER(${email})
+      WHERE id = ${user.id}
     `;
     
-    await sendResetEmail(email, token);
+    // Use the email from the database (correct case) instead of user input
+    await sendResetEmail(user.email, token);
     res.status(200).json({ message: 'Reset link sent to email' });
   } catch (err) {
     console.error('requestPasswordReset error:', err);
