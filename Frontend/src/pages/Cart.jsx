@@ -1,4 +1,3 @@
-// Cart.jsx
 import { useState, useEffect, useContext, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle } from 'lucide-react';
@@ -232,6 +231,8 @@ const Cart = () => {
       const item = cart.items.find(item => item.id === itemId);
       if (!item) throw new Error('Item not found in cart');
       
+      const oldQuantity = item.quantity;
+      
       if (newQuantity > item.item.stock_quantity) {
         setError(`Cannot add more. Only ${item.item.stock_quantity} in stock.`);
         toast.error(`Cannot add more. Only ${item.item.stock_quantity} in stock.`);
@@ -278,24 +279,18 @@ const Cart = () => {
       toast.error(errorMessage);
       
       // Revert optimistic update
-      setCart(prev => ({
-        ...prev,
-        items: prev.items.map(item =>
-          item.id === itemId ? { ...item, quantity: item.quantity } : item
-        ),
-        subtotal: prev.items.reduce(
+      setCart(prev => {
+        const updatedItems = prev.items.map(item =>
+          item.id === itemId ? { ...item, quantity: oldQuantity } : item
+        );
+        const subtotal = updatedItems.reduce(
           (sum, item) => sum + item.quantity * item.item.price,
           0
-        ),
-        tax: country === 'Nigeria' ? 0 : prev.items.reduce(
-          (sum, item) => sum + item.quantity * item.item.price,
-          0
-        ) * 0.05,
-        total: prev.items.reduce(
-          (sum, item) => sum + item.quantity * item.item.price,
-          0
-        ) * (country === 'Nigeria' ? 1 : 1.05)
-      }));
+        );
+        const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+        const total = subtotal + tax;
+        return { ...prev, items: updatedItems, subtotal, tax, total };
+      });
     } finally {
       setIsUpdating(null);
     }
@@ -316,26 +311,28 @@ const Cart = () => {
       
       console.log(`Cart: Removing item with cart_item_id ${itemId}`);
       
+      // Optimistic update
+      setCart(prev => {
+        const remaining = prev.items.filter(item => item.id !== itemId);
+        const subtotal = remaining.reduce(
+          (sum, item) => sum + item.quantity * item.item.price,
+          0
+        );
+        const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+        const total = subtotal + tax;
+        console.log('Cart: Item removed, updated cart:', { items: remaining, subtotal, tax, total });
+        return { ...prev, items: remaining, subtotal, tax, total };
+      });
+      
       const authAxios = getAuthAxios();
       const response = await authAxios.delete(`/api/cart/${itemId}`);
       
-      if (response.status === 200) {
-        setCart(prev => {
-          const remaining = prev.items.filter(item => item.id !== itemId);
-          const subtotal = remaining.reduce(
-            (sum, item) => sum + item.quantity * item.item.price,
-            0
-          );
-          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-          const total = subtotal + tax;
-          console.log('Cart: Item removed, updated cart:', { items: remaining, subtotal, tax, total });
-          return { ...prev, items: remaining, subtotal, tax, total };
-        });
-        setError('');
-        toast.success('Item removed from cart');
-      } else {
+      if (response.status !== 200) {
         throw new Error(response.data?.error || 'Failed to remove item');
       }
+      
+      setError('');
+      toast.success('Item removed from cart');
     } catch (err) {
       console.error('Cart: Remove error:', err);
       
@@ -350,8 +347,16 @@ const Cart = () => {
         
       setError(errorMessage);
       toast.error(errorMessage);
+      
+      // Refresh cart from backend to revert optimistic update
+      const userId = getUserId();
+      if (userId) {
+        const authAxios = getAuthAxios();
+        const response = await authAxios.get(`/api/cart/${userId}`);
+        setCart(response.data);
+      }
     }
-  }, [isAuthenticated, navigate, location.pathname, getAuthAxios, handleAuthError]);
+  }, [isAuthenticated, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, setCart]);
   
   // Clear cart
   const clearCart = useCallback(async () => {
@@ -398,7 +403,6 @@ const Cart = () => {
         '--color-Primarycolor': '#1E1E1E',
         '--color-Secondarycolor': '#ffffff',
         '--color-Accent': '#6E6E6E',
-        '--color-Softcolor': '#F5F5DC',
         '--font-Manrope': '"Manrope", "sans-serif"',
         '--font-Jost': '"Jost", "sans-serif"'
       }}>
@@ -423,7 +427,6 @@ const Cart = () => {
         '--color-Primarycolor': '#1E1E1E',
         '--color-Secondarycolor': '#ffffff',
         '--color-Accent': '#6E6E6E',
-        '--color-Softcolor': '#F5F5DC',
         '--font-Manrope': '"Manrope", "sans-serif"',
         '--font-Jost': '"Jost", "sans-serif"'
       }}>
@@ -671,7 +674,6 @@ const Cart = () => {
       '--color-Primarycolor': '#1E1E1E',
       '--color-Secondarycolor': '#ffffff',
       '--color-Accent': '#6E6E6E',
-      '--color-Softcolor': '#F5F5DC',
       '--font-Manrope': '"Manrope", "sans-serif"',
       '--font-Jost': '"Jost", "sans-serif"'
     }}>
@@ -728,7 +730,7 @@ const Cart = () => {
                 
                 <div className="space-y-3">
                   <Link to="/shop">
-                    <button className="w-full bg-gray-900 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg hover:bg-gray-800 transition-colors font-Jost text-sm md:text-base font-medium">
+                    <button className="w-full bg-gray-900 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-medium font-Jost">
                       Continue Shopping
                     </button>
                   </Link>
