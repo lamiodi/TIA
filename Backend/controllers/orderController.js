@@ -2,7 +2,7 @@ import sql from '../db/index.js';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { Country } from 'country-state-city';
-import { sendOrderConfirmationEmail, sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
+import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
 
 dotenv.config();
 

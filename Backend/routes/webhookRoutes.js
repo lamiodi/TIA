@@ -16,18 +16,22 @@ router.post('/webhook', async (req, res) => {
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
       .update(JSON.stringify(req.body))
       .digest('hex');
+      
     if (hash !== req.headers['x-paystack-signature']) {
       console.error('❌ Invalid Paystack webhook signature');
       return res.status(400).json({ error: 'Invalid signature' });
     }
+
     const { event, data } = req.body;
     console.log(`📥 Webhook received: event=${event}, reference=${data.reference}`);
+
     if (event === 'charge.success') {
       const { reference, status } = data;
       if (status !== 'success') {
         console.log(`ℹ️ Payment not successful for reference=${reference}`);
         return res.status(200).json({ message: 'Webhook received, payment not successful' });
       }
+
       // Wrap all DB operations in a transaction
       await sql.begin(async (sql) => {
         // Check if order exists and is not already completed
@@ -36,10 +40,12 @@ router.post('/webhook', async (req, res) => {
           FROM orders 
           WHERE reference = ${reference} AND deleted_at IS NULL
         `;
+        
         if (!order) {
           console.error(`❌ Order not found for reference=${reference}`);
           return res.status(404).json({ error: 'Order not found' });
         }
+        
         if (order.payment_status === 'completed') {
           console.log(`ℹ️ Payment already verified for reference=${reference}`);
           return res.status(200).json({ message: 'Payment already verified' });
@@ -52,38 +58,44 @@ router.post('/webhook', async (req, res) => {
           WHERE reference = ${reference}
         `;
         
-        // Get user details for email
-        const [user] = await sql`
-          SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
+        // Get UPDATED order details with user information for email
+        const [updatedOrder] = await sql`
+          SELECT 
+            o.*, u.email, u.first_name, u.last_name
+          FROM orders o
+          JOIN users u ON o.user_id = u.id
+          WHERE o.reference = ${reference} AND o.deleted_at IS NULL
         `;
-        console.log(`✅ Payment verified via webhook for order ${order.id}, reference=${reference}`);
+        
+        console.log(`✅ Payment verified via webhook for order ${updatedOrder.id}, reference=${reference}`);
         
         // Send confirmation email only if not already sent
-        if (!order.email_sent) {
+        if (!updatedOrder.email_sent) {
           try {
             await sendOrderConfirmationEmail(
-              user.email,
-              `${user.first_name} ${user.last_name}`,
-              order.id,
-              order.total,
-              order.currency
+              updatedOrder.email,
+              `${updatedOrder.first_name} ${updatedOrder.last_name}`,
+              updatedOrder.id,
+              updatedOrder.total,
+              updatedOrder.currency
             );
-            console.log(`✅ Order confirmation email sent to ${user.email}`);
+            console.log(`✅ Order confirmation email sent to ${updatedOrder.email}`);
             
             // Mark email as sent
             await sql`
               UPDATE orders 
               SET email_sent = true 
-              WHERE id = ${order.id}
+              WHERE id = ${updatedOrder.id}
             `;
           } catch (emailError) {
             console.error('❌ Failed to send confirmation email:', emailError.message);
             // Continue even if email fails
           }
         } else {
-          console.log(`ℹ️ Email already sent for order ${order.id}`);
+          console.log(`ℹ️ Email already sent for order ${updatedOrder.id}`);
         }
       });
+      
       res.status(200).json({ message: 'Webhook processed' });
     } 
     else if (event === 'charge.failed') {
@@ -114,11 +126,10 @@ router.post('/webhook', async (req, res) => {
 router.post('/verify', async (req, res) => {
   try {
     const { reference } = req.body;
-
     if (!reference) {
       return res.status(400).json({ error: 'Reference is required' });
     }
-
+    
     await sql.begin(async (sql) => {
       // First verify with Paystack API
       const paystackResponse = await axios.get(
@@ -129,22 +140,21 @@ router.post('/verify', async (req, res) => {
           },
         }
       );
-
+      
       const { status, data } = paystackResponse.data;
-
       if (!status || data.status !== 'success') {
         return res.status(400).json({ error: 'Payment verification failed' });
       }
-
+      
       // Get order details
       const [order] = await sql`
         SELECT * FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
       `;
-
+      
       if (!order) {
         return res.status(404).json({ error: 'Order not found' });
       }
-
+      
       if (order.payment_status !== 'completed') {
         await sql`
           UPDATE orders
@@ -152,7 +162,7 @@ router.post('/verify', async (req, res) => {
           WHERE id = ${order.id}
         `;
       }
-
+      
       // Get updated order with user and address details
       const [orderDetails] = await sql`
         SELECT 
@@ -165,7 +175,7 @@ router.post('/verify', async (req, res) => {
         JOIN billing_addresses ba ON o.billing_address_id = ba.id
         WHERE o.id = ${order.id}
       `;
-
+      
       // Send confirmation email
       if (orderDetails) {
         const formattedName = `${orderDetails.first_name} ${orderDetails.last_name}`;
@@ -178,11 +188,18 @@ router.post('/verify', async (req, res) => {
             orderDetails.currency
           );
           console.log(`✅ Order confirmation email sent to ${orderDetails.email}`);
+          
+          // Mark email as sent
+          await sql`
+            UPDATE orders 
+            SET email_sent = true 
+            WHERE id = ${orderDetails.id}
+          `;
         } catch (emailError) {
           console.error('❌ Failed to send confirmation email:', emailError.message);
         }
       }
-
+      
       res.status(200).json({ order: orderDetails });
     });
   } catch (err) {
