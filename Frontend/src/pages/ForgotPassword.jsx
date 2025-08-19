@@ -9,32 +9,37 @@ function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    if (!email) {
-      setError('Please enter your email.');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Enter a valid email address');
-      return;
-    }
-    try {
-      setLoading(true);
-      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
-      setSuccess('Password reset link sent to your email.');
-      toast.success('Reset link sent!');
-      setEmail('');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send reset link');
-      toast.error('Failed to send reset link');
-    } finally {
-      setLoading(false);
-    }
-  };
+// In your ForgotPassword component
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  
+  // Normalize email to lowercase
+  const normalizedEmail = email.toLowerCase();
+  
+  if (!normalizedEmail) {
+    setError('Please enter your email.');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    setError('Enter a valid email address');
+    return;
+  }
+  
+  try {
+    setLoading(true);
+    await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: normalizedEmail });
+    setSuccess('Password reset link sent to your email.');
+    toast.success('Reset link sent!');
+    setEmail('');
+  } catch (err) => {
+    setError(err.response?.data?.error || 'Failed to send reset link');
+    toast.error('Failed to send reset link');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 font-Jost">
