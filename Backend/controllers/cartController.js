@@ -117,36 +117,37 @@ const calculateCartTotals = (items, country) => {
 // Helper function to fetch cart items
 const fetchCartItems = async (sql, cartId) => {
   const cartItems = await sql`
-    WITH aggregated_single_items AS (
-      SELECT
-        MIN(ci.id) AS id,
-        ci.variant_id,
-        ci.size_id,
-        COALESCE(SUM(ci.quantity), 0)::INTEGER AS quantity,
-        ci.price,
-        ci.color_name,
-        ci.size_name,
-        pv.product_id,
-        p.name AS product_name,
-        pi.image_url AS image_url,
-        vs.stock_quantity
-      FROM cart_items ci
-      JOIN product_variants pv ON ci.variant_id = pv.id
-      JOIN products p ON pv.product_id = p.id
-      LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
-      LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
-      WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NULL AND pv.deleted_at IS NULL AND p.deleted_at IS NULL
-      GROUP BY ci.variant_id, ci.size_id, ci.price, ci.color_name, ci.size_name, pv.product_id, p.name, pi.image_url, vs.stock_quantity
-    ),
-    bundle_items AS (
-      SELECT
-        ci.id,
-        ci.bundle_id,
-        ci.quantity::INTEGER,
-        ci.price,
-        b.name AS bundle_name,
-        bi_image.image_url AS bundle_image,
-        (
+    SELECT
+      ci.id,
+      ci.quantity::INTEGER,
+      json_build_object(
+        'id', ci.variant_id,
+        'name', p.name,
+        'price', ci.price,
+        'image', pi.image_url,
+        'size', ci.size_name,
+        'size_id', ci.size_id,
+        'color', ci.color_name,
+        'is_product', true,
+        'stock_quantity', vs.stock_quantity
+      ) AS item
+    FROM cart_items ci
+    JOIN product_variants pv ON ci.variant_id = pv.id
+    JOIN products p ON pv.product_id = p.id
+    LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
+    LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
+    WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NULL AND pv.deleted_at IS NULL AND p.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      ci.id,
+      ci.quantity::INTEGER,
+      json_build_object(
+        'id', ci.bundle_id,
+        'name', b.name,
+        'price', ci.price,
+        'image', bi_image.image_url,
+        'is_product', false,
+        'items', (
           SELECT json_agg(
             json_build_object(
               'id', cbi.id,
@@ -172,40 +173,12 @@ const fetchCartItems = async (sql, cartId) => {
           ) pi2 ON pi2.variant_id = cbi.variant_id
           LEFT JOIN variant_sizes vs2 ON vs2.variant_id = cbi.variant_id AND vs2.size_id = cbi.size_id
           WHERE cbi.cart_item_id = ci.id AND pv2.deleted_at IS NULL AND p2.deleted_at IS NULL
-        ) AS bundle_items
-      FROM cart_items ci
-      JOIN bundles b ON ci.bundle_id = b.id
-      LEFT JOIN bundle_images bi_image ON bi_image.bundle_id = b.id AND bi_image.is_primary = TRUE
-      WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NOT NULL AND b.deleted_at IS NULL
-    )
-    SELECT
-      id,
-      quantity,
-      json_build_object(
-        'id', variant_id,
-        'name', product_name,
-        'price', price,
-        'image', image_url,
-        'size', size_name,
-        'size_id', size_id,
-        'color', color_name,
-        'is_product', true,
-        'stock_quantity', stock_quantity
+        )
       ) AS item
-    FROM aggregated_single_items
-    UNION ALL
-    SELECT
-      id,
-      quantity,
-      json_build_object(
-        'id', bundle_id,
-        'name', bundle_name,
-        'price', price,
-        'image', bundle_image,
-        'is_product', false,
-        'items', bundle_items
-      ) AS item
-    FROM bundle_items
+    FROM cart_items ci
+    JOIN bundles b ON ci.bundle_id = b.id
+    LEFT JOIN bundle_images bi_image ON bi_image.bundle_id = b.id AND bi_image.is_primary = TRUE
+    WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NOT NULL AND b.deleted_at IS NULL
   `;
   
   return cartItems.map(row => ({

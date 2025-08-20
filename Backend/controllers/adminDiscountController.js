@@ -1,13 +1,13 @@
-// adminDiscountController.js
 import sql from '../db/index.js';
 
 // Create discount
 export const createDiscount = async (req, res) => {
-  const { product_id, discount_type, discount_value, start_date, end_date } = req.body;
+  const { code, discount_type, discount_value, start_date, end_date, active } = req.body;
+  
   try {
     const result = await sql`
-      INSERT INTO discounts (product_id, discount_type, discount_value, start_date, end_date)
-      VALUES (${product_id}, ${discount_type}, ${discount_value}, ${start_date}, ${end_date})
+      INSERT INTO discounts (code, discount_type, discount_value, start_date, end_date, active)
+      VALUES (${code}, ${discount_type}, ${discount_value}, ${start_date}, ${end_date}, ${active})
       RETURNING *
     `;
     res.json(result[0]);
@@ -20,7 +20,7 @@ export const createDiscount = async (req, res) => {
 // Get all discounts
 export const getDiscounts = async (req, res) => {
   try {
-    const discounts = await sql`SELECT * FROM discounts ORDER BY start_date DESC`;
+    const discounts = await sql`SELECT * FROM discounts ORDER BY created_at DESC`;
     res.json(discounts);
   } catch (error) {
     console.error('Error fetching discounts:', error);
@@ -31,18 +31,21 @@ export const getDiscounts = async (req, res) => {
 // Update discount
 export const updateDiscount = async (req, res) => {
   const { id } = req.params;
-  const { product_id, discount_type, discount_value, start_date, end_date } = req.body;
+  const { code, discount_type, discount_value, start_date, end_date, active } = req.body;
+  
   try {
     const result = await sql`
       UPDATE discounts
-      SET product_id = ${product_id},
+      SET code = ${code},
           discount_type = ${discount_type},
           discount_value = ${discount_value},
           start_date = ${start_date},
-          end_date = ${end_date}
+          end_date = ${end_date},
+          active = ${active}
       WHERE id = ${id}
       RETURNING *
     `;
+    
     if (!result.length) return res.status(404).json({ error: 'Discount not found' });
     res.json(result[0]);
   } catch (error) {
@@ -54,10 +57,12 @@ export const updateDiscount = async (req, res) => {
 // Delete discount
 export const deleteDiscount = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const result = await sql`
       DELETE FROM discounts WHERE id = ${id} RETURNING *
     `;
+    
     if (!result.length) return res.status(404).json({ error: 'Discount not found' });
     res.json({ message: 'Discount deleted successfully' });
   } catch (error) {
@@ -66,7 +71,7 @@ export const deleteDiscount = async (req, res) => {
   }
 };
 
-// adminDiscountController.js
+// Validate coupon code
 export const validateCoupon = async (req, res) => {
   const { code } = req.body;
   
