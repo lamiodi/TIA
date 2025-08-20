@@ -47,7 +47,7 @@ router.post('/discounts', authenticateToken, requireAdmin, createDiscount);
 router.get('/discounts', authenticateToken, requireAdmin, getDiscounts);
 router.put('/discounts/:id', authenticateToken, requireAdmin, updateDiscount);
 router.delete('/discounts/:id', authenticateToken, requireAdmin, deleteDiscount);
-// Validate coupon code
+// Public route for coupon validation (no admin required)
 router.post('/discounts/validate', validateCoupon);
 
 

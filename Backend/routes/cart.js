@@ -1,11 +1,12 @@
-// cartRoutes.js
 import express from 'express';
 import { 
   getCart, 
   addToCart, 
   updateCartItem,
+  updateCartItemPost,
   removeFromCart, 
-  clearCart 
+  clearCart,
+  clearCartPost
 } from '../controllers/cartController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
@@ -19,11 +20,13 @@ router.post('/', authenticateToken, addToCart);
 
 // Update cart item quantity (requires login)
 router.put('/:id', authenticateToken, updateCartItem);
+router.post('/:id', authenticateToken, updateCartItemPost); // POST fallback
 
 // Remove item from cart (requires login)
 router.delete('/:id', authenticateToken, removeFromCart);
 
 // Clear cart for a user (requires login)
 router.delete('/clear/:userId', authenticateToken, clearCart);
+router.post('/clear/:userId', authenticateToken, clearCartPost); // POST fallback
 
 export default router;

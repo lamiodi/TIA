@@ -457,11 +457,14 @@ export const updateCartItem = async (req, res) => {
   const { id } = req.params;
   let { quantity } = req.body;
   quantity = parseInt(quantity, 10);
-  
+
+  console.log('Backend: Updating cart item', { id, quantity });
+
   if (isNaN(quantity) || quantity < 1) {
+    console.error('Backend: Invalid quantity', { quantity });
     return res.status(400).json({ error: 'Quantity must be a positive integer' });
   }
-  
+
   try {
     await sql.begin(async (sql) => {
       const [cartItem] = await sql`
@@ -469,13 +472,14 @@ export const updateCartItem = async (req, res) => {
         FROM cart_items ci
         WHERE ci.id = ${id}
       `;
-      
+
       if (!cartItem) {
+        console.error('Backend: Cart item not found', { id });
         return res.status(404).json({ error: 'Cart item not found' });
       }
-      
+
       const { cart_id, bundle_id, variant_id, size_id } = cartItem;
-      
+
       // Validate stock for single product
       if (!bundle_id) {
         const [stockResult] = await sql`
@@ -483,10 +487,16 @@ export const updateCartItem = async (req, res) => {
           FROM variant_sizes vs
           WHERE vs.variant_id = ${variant_id} AND vs.size_id = ${size_id}
         `;
-        
+
         if (!stockResult || stockResult.stock_quantity < quantity) {
-          return res.status(400).json({ 
-            error: `Only ${stockResult?.stock_quantity || 0} items available in stock.` 
+          console.error('Backend: Insufficient stock', {
+            variant_id,
+            size_id,
+            requested: quantity,
+            available: stockResult?.stock_quantity || 0,
+          });
+          return res.status(400).json({
+            error: `Only ${stockResult?.stock_quantity || 0} items available in stock.`,
           });
         }
       } else {
@@ -497,18 +507,26 @@ export const updateCartItem = async (req, res) => {
           JOIN variant_sizes vs ON vs.variant_id = cbi.variant_id AND vs.size_id = cbi.size_id
           WHERE cbi.cart_item_id = ${id}
         `;
-        
+
         for (const item of bundleItems) {
           if (item.stock_quantity < quantity) {
-            return res.status(400).json({ 
-              error: `Only ${item.stock_quantity} items available for variant ${item.variant_id}.` 
+            console.error('Backend: Insufficient stock for bundle item', {
+              variant_id: item.variant_id,
+              size_id: item.size_id,
+              requested: quantity,
+              available: item.stock_quantity,
+            });
+            return res.status(400).json({
+              error: `Only ${item.stock_quantity} items available for variant ${item.variant_id}.`,
             });
           }
         }
       }
-      
-      await sql`UPDATE cart_items SET quantity = ${quantity} WHERE id = ${id}`;
-      
+
+      await sql`
+        UPDATE cart_items SET quantity = ${quantity} WHERE id = ${id}
+      `;
+
       await sql`
         UPDATE cart SET total = (
           SELECT COALESCE(SUM(ci.price * ci.quantity), 0) 
@@ -517,39 +535,62 @@ export const updateCartItem = async (req, res) => {
         ) 
         WHERE id = ${cart_id}
       `;
-      
+
+      console.log('Backend: Cart item updated successfully', { id, quantity });
       res.json({ message: 'Quantity updated' });
     });
   } catch (err) {
-    console.error('Update cart item error:', err.message, err.stack);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Backend: Update cart item error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
   }
 };
 
 // Clear cart
 export const clearCart = async (req, res) => {
   const { userId } = req.params;
-  
+
+  console.log('Backend: Clearing cart for userId:', userId);
+
   try {
     await sql.begin(async (sql) => {
-      const [cart] = await sql`SELECT id FROM cart WHERE user_id = ${userId}`;
+      const [cart] = await sql`
+        SELECT id FROM cart WHERE user_id = ${userId}
+      `;
       if (!cart) {
+        console.error('Backend: Cart not found for userId:', userId);
         return res.status(404).json({ error: 'Cart not found' });
       }
-      
+
       const cartId = cart.id;
-      
+
       await sql`
         DELETE FROM cart_bundle_items 
         WHERE cart_item_id IN (SELECT id FROM cart_items WHERE cart_id = ${cartId})
       `;
-      await sql`DELETE FROM cart_items WHERE cart_id = ${cartId}`;
-      await sql`UPDATE cart SET total = 0 WHERE id = ${cartId}`;
-      
+      await sql`
+        DELETE FROM cart_items WHERE cart_id = ${cartId}
+      `;
+      await sql`
+        UPDATE cart SET total = 0 WHERE id = ${cartId}
+      `;
+
+      console.log('Backend: Cart cleared successfully for userId:', userId);
       res.json({ message: 'Cart cleared' });
     });
   } catch (err) {
-    console.error('Clear cart error:', err.message, err.stack);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Backend: Clear cart error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
   }
+};
+
+// POST fallback for updateCartItem
+export const updateCartItemPost = async (req, res) => {
+  console.log('Backend: POST /api/cart/:id called as fallback');
+  return updateCartItem(req, res);
+};
+
+// POST fallback for clearCart
+export const clearCartPost = async (req, res) => {
+  console.log('Backend: POST /api/cart/clear/:userId called as fallback');
+  return clearCart(req, res);
 };

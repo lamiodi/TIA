@@ -2,7 +2,7 @@ import React from "react";
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import ProductGrid from '../components/ProductGrid';
-import Cta from '../components/Cta';
+import CtaSlideshow from '../components/CtaSlideshow';
 import NewsletterForm from '../components/NewsletterForm';
 import Footer from '../components/Footer';
 import '../index.css';
@@ -20,7 +20,7 @@ const Home = () =>{
        <Navbar />
        <HeroSection />
        <Newreleasegrid />
-       <Cta />
+       <CtaSlideshow />
        <ProductGrid />
        <NewsletterForm />
        <Footer />
