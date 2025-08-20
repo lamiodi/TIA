@@ -184,58 +184,60 @@ const CheckoutPage = () => {
     }
   }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
   
-  // Apply coupon code
-  const handleApplyCoupon = async (e) => {
-    e.preventDefault();
+ // Apply coupon code
+const handleApplyCoupon = async (e) => {
+  e.preventDefault();
+  
+  if (!couponCode.trim()) {
+    setCouponError('Please enter a coupon code');
+    return;
+  }
+  
+  setCouponLoading(true);
+  setCouponError('');
+  setCouponSuccess('');
+  
+  try {
+    const token = getToken();
+    const response = await axios.post(
+      `${API_BASE_URL}/api/admin/discounts/validate`, // Updated to use /api/admin/discounts/validate
+      { code: couponCode },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     
-    if (!couponCode.trim()) {
-      setCouponError('Please enter a coupon code');
-      return;
-    }
-    setCouponLoading(true);
-    setCouponError('');
-    setCouponSuccess('');
-    try {
-      const token = getToken();
-      const response = await axios.post(
-        `${API_BASE_URL}/api/discounts/validate`, 
-        { code: couponCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    if (response.data.valid) {
+      const discount = response.data.discount;
       
-      if (response.data.valid) {
-        const discount = response.data.discount;
-        
-        // Calculate discount amount
-        let discountAmount = 0;
-        if (discount.type === 'percentage') {
-          discountAmount = (cart.subtotal * discount.value) / 100;
-        } else if (discount.type === 'fixed') {
-          discountAmount = discount.value;
-        }
-        
-        // Ensure discount doesn't exceed subtotal
-        discountAmount = Math.min(discountAmount, cart.subtotal);
-        
-        setAppliedCoupon({
-          code: discount.code,
-          type: discount.type,
-          value: discount.value,
-          amount: discountAmount
-        });
-        
-        setCouponDiscount(discountAmount);
-        setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
-      } else {
-        setCouponError(response.data.message || 'Invalid coupon code');
+      // Calculate discount amount
+      let discountAmount = 0;
+      if (discount.type === 'percentage') {
+        discountAmount = (cart.subtotal * discount.value) / 100;
+      } else if (discount.type === 'fixed') {
+        discountAmount = discount.value;
       }
-    } catch (err) {
-      console.error('Error validating coupon:', err);
-      setCouponError(err.response?.data?.message || 'Failed to validate coupon');
-    } finally {
-      setCouponLoading(false);
+      
+      // Ensure discount doesn't exceed subtotal
+      discountAmount = Math.min(discountAmount, cart.subtotal);
+      
+      setAppliedCoupon({
+        code: discount.code,
+        type: discount.type,
+        value: discount.value,
+        amount: discountAmount
+      });
+      
+      setCouponDiscount(discountAmount);
+      setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
+    } else {
+      setCouponError(response.data.message || 'Invalid coupon code');
     }
-  };
+  } catch (err) {
+    console.error('Error validating coupon:', err);
+    setCouponError(err.response?.data?.message || 'Failed to validate coupon');
+  } finally {
+    setCouponLoading(false);
+  }
+};
   
   // Remove coupon
   const handleRemoveCoupon = () => {
