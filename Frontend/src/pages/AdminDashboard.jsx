@@ -65,7 +65,6 @@ const AdminDashboard = () => {
       setTimeout(() => navigate('/admin/login'), 2000);
       return;
     }
-
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
@@ -94,7 +93,6 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
-
     fetchAnalytics();
   }, [admin, adminLoading, adminLogout, navigate]);
 
@@ -190,8 +188,32 @@ const AdminDashboard = () => {
       )}
       {/* Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AdminUploader />
-        <BundleCreator />
+        <AdminUploader 
+          categories={[
+            'Male', 
+            'Female', 
+            'Gymwears', 
+            'Briefs',
+            // Keep any existing categories
+            'Sets', 
+            'Tops', 
+            'Bottoms', 
+            'Accessories'
+          ]} 
+        />
+        <BundleCreator 
+          categories={[
+            'Male', 
+            'Female', 
+            'Gymwears', 
+            'Briefs',
+            // Keep any existing categories
+            'Sets', 
+            'Tops', 
+            'Bottoms', 
+            'Accessories'
+          ]} 
+        />
         {/* AdminDiscounts removed from here */}
       </div>
     </div>
@@ -242,8 +264,32 @@ const AdminDashboard = () => {
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'orders' && <Orders />}
         {activeTab === 'customers' && <Customers />}
-        {activeTab === 'inventory' && <InventoryManager />}
-        {activeTab === 'discounts' && <AdminDiscounts />}
+        {activeTab === 'inventory' && <InventoryManager 
+          categories={[
+            'Male', 
+            'Female', 
+            'Gymwears', 
+            'Briefs',
+            // Keep any existing categories
+            'Sets', 
+            'Tops', 
+            'Bottoms', 
+            'Accessories'
+          ]} 
+        />}
+        {activeTab === 'discounts' && <AdminDiscounts 
+          categories={[
+            'Male', 
+            'Female', 
+            'Gymwears', 
+            'Briefs',
+            // Keep any existing categories
+            'Sets', 
+            'Tops', 
+            'Bottoms', 
+            'Accessories'
+          ]} 
+        />}
         {activeTab === 'newsletter' && <AdminNewsletterDashboard />}
       </main>
     </div>
