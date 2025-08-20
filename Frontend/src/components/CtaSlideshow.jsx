@@ -236,6 +236,7 @@ const CtaSlideshow = () => {
           <div className="text-2xl sm:text-3xl font-bold text-white mb-2 font-Manrope">
             SAVE <span className="text-yellow-300">33%</span> ON BUNDLES
           </div>
+          <Link to="https://www.thetiabrand.org/bundle/15"></Link>
           <Button
             label="Shop the Bundle"
             variant="primary"
