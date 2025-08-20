@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com/api';
+// Fixed API_BASE_URL to always include /api prefix
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/api` 
+  : 'https://tia-backend-r331.onrender.com/api';
+
 const api = axios.create({ baseURL: API_BASE_URL });
 
 export default function AdminUploader() {
@@ -26,8 +30,8 @@ export default function AdminUploader() {
     const fetchMeta = async () => {
       try {
         const [colorRes, sizeRes] = await Promise.all([
-          api.get('/api/meta/colors'),
-          api.get('/api/meta/sizes'),
+          api.get('/meta/colors'),
+          api.get('/meta/sizes'),
         ]);
         setColors(colorRes.data);
         setSizes(sizeRes.data);
@@ -160,8 +164,14 @@ export default function AdminUploader() {
       });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || 'Upload failed');
+      console.error('Upload error:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+        console.error('Error status:', err.response.status);
+        setError(err.response?.data?.error || `Upload failed with status ${err.response.status}`);
+      } else {
+        setError('Upload failed: Network error or server is down');
+      }
     }
     setLoading(false);
   };
@@ -241,11 +251,14 @@ export default function AdminUploader() {
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
             <option value="">Select Category</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
             <option value="Gymwears">Gymwears</option>
             <option value="Briefs">Briefs</option>
             <option value="Sets">Sets</option>
             <option value="Tops">Tops</option>
             <option value="Bottoms">Bottoms</option>
+            <option value="Accessories">Accessories</option>
           </select>
         </div>
 
