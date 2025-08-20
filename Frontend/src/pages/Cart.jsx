@@ -215,10 +215,10 @@ const Cart = () => {
   // Update quantity
   const updateQuantity = useCallback(async (itemId, newQuantity) => {
     if (newQuantity < 1 || isUpdating === itemId) return;
-    
+
     console.log(`Cart: Updating quantity for cart_item_id ${itemId} to ${newQuantity}`);
     setIsUpdating(itemId);
-    
+
     try {
       if (!isAuthenticated()) {
         console.log('Cart: No valid user session, redirecting to /login');
@@ -227,25 +227,35 @@ const Cart = () => {
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
-      
+
       const item = cart.items.find(item => item.id === itemId);
       if (!item) throw new Error('Item not found in cart');
-      
+
       const oldQuantity = item.quantity;
-      
-      if (newQuantity > item.item.stock_quantity) {
-        setError(`Cannot add more. Only ${item.item.stock_quantity} in stock.`);
-        toast.error(`Cannot add more. Only ${item.item.stock_quantity} in stock.`);
+
+      // Validate stock quantity
+      let maxStock = item.item.stock_quantity;
+      if (!item.item.is_product && Array.isArray(item.item.items)) {
+        // For bundles, check the minimum stock quantity of all bundle items
+        maxStock = Math.min(...item.item.items.map(bi => bi.stock_quantity || 0));
+      }
+      if (maxStock === undefined || maxStock === null) {
+        throw new Error('Stock quantity information is missing');
+      }
+
+      if (newQuantity > maxStock) {
+        setError(`Cannot add more. Only ${maxStock} in stock.`);
+        toast.error(`Cannot add more. Only ${maxStock} in stock.`);
         return;
       }
-      
+
       // Optimistic update
       setCart(prev => {
-        const updatedItems = prev.items.map(item =>
-          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        const updatedItems = prev.items.map(cartItem =>
+          cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
         );
         const subtotal = updatedItems.reduce(
-          (sum, item) => sum + item.quantity * item.item.price,
+          (sum, cartItem) => sum + cartItem.quantity * cartItem.item.price,
           0
         );
         const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
@@ -253,48 +263,48 @@ const Cart = () => {
         console.log('Cart: Optimistic cart update:', { items: updatedItems, subtotal, tax, total });
         return { ...prev, items: updatedItems, subtotal, tax, total };
       });
-      
+
       const authAxios = getAuthAxios();
       const response = await authAxios.put(`/api/cart/${itemId}`, { quantity: newQuantity });
-      
+
       if (response.status !== 200) {
         throw new Error(response.data?.error || 'Failed to update quantity');
       }
-      
-      // Show success toast without refreshing the entire cart
+
+      // Fetch the updated cart to ensure consistency
+      const userId = getUserId();
+      if (userId) {
+        const cartResponse = await authAxios.get(`/api/cart/${userId}`);
+        setCart(cartResponse.data);
+      }
+
       toast.success('Quantity updated successfully');
     } catch (err) {
       console.error('Cart: Update error:', err);
-      
+
       if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
         handleAuthError();
         return;
       }
-      
+
       const errorMessage = err.response?.status === 404 
         ? 'Item not found.' 
         : err.message || 'Server error';
-        
+
       setError(errorMessage);
       toast.error(errorMessage);
-      
-      // Revert optimistic update
-      setCart(prev => {
-        const updatedItems = prev.items.map(item =>
-          item.id === itemId ? { ...item, quantity: oldQuantity } : item
-        );
-        const subtotal = updatedItems.reduce(
-          (sum, item) => sum + item.quantity * item.item.price,
-          0
-        );
-        const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-        const total = subtotal + tax;
-        return { ...prev, items: updatedItems, subtotal, tax, total };
-      });
+
+      // Revert optimistic update by fetching the latest cart
+      const userId = getUserId();
+      if (userId) {
+        const authAxios = getAuthAxios();
+        const cartResponse = await authAxios.get(`/api/cart/${userId}`);
+        setCart(cartResponse.data);
+      }
     } finally {
       setIsUpdating(null);
     }
-  }, [isUpdating, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError]);
+  }, [isUpdating, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, setCart]);
   
   const debouncedUpdateQuantity = useMemo(() => debounce(updateQuantity, 500), [updateQuantity, debounce]);
   
@@ -563,7 +573,7 @@ const Cart = () => {
                 </div>
                 
                 {/* Bundle Items Display */}
-                {!item.item.is_product && bundleItems.length > 0 && (
+                {!item.item.is_product && Array.isArray(bundleItems) && bundleItems.length > 0 && (
                   <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                     <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center">
                       <Package className="h-3 w-3 mr-1" />
@@ -602,6 +612,11 @@ const Cart = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+                {!item.item.is_product && (!Array.isArray(bundleItems) || bundleItems.length === 0) && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-red-600">Bundle items not available. Please remove and re-add the bundle.</p>
                   </div>
                 )}
               </div>

@@ -11,7 +11,9 @@ import { CurrencyContext } from '../pages/CurrencyContext';
 import ReviewSection from '../components/ReviewSection';
 import DescriptionSection from '../components/DescriptionSection';
 import { toastSuccess, toastError } from '../utils/toastConfig';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
+
 const ProductDetails = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -53,6 +55,7 @@ const ProductDetails = () => {
   const [bundleType, setBundleType] = useState('3-in-1');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedBundleVariants, setSelectedBundleVariants] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState(false); // Added to prevent multiple clicks
   
   const colorMap = {
     'Black': '#000000',
@@ -257,6 +260,9 @@ const ProductDetails = () => {
   };
   
   const handleAddToCart = async () => {
+    if (isAddingToCart) return; // Prevent multiple calls
+    setIsAddingToCart(true);
+
     try {
       if (!isAuthenticated()) {
         console.log('ProductDetails.jsx: No authenticated user, redirecting to /login');
@@ -366,6 +372,8 @@ const ProductDetails = () => {
       } else {
         toastError(err.response?.data?.error || 'Failed to add to cart. Please try again.');
       }
+    } finally {
+      setIsAddingToCart(false);
     }
   };
   
@@ -574,7 +582,7 @@ const ProductDetails = () => {
                               className={`w-6 h-6 rounded-full shadow-sm ${color === 'White' ? 'border border-gray-300' : ''}`}
                               style={{ backgroundColor: colorMap[color] || '#cccccc' }}
                             ></div>
-                            <span className="text-sm font-medium font-Jost">{color}</span>
+                            <span className="text-sm font-medium text-center font-Jost">{color}</span>
                             {color === selectedColor && (
                               <Check className="w-4 h-4 text-gray-900" />
                             )}
@@ -794,10 +802,11 @@ const ProductDetails = () => {
                   <div className="flex space-x-4">
                     <button
                       onClick={handleAddToCart}
-                      className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5"
+                      disabled={isAddingToCart} // Disable button while adding
+                      className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="h-5 w-5 " />
-                      <span className='font-Manrope'>Add to Cart</span>
+                      <span className='font-Manrope'>{isAddingToCart ? 'Adding...' : 'Add to Cart'}</span>
                     </button>
                     <button className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                       <Share2 className="h-5 w-5" />
@@ -834,4 +843,5 @@ const ProductDetails = () => {
     </div>
   );
 };
+
 export default ProductDetails;
