@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com/api';
 const api = axios.create({ baseURL: API_BASE_URL });
-
 
 export default function AdminUploader() {
   const [colors, setColors] = useState([]);
@@ -139,7 +138,6 @@ export default function AdminUploader() {
           sizes: v.sizes,
         })),
       };
-
       data.append('data', JSON.stringify(payload));
       form.variants.forEach((variant, i) => {
         variant.images.forEach((img) => data.append(`images_${i}`, img));
@@ -165,27 +163,27 @@ export default function AdminUploader() {
       console.error(err);
       setError(err.response?.data?.error || 'Upload failed');
     }
-
     setLoading(false);
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg border border-gray-100">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Product</h2>
-
+      
       {error && (
         <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 flex items-center">
           <AlertCircle className="w-5 h-5 mr-2" />
           {error}
         </div>
       )}
+      
       {success && (
         <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 flex items-center">
           <CheckCircle className="w-5 h-5 mr-2" />
           Product uploaded successfully!
         </div>
       )}
-
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
@@ -243,8 +241,11 @@ export default function AdminUploader() {
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
             <option value="">Select Category</option>
+            <option value="Gymwears">Gymwears</option>
             <option value="Briefs">Briefs</option>
-            <option value="Gymwear">Gymwear</option>
+            <option value="Sets">Sets</option>
+            <option value="Tops">Tops</option>
+            <option value="Bottoms">Bottoms</option>
           </select>
         </div>
 
@@ -258,6 +259,7 @@ export default function AdminUploader() {
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
+            <option value="Unisex">Unisex</option>
           </select>
         </div>
 
