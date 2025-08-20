@@ -7,7 +7,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from './CurrencyContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.PROD
+  ? 'https://tia-backend-r331.onrender.com/api'
+  : '/api';
 
 // Lazy load non-critical components
 const WhatsAppChatWidget = lazy(() => import('../components/WhatsAppChatWidget'));
@@ -124,12 +126,14 @@ const Cart = () => {
     }
 
     return axios.create({
+      baseURL: API_BASE_URL,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         'X-User-Country': country,
       },
       timeout: 15000,
+      withCredentials: true,
     });
   }, [getToken, country]);
 
@@ -151,10 +155,10 @@ const Cart = () => {
           throw new Error('Could not determine user ID from authentication data');
         }
 
-        console.log('Cart: Fetching cart for userId=', userId, 'URL=', `/api/cart/${userId}`);
+        console.log('Cart: Fetching cart for userId=', userId, 'URL=', `/cart/${userId}`);
 
         const authAxios = getAuthAxios();
-        const response = await authAxios.get(`${API_BASE_URL}/api/cart/${userId}`);
+        const response = await authAxios.get(`/cart/${userId}`);
 
         if (response.status !== 200) {
           throw new Error(`HTTP error ${response.status}`);
@@ -271,65 +275,40 @@ const Cart = () => {
         });
 
         const authAxios = getAuthAxios();
-        let response;
-        try {
-          // Try PUT first
-          response = await authAxios.put(`/api/cart/${itemId}`, { quantity: newQuantity });
-        } catch (putErr) {
-          console.warn(`Cart: PUT request failed with status ${putErr.response?.status}:`, {
-            data: putErr.response?.data,
-            message: putErr.message,
-            url: putErr.config?.url,
-          });
-          if (putErr.response?.status === 405) {
-            // Fallback to POST
-            console.log(`Cart: Falling back to POST /api/cart/${itemId}`);
-            response = await authAxios.post(`/api/cart/${itemId}`, { quantity: newQuantity });
-          } else {
-            throw putErr;
-          }
-        }
+        const response = await authAxios.put(`/cart/${itemId}`, { quantity: newQuantity });
 
         if (response.status !== 200) {
           throw new Error(response.data?.error || 'Failed to update quantity');
         }
 
-        // Fetch updated cart
+        // Fetch the updated cart to ensure consistency
         const userId = getUserId();
         if (userId) {
-          const cartResponse = await authAxios.get(`/api/cart/${userId}`);
+          const cartResponse = await authAxios.get(`/cart/${userId}`);
           setCart(cartResponse.data);
         }
 
         toast.success('Quantity updated successfully');
       } catch (err) {
-        console.error('Cart: Update error:', {
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-        });
+        console.error('Cart: Update error:', err);
 
         if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
           handleAuthError();
           return;
         }
 
-        const errorMessage =
-          err.response?.status === 404
-            ? 'Item not found.'
-            : err.response?.status === 405
-            ? 'Unable to update quantity. Please try again or contact support.'
-            : err.response?.data?.error || `Server error: ${err.message}`;
+        const errorMessage = err.response?.status === 404
+          ? 'Item not found.'
+          : err.message || 'Server error';
 
         setError(errorMessage);
         toast.error(errorMessage);
 
-        // Revert optimistic update
+        // Revert optimistic update by fetching the latest cart
         const userId = getUserId();
         if (userId) {
           const authAxios = getAuthAxios();
-          const cartResponse = await authAxios.get(`/api/cart/${userId}`);
+          const cartResponse = await authAxios.get(`/cart/${userId}`);
           setCart(cartResponse.data);
         }
       } finally {
@@ -369,7 +348,7 @@ const Cart = () => {
         });
 
         const authAxios = getAuthAxios();
-        const response = await authAxios.delete(`/api/cart/${itemId}`);
+        const response = await authAxios.delete(`/cart/${itemId}`);
 
         if (response.status !== 200) {
           throw new Error(response.data?.error || 'Failed to remove item');
@@ -397,7 +376,7 @@ const Cart = () => {
         const userId = getUserId();
         if (userId) {
           const authAxios = getAuthAxios();
-          const response = await authAxios.get(`/api/cart/${userId}`);
+          const response = await authAxios.get(`/cart/${userId}`);
           setCart(response.data);
         }
       }
@@ -419,12 +398,12 @@ const Cart = () => {
 
         const userId = getUserId();
         const authAxios = getAuthAxios();
-        console.log(`Cart: Attempting to clear cart for userId=${userId}, URL=${API_BASE_URL}/api/cart/clear/${userId}`);
+        console.log(`Cart: Attempting to clear cart for userId=${userId}, URL=${API_BASE_URL}/cart/clear/${userId}`);
 
         let response;
         try {
           // Try DELETE first
-          response = await authAxios.delete(`/api/cart/clear/${userId}`);
+          response = await authAxios.delete(`/cart/clear/${userId}`);
         } catch (deleteErr) {
           console.warn(`Cart: DELETE request failed with status ${deleteErr.response?.status}:`, {
             data: deleteErr.response?.data,
@@ -433,8 +412,8 @@ const Cart = () => {
           });
           if (deleteErr.response?.status === 405) {
             // Fallback to POST
-            console.log(`Cart: Falling back to POST /api/cart/clear/${userId}`);
-            response = await authAxios.post(`/api/cart/clear/${userId}`);
+            console.log(`Cart: Falling back to POST /cart/clear/${userId}`);
+            response = await authAxios.post(`/cart/clear/${userId}`);
           } else {
             throw deleteErr;
           }
@@ -742,9 +721,7 @@ const Cart = () => {
             </div>
           </div>
         );
-      },
-    [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]
-  );
+  }, [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]);
 
   return (
     <div

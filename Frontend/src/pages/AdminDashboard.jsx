@@ -20,7 +20,12 @@ import Orders from '../components/Orders';
 import Customers from '../components/Customers';
 import AdminNewsletterDashboard from '../components/AdminNewsletterDashboard';
 import { useAdminAuth } from '../context/AdminAuthContext';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
+
+// Define API_BASE_URL based on environment
+const API_BASE_URL = import.meta.env.PROD
+  ? 'https://tia-backend-r331.onrender.com/api'
+  : '/api';
+
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [analytics, setAnalytics] = useState({
@@ -36,6 +41,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { admin, adminLoading, adminLogout } = useAdminAuth();
+
   const getAuthAxios = () => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
@@ -49,6 +55,7 @@ const AdminDashboard = () => {
       },
     });
   };
+
   useEffect(() => {
     if (adminLoading) return;
     if (!admin || !admin.isAdmin) {
@@ -58,16 +65,22 @@ const AdminDashboard = () => {
       setTimeout(() => navigate('/admin/login'), 2000);
       return;
     }
+
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
         setError(null);
         const authAxios = getAuthAxios();
-        const response = await authAxios.get('/api/admin/analytics');
+        const response = await authAxios.get('/admin/analytics');
         setAnalytics(response.data);
         toast.success('Analytics loaded successfully');
       } catch (err) {
-        console.error('Fetch analytics error:', err);
+        console.error('Fetch analytics error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+        });
         if (err.response?.status === 401) {
           setError('Authentication expired. Please log in again.');
           toast.error('Authentication expired. Please log in again.');
@@ -81,19 +94,23 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
+
     fetchAnalytics();
   }, [admin, adminLoading, adminLogout, navigate]);
+
   const handleLogout = () => {
     adminLogout();
     toast.success('Logged out successfully');
     navigate('/admin/login');
   };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
     }).format(amount);
   };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-NG', {
       year: 'numeric',
@@ -103,6 +120,7 @@ const AdminDashboard = () => {
       minute: '2-digit',
     });
   };
+
   const renderDashboard = () => (
     <div className="space-y-6">
       {error && (
@@ -178,6 +196,7 @@ const AdminDashboard = () => {
       </div>
     </div>
   );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -230,4 +249,5 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
 export default AdminDashboard;
