@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from './Button';
 import ctaimage from '../assets/images/ctaimage.png';
 import Newsletterimage from '../assets/images/Newsletterimage.png';
-import bundleImage from '../assets/images/bundleImage.png'; // You'll need to add this image
+import bundleImage from '../assets/images/bundleImage.png'; 
 import { CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
@@ -89,7 +89,7 @@ const CtaSlideshow = () => {
           <div className="ml-2 w-2 h-2 bg-gradient-to-r from-pink-400 to-orange-400 rounded-full animate-pulse"></div>
         </div>
         <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-Secondarycolor mt-2 mb-4 leading-tight whitespace-nowrap">
-          <span className="inline font-Manrope">OUR TOP </span>
+          <span className="inline font-Manrope">HIS AND HERS </span>
           <span className="bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent">
             SETS
           </span>
@@ -101,7 +101,7 @@ const CtaSlideshow = () => {
         
         <div className="flex flex-col gap-3">
           <Button
-            label="Discover Your Fit"
+            label="Shop the Complete Set"
             variant="primary"
             size="medium"
             stateProp="default"
@@ -190,7 +190,7 @@ const CtaSlideshow = () => {
           <img
             src={ctaimage}
             alt="Sign Up"
-            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-9em] sm:top-[-5em] md:top-[-5em] lg:top-11"
+            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-15em] sm:top-[-5em] md:top-[-5em] lg:top-11"
           />
           
           {/* Floating Elements around Image */}
@@ -237,7 +237,7 @@ const CtaSlideshow = () => {
             SAVE <span className="text-yellow-300">33%</span> ON BUNDLES
           </div>
           <Button
-            label="Shop Bundles"
+            label="Shop the Bundle"
             variant="primary"
             size="medium"
             stateProp="default"
@@ -258,7 +258,7 @@ const CtaSlideshow = () => {
           <img
             src={bundleImage}
             alt="3-in-1 Bundle"
-            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-9em] sm:top-[-5em] md:top-[-5em] lg:top-11"
+            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-15em] sm:top-[-5em] md:top-[-5em] lg:top-11"
           />
           
           {/* Floating Elements around Image */}
@@ -361,7 +361,7 @@ const CtaSlideshow = () => {
           <img
             src={Newsletterimage}
             alt="Newsletter"
-            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-9em] sm:top-[-5em] md:top-[-5em] lg:top-11"
+            className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-15em] sm:top-[-5em] md:top-[-5em] lg:top-11"
           />
           
           {/* Floating Elements around Image */}
