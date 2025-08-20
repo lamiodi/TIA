@@ -2,12 +2,18 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
-// Fixed API_BASE_URL to always include /api prefix
+// Define API_BASE_URL with proper endpoint handling
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
-  ? `${import.meta.env.VITE_API_BASE_URL}/api` 
-  : 'https://tia-backend-r331.onrender.com/api';
+  ? `${import.meta.env.VITE_API_BASE_URL}` 
+  : 'https://tia-backend-r331.onrender.com';
 
-const api = axios.create({ baseURL: API_BASE_URL });
+// Create axios instance with proper configuration
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 export default function AdminUploader() {
   const [colors, setColors] = useState([]);
@@ -29,13 +35,15 @@ export default function AdminUploader() {
   useEffect(() => {
     const fetchMeta = async () => {
       try {
+        // Use the correct endpoint paths with /api prefix
         const [colorRes, sizeRes] = await Promise.all([
-          api.get('/meta/colors'),
-          api.get('/meta/sizes'),
+          api.get('/api/meta/colors'),
+          api.get('/api/meta/sizes'),
         ]);
         setColors(colorRes.data);
         setSizes(sizeRes.data);
       } catch (err) {
+        console.error('Error fetching meta data:', err);
         setError('Failed to load colors and sizes');
       }
     };
@@ -147,7 +155,8 @@ export default function AdminUploader() {
         variant.images.forEach((img) => data.append(`images_${i}`, img));
       });
 
-      await api.post('/products', data, {
+      // Use the correct endpoint path with /api prefix
+      await api.post('/api/products', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -168,6 +177,7 @@ export default function AdminUploader() {
       if (err.response) {
         console.error('Error response:', err.response.data);
         console.error('Error status:', err.response.status);
+        console.error('Error config:', err.config);
         setError(err.response?.data?.error || `Upload failed with status ${err.response.status}`);
       } else {
         setError('Upload failed: Network error or server is down');
