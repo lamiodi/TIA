@@ -37,14 +37,33 @@ cloudinary.config({
 const app = express();
 
 
-
+const allowedOrigins = [
+  'https://www.thetiabrand.org', // Production frontend
+  'http://localhost:5173',        // Local Vite development
+];
 
 app.use(cors({
-  origin: '*', // Allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-country', 'Cache-Control', 'Pragma'],
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like Postman) or from allowedOrigins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-User-Country',
+    'Cache-Control',
+    'Pragma'
+  ],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS']
 }));
+
+
+// ... existing code ...
 
 
 
