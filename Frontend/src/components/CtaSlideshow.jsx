@@ -5,6 +5,7 @@ import Newsletterimage from '../assets/images/Newsletterimage.png';
 import bundleImage from '../assets/images/bundleImage.png'; 
 import { CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 // Use environment variable for base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
