@@ -2,9 +2,17 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
-// Create API instance with environment variable support
+// Define API_BASE_URL with proper endpoint handling
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}` 
+  : 'https://tia-backend-r331.onrender.com';
+
+// Create API instance with explicit /api prefix in endpoint calls
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com'}/api`
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 export default function BundleCreator() {
@@ -16,7 +24,6 @@ export default function BundleCreator() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [fileKey, setFileKey] = useState(0); // For resetting file input
-
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -36,14 +43,15 @@ export default function BundleCreator() {
   useEffect(() => {
     const fetchMeta = async () => {
       try {
+        // Use the correct endpoint paths with /api prefix
         const [skuRes, productsRes] = await Promise.all([
-          api.get('/bundles/sku-prefixes'),
-          api.get('/bundles/products'),
+          api.get('/api/bundles/sku-prefixes'),
+          api.get('/api/bundles/products'),
         ]);
         setSkuPrefixes(skuRes.data);
         setProducts(productsRes.data);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching bundle data:', err);
         setError('Failed to load required data');
       }
     };
@@ -90,7 +98,8 @@ export default function BundleCreator() {
       data.append('data', JSON.stringify(form));
       images.forEach((img) => data.append('images', img));
       
-      await api.post('/bundles', data, {
+      // Use the correct endpoint path with /api prefix
+      await api.post('/api/bundles', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
@@ -107,8 +116,14 @@ export default function BundleCreator() {
       setImagePreviews([]);
       setFileKey(prev => prev + 1); // Reset file input
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || 'Failed to create bundle');
+      console.error('Bundle creation error:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+        console.error('Error status:', err.response.status);
+        setError(err.response?.data?.error || 'Failed to create bundle');
+      } else {
+        setError('Failed to create bundle: Network error or server is down');
+      }
     } finally {
       setLoading(false);
     }

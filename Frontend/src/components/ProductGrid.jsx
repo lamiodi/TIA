@@ -62,35 +62,7 @@ const ProductGrid = () => {
     setPage((prev) => prev + 1);
   };
 
-  const handleAddToCart = useCallback(async (id, name) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    console.log('Add to cart:', id, name);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/cart`,
-        {
-          user_id: user.id,
-          variant_id: id,
-          size_id: 1,
-          quantity: 1,
-          color_name: 'Default',
-          size_name: 'M'
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      console.log('Add to cart response:', response.data);
-      alert(`${name} added to cart!`);
-    } catch (err) {
-      console.error('Add to cart error:', err);
-      alert(err.response?.data?.error || 'Failed to add item to cart');
-    }
-  }, [user, navigate]);
+
 
   const handleImageError = useCallback((e) => {
     e.target.src = 'https://via.placeholder.com/400x500?text=No+Image';
@@ -105,7 +77,7 @@ const ProductGrid = () => {
             Premium comfort, tailored for everyday movement.
           </h4>
           <Link to="/shop" className="text-black hover:text-accent transition-colors">
-          <h4 className="font-semibold font-Manrope">SHOP <span className='hidden sm:inline font-Jost'>ALL</span></h4>
+          <h4 className="font-semibold font-Manrope">SHOP <span className='hidden font-semibold sm:inline font-Jost'>ALL</span></h4>
           </Link>
         </div>
       </div>
@@ -241,7 +213,7 @@ const ProductGrid = () => {
                   <ProductCard
                     key={`${product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
                     product={product}
-                    onAddToCart={handleAddToCart}
+                   
                     onImageError={handleImageError}
                   />
                 ))}

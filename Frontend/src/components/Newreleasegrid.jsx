@@ -185,7 +185,7 @@ const NewReleaseGrid = () => {
       <div className="flex flex-row justify-between items-center gap-y-4 mb-6">
         <h4 className="font-light text-gray-600 font-Manrope">Explore our latest products</h4>
         <Link to="/shop" className="text-black hover:text-accent transition-colors">
-          <h4 className="font-semibold font-Manrope">SHOP <span className='hidden sm:inline font-Jost'>ALL</span></h4>
+          <h4 className="font-semibold font-Manrope">SHOP <span className='hidden font-semibold sm:inline font-Jost'>ALL</span></h4>
         </Link>
       </div>
       {products.length === 0 ? (
