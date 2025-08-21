@@ -23,13 +23,13 @@ export default function Navbar() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [loading]);
-
+  
   const handleLogout = () => {
     logout();
     toastSuccess('Logged out successfully');
     navigate('/login');
   };
-
+  
   // Updated search function to navigate to search results page
   const handleSearch = (e) => {
     e.preventDefault();
@@ -40,7 +40,7 @@ export default function Navbar() {
       setSearchQuery('');
     }
   };
-
+  
   if (loading && !loadingTimeout) {
     return (
       <nav className="bg-Primarycolor">
@@ -56,7 +56,7 @@ export default function Navbar() {
       </nav>
     );
   }
-
+  
   return (
     <Disclosure as="nav" className="bg-Primarycolor">
       {({ open }) => (
@@ -98,7 +98,7 @@ export default function Navbar() {
                 <div className="relative hidden lg:flex items-center">
                   <input
                     type="text"
-                    placeholder="Search"
+                    placeholder="Search products or categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
@@ -185,7 +185,7 @@ export default function Navbar() {
                 <form onSubmit={handleSearch} className="flex">
                   <input
                     type="text"
-                    placeholder="Search"
+                    placeholder="Search products or categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1 px-3 py-2 text-Secondarycolor text-sm border border-Secondarycolor rounded-l bg-transparent focus:border-Softcolor focus:outline-none"

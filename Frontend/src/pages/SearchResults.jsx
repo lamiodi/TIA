@@ -1,4 +1,3 @@
-// pages/SearchResults.jsx
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,6 +21,7 @@ const SearchResults = () => {
   const [page, setPage] = useState(1);
   const [searchParams] = useSearchParams();
   const [mobileLayout, setMobileLayout] = useState('two');
+  const [searchCategory, setSearchCategory] = useState(searchParams.get('category') || ''); // New state
   const { user } = useAuth();
   const { currency, exchangeRate, country, loading: contextLoading } = useContext(CurrencyContext);
   const navigate = useNavigate();
@@ -39,7 +39,14 @@ const SearchResults = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/shopall/search?q=${encodeURIComponent(searchQuery)}`);
+      let url = `/shopall/search?q=${encodeURIComponent(searchQuery)}`;
+      
+      // Add category filter if provided
+      if (searchCategory) {
+        url += `&category=${encodeURIComponent(searchCategory)}`;
+      }
+      
+      const res = await api.get(url);
   
       if (!Array.isArray(res.data)) {
         throw new Error('Unexpected response format');
@@ -76,7 +83,7 @@ const SearchResults = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, searchCategory]);
 
   useEffect(() => {
     fetchSearchResults();
@@ -238,6 +245,20 @@ const SearchResults = () => {
         <div className="mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex items-center justify-between gap-3">
+              {/* Category filter dropdown */}
+              <select
+                value={searchCategory}
+                onChange={(e) => setSearchCategory(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-Primarycolor focus:border-transparent"
+              >
+                <option value="">All Categories</option>
+                <option value="briefs">Briefs</option>
+                <option value="gymwear">Gymwear</option>
+                <option value="new">New Arrivals</option>
+                <option value="3in1">3 in 1</option>
+                <option value="5in1">5 in 1</option>
+              </select>
+              
               <div className="flex sm:hidden bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setMobileLayout('one')}
@@ -357,10 +378,15 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
-          {bundle_types?.[0] && (
-            <span className="absolute top-3 right-3 bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
-              {bundle_types[0]}
-            </span>
+          {/* Updated to show all bundle types */}
+          {bundle_types && bundle_types.length > 0 && (
+            <div className="absolute top-3 right-3 flex flex-col gap-1">
+              {bundle_types.map((type, index) => (
+                <span key={index} className="bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                  {type}
+                </span>
+              ))}
+            </div>
           )}
         </div>
         <div className="p-3 sm:p-4">

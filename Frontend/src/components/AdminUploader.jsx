@@ -261,14 +261,10 @@ export default function AdminUploader() {
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
             <option value="">Select Category</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
             <option value="Gymwears">Gymwears</option>
             <option value="Briefs">Briefs</option>
             <option value="Sets">Sets</option>
-            <option value="Tops">Tops</option>
-            <option value="Bottoms">Bottoms</option>
-            <option value="Accessories">Accessories</option>
+           
           </select>
         </div>
 

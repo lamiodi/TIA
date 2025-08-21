@@ -6,6 +6,7 @@ import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
+
 const ProductGrid = () => {
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState('All');
@@ -31,11 +32,41 @@ const ProductGrid = () => {
       setLoading(true);
       setError(null);
       let url = `${API_BASE_URL}/api/shopall`;
+      
+      // For "All" category, we want to get everything
       if (filter !== 'All' && categoryMap[filter]) {
         url += `?category=${categoryMap[filter]}`;
       }
+      
       const res = await axios.get(url);
-      setProducts(res.data || []);
+      let productsData = res.data || [];
+      
+      // If "All" category is selected, sort to show briefs first, then gymwears
+      if (filter === 'All') {
+        productsData = [...productsData].sort((a, b) => {
+          // Check if product is a brief
+          const aIsBrief = a.name?.toLowerCase().includes('brief') || 
+                           (a.category === 'briefs');
+          const bIsBrief = b.name?.toLowerCase().includes('brief') || 
+                           (b.category === 'briefs');
+          
+          // Check if product is gymwear
+          const aIsGymwear = a.name?.toLowerCase().includes('gym') || 
+                            (a.category === 'gymwear');
+          const bIsGymwear = b.name?.toLowerCase().includes('gym') || 
+                             (b.category === 'gymwear');
+          
+          // Sort briefs first, then gymwears, then everything else
+          if (aIsBrief && !bIsBrief) return -1;
+          if (!aIsBrief && bIsBrief) return 1;
+          if (aIsGymwear && !bIsGymwear && !bIsBrief) return -1;
+          if (!aIsGymwear && bIsGymwear && !aIsBrief) return 1;
+          
+          return 0;
+        });
+      }
+      
+      setProducts(productsData);
       setPage(1);
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Failed to fetch products');
@@ -61,8 +92,6 @@ const ProductGrid = () => {
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
-
-
 
   const handleImageError = useCallback((e) => {
     e.target.src = 'https://via.placeholder.com/400x500?text=No+Image';
@@ -213,7 +242,6 @@ const ProductGrid = () => {
                   <ProductCard
                     key={`${product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
                     product={product}
-                   
                     onImageError={handleImageError}
                   />
                 ))}
@@ -240,7 +268,7 @@ const ProductGrid = () => {
   );
 };
 
-const ProductCard = ({ product, onAddToCart, onImageError }) => {
+const ProductCard = ({ product, onImageError }) => {
   const { id, name, price, image, color, is_product, variantId, bundle_types } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   
@@ -274,10 +302,15 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
-          {bundle_types?.[0] && (
-            <span className="absolute top-3 right-3 bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
-              {bundle_types[0]}
-            </span>
+          {/* Updated to show all bundle types */}
+          {bundle_types && bundle_types.length > 0 && (
+            <div className="absolute top-3 right-3 flex flex-col gap-1">
+              {bundle_types.map((type, index) => (
+                <span key={index} className="bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                  {type}
+                </span>
+              ))}
+            </div>
           )}
         </div>
         <div className="p-3 sm:p-4">
@@ -297,7 +330,6 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
       <div className="p-3 sm:p-4 pt-1 mt-auto">
         <Link to={productUrl}>
           <button
-            onClick={() => onAddToCart(variantId || id, displayName)}
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform group-hover:translate-y-0"
           >
             <svg 
