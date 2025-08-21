@@ -6,14 +6,11 @@ import bundleImage from '../assets/images/bundleImage.png';
 import { CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-
 // Define API_BASE_URL with proper endpoint handling
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}` 
   : 'https://tia-backend-r331.onrender.com';
-
 const api = axios.create({ baseURL: API_BASE_URL });
-
 const CtaSlideshow = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
@@ -396,17 +393,17 @@ const CtaSlideshow = () => {
       {/* Navigation Arrows */}
       <button
         onClick={handlePrevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20 sm:p-3"
         aria-label="Previous slide"
       >
-        <ChevronLeft className="w-6 h-6 text-white" />
+        <ChevronLeft className="w-4 h-4 text-white sm:w-6 sm:h-6" />
       </button>
       <button
         onClick={handleNextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20 sm:p-3"
         aria-label="Next slide"
       >
-        <ChevronRight className="w-6 h-6 text-white" />
+        <ChevronRight className="w-4 h-4 text-white sm:w-6 sm:h-6" />
       </button>
       
       {/* Dots Indicator */}
@@ -415,7 +412,7 @@ const CtaSlideshow = () => {
           <button
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+            className={`w-2 h-2 rounded-full transition-colors duration-200 sm:w-3 sm:h-3 ${
               currentSlide === index ? 'bg-white' : 'bg-white/50'
             }`}
             aria-label={`Go to slide ${index + 1}`}
@@ -425,5 +422,4 @@ const CtaSlideshow = () => {
     </div>
   );
 };
-
 export default CtaSlideshow;
