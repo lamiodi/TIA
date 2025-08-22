@@ -24,13 +24,19 @@ router.post('/webhook', async (req, res) => {
     const { event, data } = req.body;
     const reference = data.reference;
     
+    // Early validation: Check if reference is recognized format
+    if (!reference.startsWith('DF-') && !reference.match(/^[0-9a-zA-Z-]+$/)) {
+      console.warn(`Unrecognized reference format: ${reference}. Event ignored.`);
+      return res.status(200).json({ message: 'Unrecognized reference format, event ignored' });
+    }
+    
     // Check if this is a delivery fee payment (DF- prefix)
     if (reference.startsWith('DF-')) {
-      // Extract order_id from reference (e.g., DF-72-1634567890123 -> 72)
+      // Extract order_id from reference (e.g., DF-72-1755869309026 -> 72)
       const referenceParts = reference.split('-');
       if (referenceParts.length < 2) {
         console.error(`Invalid delivery fee reference format: ${reference}`);
-        return res.status(400).json({ error: 'Invalid delivery fee reference format' });
+        return res.status(200).json({ message: 'Invalid delivery fee reference format, event ignored' });
       }
       const orderId = referenceParts[1]; // Second part is order_id
       
@@ -52,7 +58,7 @@ router.post('/webhook', async (req, res) => {
         
         if (!orderDetails) {
           console.error(`Order not found for delivery fee payment: ${orderId}`);
-          return res.status(404).json({ error: 'Order not found' });
+          return res.status(200).json({ message: 'Order not found, event ignored' });
         }
         
         if (orderDetails.delivery_fee_paid) {
@@ -67,7 +73,7 @@ router.post('/webhook', async (req, res) => {
           WHERE id = ${orderId}
         `;
         
-        // Send delivery fee confirmation email
+        // Send delivery fee confirmation email to user
         try {
           await sendDeliveryFeePaymentConfirmation(
             orderDetails.email,
@@ -79,6 +85,20 @@ router.post('/webhook', async (req, res) => {
           console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
         } catch (emailError) {
           console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
+          // Continue processing even if email fails
+        }
+        
+        // Send delivery fee confirmation email to admin
+        try {
+          await sendAdminDeliveryFeePaymentConfirmation(
+            orderId,
+            orderDetails.first_name,
+            orderDetails.delivery_fee,
+            orderDetails.currency
+          );
+          console.log(`✅ Admin delivery fee confirmation notification sent for order ${orderId}`);
+        } catch (emailError) {
+          console.error(`Failed to send admin delivery fee confirmation: ${emailError.message}`);
           // Continue processing even if email fails
         }
         
@@ -95,7 +115,7 @@ router.post('/webhook', async (req, res) => {
       return res.status(200).json({ message: 'Delivery fee event received' });
     }
     
-    // Existing order payment handling
+    // Existing order payment handling (unchanged)
     if (event === 'charge.success') {
       // Get order and user details in a single query
       const [orderDetails] = await sql`
@@ -116,7 +136,7 @@ router.post('/webhook', async (req, res) => {
       
       if (!orderDetails) {
         console.error(`Order not found for reference: ${reference}`);
-        return res.status(404).json({ error: 'Order not found' });
+        return res.status(200).json({ message: 'Order not found, event ignored' });
       }
       
       if (orderDetails.payment_status === 'completed') {
@@ -156,12 +176,12 @@ router.post('/webhook', async (req, res) => {
       const [order] = await sql`
         SELECT id, payment_status, cart_id 
         FROM orders 
-        WHERE reference = ${reference} AND o.deleted_at IS NULL
+        WHERE reference = ${reference} AND deleted_at IS NULL
       `;
       
       if (!order) {
         console.error(`Order not found for reference: ${reference}`);
-        return res.status(404).json({ error: 'Order not found' });
+        return res.status(200).json({ message: 'Order not found, event ignored' });
       }
       
       if (order.payment_status !== 'pending') {
@@ -246,44 +266,37 @@ router.post('/verify', async (req, res) => {
         return res.status(200).json({ message: 'Delivery fee already verified' });
       }
       
-      // Verify with Paystack directly
-      const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
-        headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
+      // Use the /api/paystack path instead of direct Paystack call
+      const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/delivery-fee/verify`, {
+        params: { reference }
       });
       
-      const { status, data } = response.data;
-      
-      if (!status || data.status !== 'success') {
-        console.error(`Delivery fee payment not successful for reference=${reference}`);
+      if (response.data.success) {
+        await sql`
+          UPDATE orders 
+          SET delivery_fee_paid = true, updated_at = NOW() 
+          WHERE id = ${orderId}
+        `;
+        
+        // Send delivery fee confirmation email
+        try {
+          await sendDeliveryFeePaymentConfirmation(
+            orderDetails.email,
+            orderDetails.first_name,
+            orderId,
+            orderDetails.delivery_fee,
+            orderDetails.currency
+          );
+          console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
+        } catch (emailError) {
+          console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
+          // Continue processing even if email fails
+        }
+        
+        return res.status(200).json({ message: 'Delivery fee verified successfully' });
+      } else {
         return res.status(400).json({ error: 'Delivery fee payment not successful' });
       }
-      
-      // Update delivery fee status
-      await sql`
-        UPDATE orders 
-        SET delivery_fee_paid = true, updated_at = NOW() 
-        WHERE id = ${orderId}
-      `;
-      
-      // Send delivery fee confirmation email
-      try {
-        await sendDeliveryFeePaymentConfirmation(
-          orderDetails.email,
-          orderDetails.first_name,
-          orderId,
-          orderDetails.delivery_fee,
-          orderDetails.currency
-        );
-        console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
-      } catch (emailError) {
-        console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
-        // Continue processing even if email fails
-      }
-      
-      return res.status(200).json({ message: 'Delivery fee verified successfully', order: { ...orderDetails, delivery_fee_paid: true } });
     }
     
     // Existing order verification logic
@@ -301,17 +314,12 @@ router.post('/verify', async (req, res) => {
       return res.status(200).json({ message: 'Payment already verified', order });
     }
     
-    // Verify with Paystack directly
-    const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
+    // Use the /api/paystack path instead of direct Paystack call
+    const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/verify`, {
+      params: { reference }
     });
     
-    const { status, data } = response.data;
-    
-    if (!status || data.status !== 'success') {
+    if (!response.data.success) {
       const orderItems = await sql`
         SELECT variant_id, size_id, quantity 
         FROM order_items 
@@ -371,7 +379,7 @@ router.post('/verify', async (req, res) => {
     return res.status(200).json({ message: 'Payment verified successfully', order });
   } catch (err) {
     console.error('Error verifying payment:', err.message);
-    return res.status(500).json({ error: 'Failed to verify payment' });
+    res.status(500).json({ error: 'Failed to verify payment' });
   }
 });
 

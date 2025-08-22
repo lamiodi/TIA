@@ -181,8 +181,7 @@ export const verifyPayment = async (req, res) => {
 
 // Add this to your existing paystackController.js
 
-// In paystackController.js
-export const initializeDeliveryFeePayment = async (req, res) => {
+/export const initializeDeliveryFeePayment = async (req, res) => {
   try {
     const { order_id, delivery_fee, currency, callback_url } = req.body;
     console.log(`💳 Initializing Paystack delivery fee payment: order_id=${order_id}, delivery_fee=${delivery_fee}, currency=${currency}`);
@@ -192,16 +191,16 @@ export const initializeDeliveryFeePayment = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Check order exists and is eligible for delivery fee
+    // Check order exists and is eligible for delivery fee (updated query to include first_name for email)
     const orderCheck = await sql`
-      SELECT o.id, o.total, o.currency, o.payment_status, o.shipping_country, o.delivery_fee, o.delivery_fee_paid, u.email
+      SELECT o.id, o.total, o.currency, o.payment_status, o.shipping_country, o.delivery_fee, o.delivery_fee_paid, u.email, u.first_name
       FROM orders o
       JOIN users u ON o.user_id = u.id
       WHERE o.id = ${order_id} AND o.deleted_at IS NULL
     `;
     
     if (orderCheck.length === 0) {
-      console.error(`Order not found: çalıştığı ${order_id}`);
+      console.error(`Order not found: ${order_id}`);
       return res.status(404).json({ error: 'Order not found' });
     }
     
@@ -234,7 +233,8 @@ export const initializeDeliveryFeePayment = async (req, res) => {
       WHERE id = ${order_id}
     `;
     
-    const defaultCallbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL}/admin/orders`;
+    // Set callback_url to API verify endpoint (Paystack redirects user browser here after payment)
+    const defaultCallbackUrl = `${process.env.API_BASE_URL || 'https://tia-backend-r331.onrender.com'}/api/paystack/delivery-fee/verify`;
     const finalCallbackUrl = callback_url || defaultCallbackUrl;
     
     const response = await axios.post(
@@ -277,6 +277,22 @@ export const initializeDeliveryFeePayment = async (req, res) => {
       return res.status(500).json({ error: 'Failed to get payment authorization URL from Paystack' });
     }
     
+    // Send email to customer with the payment link
+    try {
+      await sendDeliveryFeeEmail(
+        order.email,
+        order.first_name,
+        order.shipping_country,
+        delivery_fee,
+        authorization_url,
+        currency  // Pass currency for dynamic formatting
+      );
+      console.log(`✅ Sent delivery fee payment link email to ${order.email} for order ${order_id}`);
+    } catch (emailError) {
+      console.error(`Failed to send delivery fee email: ${emailError.message}`);
+      // Continue even if email fails, as link is still generated
+    }
+    
     console.log(`✅ Paystack delivery fee transaction initialized: reference=${paystackReference}`);
     res.status(200).json({ 
       authorization_url, 
@@ -290,8 +306,8 @@ export const initializeDeliveryFeePayment = async (req, res) => {
     res.status(500).json({ error: 'Failed to initialize delivery fee payment' });
   }
 };
-// Add this to your existing paystackController.js
-// In paystackController.js
+
+// Updated verifyDeliveryFeePayment to handle GET redirects for callback
 export const verifyDeliveryFeePayment = async (req, res) => {
   try {
     const { reference } = req.query || req.body;
@@ -307,7 +323,7 @@ export const verifyDeliveryFeePayment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid delivery fee reference format' });
     }
     
-    // Extract order_id from reference (e.g., DF-72-1634567890123 -> 72)
+    // Extract order_id from reference (e.g., DF-72-1755869309026 -> 72)
     const referenceParts = reference.split('-');
     if (referenceParts.length < 2) {
       console.error(`Invalid delivery fee reference format: ${reference}`);
@@ -327,6 +343,9 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     if (orderCheck.length === 0) {
       console.error(`Order not found for delivery fee verification: ${order_id}`);
+      if (req.method === 'GET') {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you?reference=${reference}&status=failed&type=delivery_fee`);
+      }
       return res.status(404).json({ error: 'Order not found' });
     }
     
@@ -334,6 +353,9 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     if (order.delivery_fee_paid) {
       console.warn(`Delivery fee already verified for order=${order_id}`);
+      if (req.method === 'GET') {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you?reference=${reference}&status=already_verified&type=delivery_fee`);
+      }
       return res.status(200).json({ message: 'Delivery fee already verified', order });
     }
     
@@ -349,6 +371,9 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     if (!status || data.status !== 'success') {
       console.error(`Delivery fee payment not successful for reference=${reference}`);
+      if (req.method === 'GET') {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you?reference=${reference}&status=failed&type=delivery_fee`);
+      }
       return res.status(400).json({ error: 'Delivery fee payment not successful', order });
     }
     
@@ -361,7 +386,7 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     console.log(`✅ Delivery fee payment verified for reference=${reference}, order_id=${order_id}`);
     
-    // Send confirmation email
+    // Send confirmation email to user (note: webhook also sends it for redundancy, but this ensures immediate confirmation if called synchronously)
     await sendDeliveryFeePaymentConfirmation(
       order.email,
       order.first_name,
@@ -370,6 +395,9 @@ export const verifyDeliveryFeePayment = async (req, res) => {
       order.currency
     );
     
+    if (req.method === 'GET') {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you?reference=${reference}&status=success&type=delivery_fee`);
+    }
     res.status(200).json({ 
       message: 'Delivery fee payment verified successfully', 
       order: { ...order, delivery_fee_paid: true }
@@ -377,6 +405,9 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
   } catch (err) {
     console.error('❌ Error verifying Paystack delivery fee payment:', err.message);
+    if (req.method === 'GET') {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/thank-you?reference=${req.query.reference}&status=failed&type=delivery_fee`);
+    }
     res.status(500).json({ error: 'Failed to verify delivery fee payment' });
   }
 };
