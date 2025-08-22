@@ -14,39 +14,56 @@ export const AdminAuthProvider = ({ children }) => {
   const [adminLoading, setAdminLoading] = useState(true);
   
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const storedAdmin = localStorage.getItem('admin');
-    
-    if (token && storedAdmin) {
-      try {
-        const parsedAdmin = JSON.parse(storedAdmin);
-        console.log('AdminAuthProvider: Parsed admin', parsedAdmin);
-        // Standardize the admin object by mapping 'userId' to 'id'
-        if (parsedAdmin && parsedAdmin.userId) {
-          const adminWithId = { ...parsedAdmin, id: parsedAdmin.userId };
-          console.log('AdminAuthProvider: Setting admin with standardized id', adminWithId);
-          setAdmin(adminWithId);
-        } else {
-          throw new Error('Invalid admin object: missing userId');
+    const verifyAdminToken = async () => {
+      const token = localStorage.getItem('adminToken');
+      const storedAdmin = localStorage.getItem('admin');
+      
+      if (token && storedAdmin) {
+        try {
+          const parsedAdmin = JSON.parse(storedAdmin);
+          console.log('AdminAuthProvider: Parsed admin', parsedAdmin);
+          
+          // Check if the admin object has the required fields
+          if (parsedAdmin && (parsedAdmin.id || parsedAdmin.userId)) {
+            // Standardize the admin object - ensure it has an 'id' field
+            const adminWithId = { 
+              ...parsedAdmin, 
+              id: parsedAdmin.id || parsedAdmin.userId,
+              isAdmin: parsedAdmin.isAdmin !== false // Ensure isAdmin is defined
+            };
+            console.log('AdminAuthProvider: Setting admin with standardized id', adminWithId);
+            setAdmin(adminWithId);
+          } else {
+            throw new Error('Invalid admin object: missing required id field');
+          }
+        } catch (err) {
+          console.error('AdminAuthProvider: Error parsing admin data:', err);
+          localStorage.removeItem('admin');
+          localStorage.removeItem('adminToken');
+          setAdmin(null);
         }
-      } catch (err) {
-        console.error('AdminAuthProvider: Error parsing admin data:', err);
-        localStorage.removeItem('admin');
-        localStorage.removeItem('adminToken');
-        setAdmin(null);
       }
-    }
+      
+      setAdminLoading(false);
+    };
     
-    setAdminLoading(false);
+    verifyAdminToken();
   }, []);
   
   const adminLogin = async (user, token) => {
+    // Standardize the user object before storing
+    const standardizedUser = {
+      ...user,
+      id: user.id || user.userId, // Ensure we have an id field
+      isAdmin: user.isAdmin !== false // Ensure isAdmin is defined
+    };
+    
     // Store the admin data and token
     localStorage.setItem('adminToken', token);
-    localStorage.setItem('admin', JSON.stringify(user));
-    setAdmin(user);
+    localStorage.setItem('admin', JSON.stringify(standardizedUser));
+    setAdmin(standardizedUser);
     
-    return { admin: user, token };
+    return { admin: standardizedUser, token };
   };
   
   const adminLogout = () => {
@@ -62,5 +79,4 @@ export const AdminAuthProvider = ({ children }) => {
     </AdminAuthContext.Provider>
   );
 };
-
 export const useAdminAuth = () => useContext(AdminAuthContext);
