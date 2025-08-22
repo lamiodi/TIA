@@ -55,13 +55,16 @@ const AdminDeliveryFeeModal = ({
       setEmailError(null);
       const authApi = getAuthApi();
       
+      const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
+      const callbackUrl = `${frontendUrl.replace(/\/$/, '')}/delivery-fee-thank-you`;
+      
       const response = await authApi.post(
         '/api/paystack/delivery-fee/initialize',
         {
           order_id: selectedOrder.id,
           delivery_fee: deliveryFee,
           currency: currency,
-          callback_url: `${import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/delivery-fee-thank-you`
+          callback_url: callbackUrl
         }
       );
       
