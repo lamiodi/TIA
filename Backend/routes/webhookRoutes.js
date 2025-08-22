@@ -28,18 +28,27 @@ router.post('/webhook', async (req, res) => {
       const orderId = reference.substring(3); // Extract order ID from "DF-{orderId}"
       
       if (event === 'charge.success') {
-        const [order] = await sql`
-          SELECT id, delivery_fee_paid, user_id 
-          FROM orders 
-          WHERE id = ${orderId} AND deleted_at IS NULL
+        // Get order details in a single query
+        const [orderDetails] = await sql`
+          SELECT 
+            o.id, 
+            o.delivery_fee_paid, 
+            o.user_id,
+            o.delivery_fee,
+            o.currency,
+            u.email,
+            u.first_name
+          FROM orders o
+          JOIN users u ON o.user_id = u.id
+          WHERE o.id = ${orderId} AND o.deleted_at IS NULL
         `;
         
-        if (!order) {
+        if (!orderDetails) {
           console.error(`Order not found for delivery fee payment: ${orderId}`);
           return res.status(404).json({ error: 'Order not found' });
         }
         
-        if (order.delivery_fee_paid) {
+        if (orderDetails.delivery_fee_paid) {
           console.warn(`Delivery fee already paid for order=${orderId}`);
           return res.status(200).json({ message: 'Delivery fee already paid' });
         }
@@ -51,30 +60,19 @@ router.post('/webhook', async (req, res) => {
           WHERE id = ${orderId}
         `;
         
-        // Get user and order details for email
-        const [user] = await sql`
-          SELECT email, first_name FROM users WHERE id = ${order.user_id}
-        `;
-        
-        const [orderDetails] = await sql`
-          SELECT delivery_fee, currency FROM orders WHERE id = ${orderId}
-        `;
-        
         // Send delivery fee confirmation email
-        if (user && orderDetails) {
-          try {
-            await sendDeliveryFeePaymentConfirmation(
-              user.email,
-              user.first_name,
-              orderId,
-              orderDetails.delivery_fee,
-              orderDetails.currency
-            );
-            console.log(`✅ Delivery fee confirmation email sent to ${user.email} for order ${orderId}`);
-          } catch (emailError) {
-            console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
-            // Continue processing even if email fails
-          }
+        try {
+          await sendDeliveryFeePaymentConfirmation(
+            orderDetails.email,
+            orderDetails.first_name,
+            orderId,
+            orderDetails.delivery_fee,
+            orderDetails.currency
+          );
+          console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
+        } catch (emailError) {
+          console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
+          // Continue processing even if email fails
         }
         
         console.log(`✅ Delivery fee payment confirmed for order=${orderId}`);
@@ -92,23 +90,32 @@ router.post('/webhook', async (req, res) => {
     
     // Existing order payment handling (unchanged)
     if (event === 'charge.success') {
-      const [order] = await sql`
-        SELECT id, payment_status, user_id, total, currency, email_sent, cart_id 
-        FROM orders 
-        WHERE reference = ${reference} AND deleted_at IS NULL
+      // Get order and user details in a single query
+      const [orderDetails] = await sql`
+        SELECT 
+          o.id, 
+          o.payment_status, 
+          o.user_id, 
+          o.total, 
+          o.currency, 
+          o.email_sent, 
+          o.cart_id,
+          u.email,
+          u.first_name
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.reference = ${reference} AND o.deleted_at IS NULL
       `;
       
-      if (!order) {
+      if (!orderDetails) {
         console.error(`Order not found for reference: ${reference}`);
         return res.status(404).json({ error: 'Order not found' });
       }
       
-      if (order.payment_status === 'completed') {
+      if (orderDetails.payment_status === 'completed') {
         console.warn(`Payment already verified for reference=${reference}`);
         return res.status(200).json({ message: 'Payment already verified' });
       }
-      
-      const [user] = await sql`SELECT email, first_name FROM users WHERE id = ${order.user_id}`;
       
       await sql.begin(async sql => {
         await sql`
@@ -117,23 +124,23 @@ router.post('/webhook', async (req, res) => {
           WHERE reference = ${reference}
         `;
         
-        if (order.cart_id) {
-          await sql`DELETE FROM cart_items WHERE cart_id = ${order.cart_id}`;
-          console.log(`✅ Cleared cart items for cart_id=${order.cart_id}, reference=${reference}`);
+        if (orderDetails.cart_id) {
+          await sql`DELETE FROM cart_items WHERE cart_id = ${orderDetails.cart_id}`;
+          console.log(`✅ Cleared cart items for cart_id=${orderDetails.cart_id}, reference=${reference}`);
         }
       });
       
-      if (!order.email_sent) {
+      if (!orderDetails.email_sent) {
         await sendOrderConfirmationEmail(
-          user.email, 
-          user.first_name, 
-          order.id, 
-          order.total, 
-          order.currency,
+          orderDetails.email, 
+          orderDetails.first_name, 
+          orderDetails.id, 
+          orderDetails.total, 
+          orderDetails.currency,
           'completed'
         );
         
-        await sql`UPDATE orders SET email_sent = true WHERE id = ${order.id}`;
+        await sql`UPDATE orders SET email_sent = true WHERE id = ${orderDetails.id}`;
       }
       
       console.log(`✅ Processed charge.success for reference=${reference}`);
@@ -192,6 +199,7 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
+// Update the verify endpoint to use the /api/paystack path
 router.post('/verify', async (req, res) => {
   try {
     const { reference } = req.body;
@@ -203,56 +211,54 @@ router.post('/verify', async (req, res) => {
     if (reference.startsWith('DF-')) {
       const orderId = reference.substring(3);
       
-      const [order] = await sql`
-        SELECT id, delivery_fee_paid, user_id 
-        FROM orders 
-        WHERE id = ${orderId} AND deleted_at IS NULL
+      // Get order details in a single query
+      const [orderDetails] = await sql`
+        SELECT 
+          o.id, 
+          o.delivery_fee_paid, 
+          o.user_id,
+          o.delivery_fee,
+          o.currency,
+          u.email,
+          u.first_name
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.id = ${orderId} AND o.deleted_at IS NULL
       `;
       
-      if (!order) {
+      if (!orderDetails) {
         return res.status(404).json({ error: 'Order not found' });
       }
       
-      if (order.delivery_fee_paid) {
+      if (orderDetails.delivery_fee_paid) {
         return res.status(200).json({ message: 'Delivery fee already verified' });
       }
       
-      const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+      // Use the /api/paystack path instead of direct Paystack call
+      const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/delivery-fee/verify`, {
+        params: { reference }
       });
       
-      const { status, data } = response.data;
-      if (status && data.status === 'success') {
+      if (response.data.success) {
         await sql`
           UPDATE orders 
           SET delivery_fee_paid = true, updated_at = NOW() 
           WHERE id = ${orderId}
         `;
         
-        // Get user and order details for email
-        const [user] = await sql`
-          SELECT email, first_name FROM users WHERE id = ${order.user_id}
-        `;
-        
-        const [orderDetails] = await sql`
-          SELECT delivery_fee, currency FROM orders WHERE id = ${orderId}
-        `;
-        
         // Send delivery fee confirmation email
-        if (user && orderDetails) {
-          try {
-            await sendDeliveryFeePaymentConfirmation(
-              user.email,
-              user.first_name,
-              orderId,
-              orderDetails.delivery_fee,
-              orderDetails.currency
-            );
-            console.log(`✅ Delivery fee confirmation email sent to ${user.email} for order ${orderId}`);
-          } catch (emailError) {
-            console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
-            // Continue processing even if email fails
-          }
+        try {
+          await sendDeliveryFeePaymentConfirmation(
+            orderDetails.email,
+            orderDetails.first_name,
+            orderId,
+            orderDetails.delivery_fee,
+            orderDetails.currency
+          );
+          console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
+        } catch (emailError) {
+          console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
+          // Continue processing even if email fails
         }
         
         return res.status(200).json({ message: 'Delivery fee verified successfully' });
@@ -276,12 +282,12 @@ router.post('/verify', async (req, res) => {
       return res.status(200).json({ message: 'Payment already verified', order });
     }
     
-    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+    // Use the /api/paystack path instead of direct Paystack call
+    const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/verify`, {
+      params: { reference }
     });
     
-    const { status, data } = response.data;
-    if (!status || data.status !== 'success') {
+    if (!response.data.success) {
       const orderItems = await sql`
         SELECT variant_id, size_id, quantity 
         FROM order_items 

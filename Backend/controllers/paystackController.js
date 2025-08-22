@@ -178,3 +178,192 @@ export const verifyPayment = async (req, res) => {
     res.status(500).json({ error: 'Failed to verify payment' });
   }
 };
+
+// Add this to your existing paystackController.js
+
+export const initializeDeliveryFeePayment = async (req, res) => {
+  try {
+    const { order_id, delivery_fee, currency, callback_url } = req.body;
+    console.log(`💳 Initializing Paystack delivery fee payment: order_id=${order_id}, delivery_fee=${delivery_fee}, currency=${currency}`);
+    
+    if (!order_id || !delivery_fee || !currency) {
+      console.error('Missing required fields for delivery fee payment initialization');
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Check order exists and is eligible for delivery fee
+    const orderCheck = await sql`
+      SELECT o.id, o.total, o.currency, o.payment_status, o.shipping_country, o.delivery_fee, o.delivery_fee_paid, u.email
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      WHERE o.id = ${order_id} AND o.deleted_at IS NULL
+    `;
+    
+    if (orderCheck.length === 0) {
+      console.error(`Order not found: ${order_id}`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const order = orderCheck[0];
+    
+    // Validate order is eligible for delivery fee
+    if (order.shipping_country.toLowerCase() === 'nigeria') {
+      console.error(`Delivery fee not applicable for domestic order: ${order_id}`);
+      return res.status(400).json({ error: 'Delivery fee only applicable for international orders' });
+    }
+    
+    if (order.payment_status !== 'completed') {
+      console.error(`Order payment not completed: ${order_id}`);
+      return res.status(400).json({ error: 'Order payment must be completed before collecting delivery fee' });
+    }
+    
+    if (order.delivery_fee_paid) {
+      console.error(`Delivery fee already paid for order: ${order_id}`);
+      return res.status(400).json({ error: 'Delivery fee already paid for this order' });
+    }
+    
+    // Generate unique reference with DF- prefix
+    const reference = `DF-${order_id}`;
+    
+    // Update delivery fee amount in database
+    await sql`
+      UPDATE orders
+      SET delivery_fee = ${delivery_fee}, updated_at = NOW()
+      WHERE id = ${order_id}
+    `;
+    
+    const defaultCallbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${process.env.FRONTEND_URL}/admin/orders`;
+    const finalCallbackUrl = callback_url || defaultCallbackUrl;
+    
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        email: order.email,
+        amount: Math.round(delivery_fee * 100), // Convert to kobo/cents
+        currency,
+        reference,
+        callback_url: finalCallbackUrl,
+        metadata: {
+          order_id,
+          payment_type: 'delivery_fee',
+          custom_fields: [
+            {
+              display_name: "Order ID",
+              variable_name: "order_id",
+              value: order_id
+            },
+            {
+              display_name: "Payment Type",
+              variable_name: "payment_type",
+              value: "delivery_fee"
+            }
+          ]
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    const { authorization_url, access_code, reference: paystackReference } = response.data.data;
+    
+    if (!authorization_url) {
+      console.error('Paystack did not return authorization_url:', response.data);
+      return res.status(500).json({ error: 'Failed to get payment authorization URL from Paystack' });
+    }
+    
+    console.log(`✅ Paystack delivery fee transaction initialized: reference=${paystackReference}`);
+    res.status(200).json({ 
+      authorization_url, 
+      access_code, 
+      reference: paystackReference,
+      delivery_fee 
+    });
+    
+  } catch (err) {
+    console.error('❌ Error initializing Paystack delivery fee payment:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to initialize delivery fee payment' });
+  }
+};
+
+
+// Add this to your existing paystackController.js
+
+export const verifyDeliveryFeePayment = async (req, res) => {
+  try {
+    const { reference } = req.query || req.body;
+    
+    if (!reference) {
+      console.error('Missing reference for delivery fee payment verification');
+      return res.status(400).json({ error: 'Reference is required' });
+    }
+    
+    // Check if this is a delivery fee payment (DF- prefix)
+    if (!reference.startsWith('DF-')) {
+      console.error(`Invalid delivery fee reference format: ${reference}`);
+      return res.status(400).json({ error: 'Invalid delivery fee reference format' });
+    }
+    
+    const order_id = reference.substring(3); // Extract order ID from "DF-{orderId}"
+    console.log(`🔎 Verifying Paystack delivery fee payment: reference=${reference}, order_id=${order_id}`);
+    
+    // Check order exists
+    const orderCheck = await sql`
+      SELECT o.id, o.user_id, o.delivery_fee, o.delivery_fee_paid, o.currency, u.email, u.first_name
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      WHERE o.id = ${order_id} AND o.deleted_at IS NULL
+    `;
+    
+    if (orderCheck.length === 0) {
+      console.error(`Order not found for delivery fee verification: ${order_id}`);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const order = orderCheck[0];
+    
+    if (order.delivery_fee_paid) {
+      console.warn(`Delivery fee already verified for order=${order_id}`);
+      return res.status(200).json({ message: 'Delivery fee already verified', order });
+    }
+    
+    // Verify with Paystack
+    const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const { status, data } = response.data;
+    
+    if (!status || data.status !== 'success') {
+      console.error(`Delivery fee payment not successful for reference=${reference}`);
+      return res.status(400).json({ error: 'Delivery fee payment not successful', order });
+    }
+    
+    // Update delivery fee status
+    await sql`
+      UPDATE orders
+      SET delivery_fee_paid = true, updated_at = NOW()
+      WHERE id = ${order_id}
+    `;
+    
+    console.log(`✅ Delivery fee payment verified for reference=${reference}, order_id=${order_id}`);
+    
+    // Send confirmation email (you can add this if needed)
+    // await sendDeliveryFeeConfirmationEmail(order.email, order.first_name, order_id, order.delivery_fee, order.currency);
+    
+    res.status(200).json({ 
+      message: 'Delivery fee payment verified successfully', 
+      order: { ...order, delivery_fee_paid: true }
+    });
+    
+  } catch (err) {
+    console.error('❌ Error verifying Paystack delivery fee payment:', err.message);
+    res.status(500).json({ error: 'Failed to verify delivery fee payment' });
+  }
+};

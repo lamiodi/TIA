@@ -9,4 +9,10 @@ router.post('/initialize', initializePayment);
 // Verify payment (callback from Paystack)
 router.get('/verify', verifyPayment);
 
+
+// New delivery fee routes
+router.post('/delivery-fee/initialize', initializeDeliveryFeePayment);
+router.get('/delivery-fee/verify', verifyDeliveryFeePayment);
+router.post('/delivery-fee/verify', verifyDeliveryFeePayment);
+
 export default router;
