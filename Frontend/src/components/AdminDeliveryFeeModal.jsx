@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, X, Link, Copy } from 'lucide-react';
+import { DollarSign, X, Link, Copy, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -30,8 +30,8 @@ const AdminDeliveryFeeModal = ({
     if (selectedOrder) {
       setDeliveryFee(selectedOrder.delivery_fee || 0);
       setCurrency(selectedOrder.currency || 'USD');
-      setPaymentLink(''); // Reset payment link when order changes
-      setEmailError(null); // Reset email error
+      setPaymentLink('');
+      setEmailError(null);
     }
   }, [selectedOrder]);
   
@@ -65,11 +65,16 @@ const AdminDeliveryFeeModal = ({
         }
       );
       
-      const { authorization_url } = response.data;
+      const { authorization_url, emailSent } = response.data;
       setPaymentLink(authorization_url);
       
       navigator.clipboard.writeText(authorization_url);
-      toast.success('Payment link generated and copied to clipboard! Email sent to customer.');
+      if (emailSent) {
+        toast.success('Payment link generated and copied to clipboard! Email sent to customer.');
+      } else {
+        setEmailError('Payment link generated, but email failed to send. Please share the link manually.');
+        toast.warn('Payment link generated and copied to clipboard, but email failed to send.');
+      }
       
       setOrders(prev => prev.map(order => 
         order.id === selectedOrder.id 
@@ -80,11 +85,9 @@ const AdminDeliveryFeeModal = ({
     } catch (err) {
       console.error('Error generating payment link:', err);
       const errorMessage = err.response?.data?.error || 'Failed to generate payment link. Please try again.';
-      if (errorMessage.includes('Failed to send delivery fee email')) {
+      toast.error(errorMessage);
+      if (err.response?.data?.details?.includes('sendDeliveryFeeEmail') || !err.response?.data?.emailSent) {
         setEmailError('Payment link generated, but email failed to send. Please share the link manually.');
-        toast.warn('Payment link generated, but email failed to send. Link copied to clipboard.');
-      } else {
-        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -95,6 +98,17 @@ const AdminDeliveryFeeModal = ({
     if (paymentLink) {
       navigator.clipboard.writeText(paymentLink);
       toast.success('Payment link copied to clipboard!');
+    }
+  };
+  
+  const sendManually = () => {
+    if (paymentLink && selectedOrder) {
+      const subject = encodeURIComponent(`Delivery Fee Payment for Order #${selectedOrder.id}`);
+      const body = encodeURIComponent(
+        `Dear ${selectedOrder.first_name},\n\nPlease pay the delivery fee for your order to ${selectedOrder.shipping_country} using this link:\n${paymentLink}\n\nContact Thetiabrand1@gmail.com for assistance.\n\n— The Tia Brand Team`
+      );
+      window.location.href = `mailto:${selectedOrder.email}?subject=${subject}&body=${body}`;
+      toast.info('Opening email client to send payment link manually.');
     }
   };
   
@@ -198,6 +212,15 @@ const AdminDeliveryFeeModal = ({
                 <Copy className="w-4 h-4 mr-2" />
                 Copy Payment Link
               </button>
+              {emailError && (
+                <button
+                  onClick={sendManually}
+                  className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Link Manually
+                </button>
+              )}
               <button
                 onClick={() => setShowDeliveryFeeModal(false)}
                 className="w-full py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200"
