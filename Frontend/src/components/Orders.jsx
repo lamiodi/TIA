@@ -11,7 +11,18 @@ import { format } from 'date-fns';
 import OrderDetailsModal from './OrderDetailsModal';
 import AdminDeliveryFeeModal from './AdminDeliveryFeeModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// Define API_BASE_URL with proper endpoint handling like in AdminUploader
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}` 
+  : 'https://tia-backend-r331.onrender.com';
+
+// Create axios instance with proper configuration like in AdminUploader
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -35,7 +46,8 @@ const Orders = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState({});
   
-  const getAuthAxios = () => {
+  // Create authenticated API function like in AdminUploader
+  const getAuthApi = () => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
       throw new Error('Admin not authenticated');
@@ -58,12 +70,15 @@ const Orders = () => {
       setTimeout(() => navigate('/admin/login'), 2000);
       return;
     }
+    
     const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
-        const authAxios = getAuthAxios();
-        const response = await authAxios.get('/api/admin/orders');
+        const authApi = getAuthApi();
+        const response = await authApi.get('/api/admin/orders');
+        
+        // Ensure all orders have default values for delivery_fee and delivery_fee_paid
         const processedOrders = response.data.map(order => ({
           ...order,
           total: Number(order.total_amount) || 0,
@@ -76,9 +91,11 @@ const Orders = () => {
           last_name: order.last_name || 'Customer',
           user_email: order.user_email || 'N/A',
           payment_status: order.payment_status || 'pending',
+          // Add these lines with default values to prevent undefined errors
           delivery_fee_paid: order.delivery_fee_paid || false,
           delivery_fee: order.delivery_fee || 0,
         }));
+        
         setOrders(processedOrders);
         toast.success('Orders loaded successfully');
       } catch (err) {
@@ -88,6 +105,7 @@ const Orders = () => {
         setLoading(false);
       }
     };
+    
     fetchOrders();
   }, [admin, adminLoading, adminLogout, navigate]);
   
@@ -107,8 +125,8 @@ const Orders = () => {
   const fetchCompleteOrderDetails = async (orderId) => {
     try {
       setDetailsLoading(true);
-      const authAxios = getAuthAxios();
-      const response = await authAxios.get(`/api/admin/orders/complete/${orderId}`);
+      const authApi = getAuthApi();
+      const response = await authApi.get(`/api/admin/orders/complete/${orderId}`);
       const initialSelectedImages = {};
       response.data.items?.forEach(item => {
         if (item.images?.length > 0) initialSelectedImages[`item-${item.id}`] = 0;
@@ -132,15 +150,11 @@ const Orders = () => {
     }
   };
   
-  const handleImageChange = (itemId, imageIndex) => {
-    setSelectedImages(prev => ({ ...prev, [itemId]: imageIndex }));
-  };
-  
   const updateOrderStatus = async () => {
     if (!selectedOrder || !newStatus) return;
     try {
-      const authAxios = getAuthAxios();
-      const response = await authAxios.put(`/api/admin/orders/${selectedOrder.id}/status`, { status: newStatus });
+      const authApi = getAuthApi();
+      const response = await authApi.put(`/api/admin/orders/${selectedOrder.id}/status`, { status: newStatus });
       setOrders(orders.map(order => 
         order.id === selectedOrder.id ? { ...order, status: newStatus } : order
       ));
@@ -148,7 +162,7 @@ const Orders = () => {
       
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
-      await authAxios.post('/api/email/send-order-status-update', {
+      await authApi.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
         userEmail: user.email || selectedOrder.user_email,
         userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
@@ -166,8 +180,8 @@ const Orders = () => {
   const deleteOrder = async () => {
     if (!selectedOrder) return;
     try {
-      const authAxios = getAuthAxios();
-      await authAxios.delete(`/api/admin/orders/${selectedOrder.id}`);
+      const authApi = getAuthApi();
+      await authApi.delete(`/api/admin/orders/${selectedOrder.id}`);
       setOrders(orders.filter(order => order.id !== selectedOrder.id));
       setShowDeleteModal(false);
       setShowOrderDetail(false);
@@ -181,9 +195,9 @@ const Orders = () => {
   const markAsPacked = async () => {
     if (!selectedOrder) return;
     try {
-      const authAxios = getAuthAxios();
+      const authApi = getAuthApi();
       const newStatus = 'processing';
-      await authAxios.put(`/api/admin/orders/${selectedOrder.id}/status`, { status: newStatus });
+      await authApi.put(`/api/admin/orders/${selectedOrder.id}/status`, { status: newStatus });
       setOrders(orders.map(order => 
         order.id === selectedOrder.id ? { ...order, status: newStatus } : order
       ));
@@ -191,7 +205,7 @@ const Orders = () => {
       
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
-      await authAxios.post('/api/email/send-order-status-update', {
+      await authApi.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
         userEmail: user.email || selectedOrder.user_email,
         userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
@@ -209,11 +223,11 @@ const Orders = () => {
   const sendEmail = async () => {
     if (!selectedOrder) return;
     try {
-      const authAxios = getAuthAxios();
+      const authApi = getAuthApi();
       if (!orderDetails[selectedOrder.id]) await fetchCompleteOrderDetails(selectedOrder.id);
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
-      await authAxios.post('/api/email/send-order-status-update', {
+      await authApi.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
         userEmail: user.email || selectedOrder.user_email,
         userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,

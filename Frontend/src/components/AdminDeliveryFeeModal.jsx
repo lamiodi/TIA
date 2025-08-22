@@ -3,8 +3,18 @@ import { DollarSign, X, Link, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
-// Add this line to define API_BASE_URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// Define API_BASE_URL with proper endpoint handling like in AdminUploader
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}` 
+  : 'https://tia-backend-r331.onrender.com';
+
+// Create axios instance with proper configuration like in AdminUploader
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 const AdminDeliveryFeeModal = ({ 
   selectedOrder, 
@@ -24,24 +34,33 @@ const AdminDeliveryFeeModal = ({
     }
   }, [selectedOrder]);
   
+  // Create authenticated API function like in AdminUploader
+  const getAuthApi = () => {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+      throw new Error('Admin not authenticated');
+    }
+    return axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  };
+  
   const generatePaymentLink = async () => {
     try {
       setLoading(true);
-      const adminToken = localStorage.getItem('adminToken');
+      const authApi = getAuthApi();
       
       // Call the backend endpoint instead of Paystack directly
-      const response = await axios.post(
-        `${API_BASE_URL}/api/paystack/delivery-fee/initialize`,
+      const response = await authApi.post(
+        '/api/paystack/delivery-fee/initialize',
         {
           order_id: selectedOrder.id,
           delivery_fee: deliveryFee,
           currency: currency
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
       
