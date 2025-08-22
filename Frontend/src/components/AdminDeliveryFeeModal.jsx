@@ -3,12 +3,10 @@ import { DollarSign, X, Link, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
-// Define API_BASE_URL with proper endpoint handling like in AdminUploader
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}` 
   : 'https://tia-backend-r331.onrender.com';
 
-// Create axios instance with proper configuration like in AdminUploader
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -26,15 +24,17 @@ const AdminDeliveryFeeModal = ({
   const [loading, setLoading] = useState(false);
   const [currency, setCurrency] = useState('USD');
   const [paymentLink, setPaymentLink] = useState('');
+  const [emailError, setEmailError] = useState(null);
   
   useEffect(() => {
     if (selectedOrder) {
       setDeliveryFee(selectedOrder.delivery_fee || 0);
       setCurrency(selectedOrder.currency || 'USD');
+      setPaymentLink(''); // Reset payment link when order changes
+      setEmailError(null); // Reset email error
     }
   }, [selectedOrder]);
   
-  // Create authenticated API function like in AdminUploader
   const getAuthApi = () => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
@@ -52,26 +52,25 @@ const AdminDeliveryFeeModal = ({
   const generatePaymentLink = async () => {
     try {
       setLoading(true);
+      setEmailError(null);
       const authApi = getAuthApi();
       
-      // Call the backend endpoint instead of Paystack directly
       const response = await authApi.post(
         '/api/paystack/delivery-fee/initialize',
         {
           order_id: selectedOrder.id,
           delivery_fee: deliveryFee,
-          currency: currency
+          currency: currency,
+          callback_url: `${import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/delivery-fee-thank-you`
         }
       );
       
       const { authorization_url } = response.data;
       setPaymentLink(authorization_url);
       
-      // Copy to clipboard
       navigator.clipboard.writeText(authorization_url);
-      toast.success('Payment link copied to clipboard!');
+      toast.success('Payment link generated and copied to clipboard! Email sent to customer.');
       
-      // Update orders state
       setOrders(prev => prev.map(order => 
         order.id === selectedOrder.id 
           ? { ...order, delivery_fee: deliveryFee, delivery_fee_paid: false } 
@@ -79,16 +78,24 @@ const AdminDeliveryFeeModal = ({
       ));
       
     } catch (err) {
-      console.error('Error:', err);
-      toast.error(err.response?.data?.error || 'Failed to generate payment link');
+      console.error('Error generating payment link:', err);
+      const errorMessage = err.response?.data?.error || 'Failed to generate payment link. Please try again.';
+      if (errorMessage.includes('Failed to send delivery fee email')) {
+        setEmailError('Payment link generated, but email failed to send. Please share the link manually.');
+        toast.warn('Payment link generated, but email failed to send. Link copied to clipboard.');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
   
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(paymentLink);
-    toast.success('Payment link copied to clipboard!');
+    if (paymentLink) {
+      navigator.clipboard.writeText(paymentLink);
+      toast.success('Payment link copied to clipboard!');
+    }
   };
   
   if (!showDeliveryFeeModal || !selectedOrder) return null;
@@ -152,84 +159,52 @@ const AdminDeliveryFeeModal = ({
                     value={deliveryFee}
                     onChange={(e) => setDeliveryFee(parseFloat(e.target.value) || 0)}
                     className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
                   />
                 </div>
-                {currency === 'USD' && (
-                  <p className="text-xs text-red-600 mt-1">
-                    Note: USD payments may fail until Paystack approval is complete.
-                  </p>
-                )}
               </div>
               
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDeliveryFeeModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={generatePaymentLink}
-                  disabled={loading || deliveryFee <= 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Link className="w-4 h-4 mr-2" />
-                      Generate Payment Link
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={generatePaymentLink}
+                disabled={loading || deliveryFee <= 0}
+                className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors duration-200 ${
+                  loading || deliveryFee <= 0
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {loading ? 'Generating...' : 'Generate Payment Link'}
+              </button>
             </>
           ) : (
-            <>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Link
-                </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={paymentLink}
-                    readOnly
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={copyToClipboard}
-                    className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                <p className="text-sm text-yellow-700">
-                  Share this link with the customer to collect the delivery fee. 
-                  The payment will be automatically processed when completed.
+            <div className="space-y-4">
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-800 flex items-center">
+                  <Link className="w-4 h-4 mr-2" />
+                  Payment link generated successfully
+                </p>
+                <p className="text-sm text-green-800 break-all">
+                  {paymentLink}
                 </p>
               </div>
-              
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowDeliveryFeeModal(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Done
-                </button>
-              </div>
-            </>
+              {emailError && (
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-yellow-800">{emailError}</p>
+                </div>
+              )}
+              <button
+                onClick={copyToClipboard}
+                className="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Payment Link
+              </button>
+              <button
+                onClick={() => setShowDeliveryFeeModal(false)}
+                className="w-full py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
           )}
         </div>
       </div>
