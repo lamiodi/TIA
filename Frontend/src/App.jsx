@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { AdminAuthProvider } from './context/AdminAuthContext'; // Add this
+import { AdminAuthProvider } from './context/AdminAuthContext';
 import { CurrencyProvider } from './pages/CurrencyContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,17 +19,17 @@ import ResetPassword from './pages/ResetPassword';
 import MorePage from './pages/Moresection';
 import HelpPage from './pages/Helpsection';
 import ThankYou from './pages/ThankYou';
+import DeliveryFeeThankYou from './pages/DeliveryFeeThankYou'; // Add this import
 import AdminLogin from './pages/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute'; // Add this
+import AdminRoute from './components/AdminRoute';
 import SearchResults from './pages/SearchResults';
-
 
 function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
-        <AdminAuthProvider> {/* Add this wrapper */}
+        <AdminAuthProvider>
           <Routes>
             <Route path="/search" element={<SearchResults />} />
             <Route path="/home" element={<Home />} />
@@ -48,6 +48,7 @@ function App() {
             <Route path="/checkout" element={<ProtectedRoute><Checkoutprocess /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/thank-you" element={<ProtectedRoute><ThankYou /></ProtectedRoute>} />
+            <Route path="/delivery-fee-thank-you" element={<ProtectedRoute><DeliveryFeeThankYou /></ProtectedRoute>} /> {/* Add this route */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           </Routes>
@@ -63,7 +64,7 @@ function App() {
             pauseOnHover
             theme="light"
           />
-        </AdminAuthProvider> {/* Close the wrapper */}
+        </AdminAuthProvider>
       </CurrencyProvider>
     </AuthProvider>
   );
