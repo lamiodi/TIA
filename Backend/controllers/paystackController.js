@@ -181,6 +181,7 @@ export const verifyPayment = async (req, res) => {
 
 // Add this to your existing paystackController.js
 
+// In paystackController.js
 export const initializeDeliveryFeePayment = async (req, res) => {
   try {
     const { order_id, delivery_fee, currency, callback_url } = req.body;
@@ -200,7 +201,7 @@ export const initializeDeliveryFeePayment = async (req, res) => {
     `;
     
     if (orderCheck.length === 0) {
-      console.error(`Order not found: ${order_id}`);
+      console.error(`Order not found: çalıştığı ${order_id}`);
       return res.status(404).json({ error: 'Order not found' });
     }
     
@@ -222,8 +223,9 @@ export const initializeDeliveryFeePayment = async (req, res) => {
       return res.status(400).json({ error: 'Delivery fee already paid for this order' });
     }
     
-    // Generate unique reference with DF- prefix
-    const reference = `DF-${order_id}`;
+    // Generate unique reference with DF- prefix, order_id, and timestamp
+    const timestamp = Date.now();
+    const reference = `DF-${order_id}-${timestamp}`;
     
     // Update delivery fee amount in database
     await sql`
@@ -288,10 +290,8 @@ export const initializeDeliveryFeePayment = async (req, res) => {
     res.status(500).json({ error: 'Failed to initialize delivery fee payment' });
   }
 };
-
-
 // Add this to your existing paystackController.js
-
+// In paystackController.js
 export const verifyDeliveryFeePayment = async (req, res) => {
   try {
     const { reference } = req.query || req.body;
@@ -307,7 +307,14 @@ export const verifyDeliveryFeePayment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid delivery fee reference format' });
     }
     
-    const order_id = reference.substring(3); // Extract order ID from "DF-{orderId}"
+    // Extract order_id from reference (e.g., DF-72-1634567890123 -> 72)
+    const referenceParts = reference.split('-');
+    if (referenceParts.length < 2) {
+      console.error(`Invalid delivery fee reference format: ${reference}`);
+      return res.status(400).json({ error: 'Invalid delivery fee reference format' });
+    }
+    const order_id = referenceParts[1]; // Second part is order_id
+    
     console.log(`🔎 Verifying Paystack delivery fee payment: reference=${reference}, order_id=${order_id}`);
     
     // Check order exists
@@ -354,8 +361,14 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     console.log(`✅ Delivery fee payment verified for reference=${reference}, order_id=${order_id}`);
     
-    // Send confirmation email (you can add this if needed)
-    // await sendDeliveryFeeConfirmationEmail(order.email, order.first_name, order_id, order.delivery_fee, order.currency);
+    // Send confirmation email
+    await sendDeliveryFeePaymentConfirmation(
+      order.email,
+      order.first_name,
+      order_id,
+      order.delivery_fee,
+      order.currency
+    );
     
     res.status(200).json({ 
       message: 'Delivery fee payment verified successfully', 

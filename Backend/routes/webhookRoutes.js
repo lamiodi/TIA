@@ -7,6 +7,7 @@ import { sendOrderConfirmationEmail, sendDeliveryFeePaymentConfirmation } from '
 dotenv.config();
 const router = express.Router();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 router.post('/webhook', async (req, res) => {
   try {
@@ -25,7 +26,13 @@ router.post('/webhook', async (req, res) => {
     
     // Check if this is a delivery fee payment (DF- prefix)
     if (reference.startsWith('DF-')) {
-      const orderId = reference.substring(3); // Extract order ID from "DF-{orderId}"
+      // Extract order_id from reference (e.g., DF-72-1634567890123 -> 72)
+      const referenceParts = reference.split('-');
+      if (referenceParts.length < 2) {
+        console.error(`Invalid delivery fee reference format: ${reference}`);
+        return res.status(400).json({ error: 'Invalid delivery fee reference format' });
+      }
+      const orderId = referenceParts[1]; // Second part is order_id
       
       if (event === 'charge.success') {
         // Get order details in a single query
@@ -88,7 +95,7 @@ router.post('/webhook', async (req, res) => {
       return res.status(200).json({ message: 'Delivery fee event received' });
     }
     
-    // Existing order payment handling (unchanged)
+    // Existing order payment handling
     if (event === 'charge.success') {
       // Get order and user details in a single query
       const [orderDetails] = await sql`
@@ -149,7 +156,7 @@ router.post('/webhook', async (req, res) => {
       const [order] = await sql`
         SELECT id, payment_status, cart_id 
         FROM orders 
-        WHERE reference = ${reference} AND deleted_at IS NULL
+        WHERE reference = ${reference} AND o.deleted_at IS NULL
       `;
       
       if (!order) {
@@ -199,7 +206,6 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
-// Update the verify endpoint to use the /api/paystack path
 router.post('/verify', async (req, res) => {
   try {
     const { reference } = req.body;
@@ -209,7 +215,13 @@ router.post('/verify', async (req, res) => {
     
     // Handle delivery fee verification
     if (reference.startsWith('DF-')) {
-      const orderId = reference.substring(3);
+      // Extract order_id from reference (e.g., DF-72-1634567890123 -> 72)
+      const referenceParts = reference.split('-');
+      if (referenceParts.length < 2) {
+        console.error(`Invalid delivery fee reference format: ${reference}`);
+        return res.status(400).json({ error: 'Invalid delivery fee reference format' });
+      }
+      const orderId = referenceParts[1]; // Second part is order_id
       
       // Get order details in a single query
       const [orderDetails] = await sql`
@@ -234,37 +246,44 @@ router.post('/verify', async (req, res) => {
         return res.status(200).json({ message: 'Delivery fee already verified' });
       }
       
-      // Use the /api/paystack path instead of direct Paystack call
-      const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/delivery-fee/verify`, {
-        params: { reference }
+      // Verify with Paystack directly
+      const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
       });
       
-      if (response.data.success) {
-        await sql`
-          UPDATE orders 
-          SET delivery_fee_paid = true, updated_at = NOW() 
-          WHERE id = ${orderId}
-        `;
-        
-        // Send delivery fee confirmation email
-        try {
-          await sendDeliveryFeePaymentConfirmation(
-            orderDetails.email,
-            orderDetails.first_name,
-            orderId,
-            orderDetails.delivery_fee,
-            orderDetails.currency
-          );
-          console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
-        } catch (emailError) {
-          console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
-          // Continue processing even if email fails
-        }
-        
-        return res.status(200).json({ message: 'Delivery fee verified successfully' });
-      } else {
+      const { status, data } = response.data;
+      
+      if (!status || data.status !== 'success') {
+        console.error(`Delivery fee payment not successful for reference=${reference}`);
         return res.status(400).json({ error: 'Delivery fee payment not successful' });
       }
+      
+      // Update delivery fee status
+      await sql`
+        UPDATE orders 
+        SET delivery_fee_paid = true, updated_at = NOW() 
+        WHERE id = ${orderId}
+      `;
+      
+      // Send delivery fee confirmation email
+      try {
+        await sendDeliveryFeePaymentConfirmation(
+          orderDetails.email,
+          orderDetails.first_name,
+          orderId,
+          orderDetails.delivery_fee,
+          orderDetails.currency
+        );
+        console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
+      } catch (emailError) {
+        console.error(`Failed to send delivery fee confirmation email: ${emailError.message}`);
+        // Continue processing even if email fails
+      }
+      
+      return res.status(200).json({ message: 'Delivery fee verified successfully', order: { ...orderDetails, delivery_fee_paid: true } });
     }
     
     // Existing order verification logic
@@ -282,12 +301,17 @@ router.post('/verify', async (req, res) => {
       return res.status(200).json({ message: 'Payment already verified', order });
     }
     
-    // Use the /api/paystack path instead of direct Paystack call
-    const response = await axios.get(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/paystack/verify`, {
-      params: { reference }
+    // Verify with Paystack directly
+    const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
     
-    if (!response.data.success) {
+    const { status, data } = response.data;
+    
+    if (!status || data.status !== 'success') {
       const orderItems = await sql`
         SELECT variant_id, size_id, quantity 
         FROM order_items 
