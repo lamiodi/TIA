@@ -74,7 +74,7 @@ const AdminDeliveryFeeModal = ({
       // Update orders state
       setOrders(prev => prev.map(order => 
         order.id === selectedOrder.id 
-          ? { ...order, delivery_fee, delivery_fee_paid: false } 
+          ? { ...order, delivery_fee: deliveryFee, delivery_fee_paid: false } 
           : order
       ));
       
@@ -123,6 +123,20 @@ const AdminDeliveryFeeModal = ({
             <>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="NGN">NGN (Recommended - USD not approved yet)</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Delivery Fee Amount ({currency})
                 </label>
                 <div className="relative">
@@ -141,6 +155,11 @@ const AdminDeliveryFeeModal = ({
                     required
                   />
                 </div>
+                {currency === 'USD' && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Note: USD payments may fail until Paystack approval is complete.
+                  </p>
+                )}
               </div>
               
               <div className="flex justify-end space-x-3">
