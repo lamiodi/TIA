@@ -23,7 +23,7 @@ export const sendResetEmail = async (to, token) => {
           This link expires in 15 minutes. If you didn't request this, you can safely ignore this message.
         </p>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The The Tia Brand Team
+          — The Tia Brand Team
         </p>
       </div>
     </div>
@@ -36,7 +36,7 @@ export const sendResetEmail = async (to, token) => {
   });
   console.log(`✅ Sent password reset email to ${to}`);
 };
-// Add this function to emailService.js
+
 export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerName, deliveryFee, currency) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const formattedFee = currency === 'NGN'
@@ -129,7 +129,7 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
           </a>
         </div>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The The Tia Brand Team
+          — The Tia Brand Team
         </p>
       </div>
     </div>
@@ -461,6 +461,50 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
   console.log(`✅ Sent ${status === 'delivery_fee_paid' ? 'delivery fee payment confirmation' : 'order status update'} email to ${to} for order ${orderId}`);
 };
 
+// New function: sendDeliveryFeePaymentConfirmation
+export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, deliveryFee, currency) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const formattedFee = currency === 'NGN'
+    ? `₦${deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+    : `$${deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const html = `
+    <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Delivery Fee Payment Confirmed</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px;">
+          Dear ${userName},<br>Your delivery fee payment for order #${orderId} has been successfully processed.
+        </p>
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
+            <strong>Order ID:</strong> ${orderId}
+          </p>
+          <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
+            <strong>Delivery Fee:</strong> ${formattedFee}
+          </p>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${frontendUrl}/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+            View Your Orders
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
+          Thank you for your payment. Contact Thetiabrand1@gmail.com for any questions.
+        </p>
+        <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
+          — The Tia Brand Team
+        </p>
+      </div>
+    </div>
+  `;
+  await resend.emails.send({
+    from: 'The Tia Brand <onboarding@resend.dev>',
+    to,
+    subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
+    html,
+  });
+  console.log(`✅ Sent delivery fee payment confirmation to ${to} for order ${orderId}`);
+};
+
 export const sendAdminPaymentConfirmationNotification = async (orderId, customerName, total, currency) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const formattedTotal = currency === 'NGN'
@@ -482,7 +526,7 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
           </p>
         </div>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${frontendUrl}/admin//dashboard" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+          <a href="${frontendUrl}/admin/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
             View Order
           </a>
         </div>
