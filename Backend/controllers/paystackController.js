@@ -181,7 +181,7 @@ export const verifyPayment = async (req, res) => {
 
 // Add this to your existing paystackController.js
 
-/export const initializeDeliveryFeePayment = async (req, res) => {
+export const initializeDeliveryFeePayment = async (req, res) => {
   try {
     const { order_id, delivery_fee, currency, callback_url } = req.body;
     console.log(`💳 Initializing Paystack delivery fee payment: order_id=${order_id}, delivery_fee=${delivery_fee}, currency=${currency}`);
