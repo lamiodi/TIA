@@ -3,6 +3,9 @@ import { DollarSign, X, Link, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
+// Add this line to define API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 const AdminDeliveryFeeModal = ({ 
   selectedOrder, 
   showDeliveryFeeModal, 
@@ -13,14 +16,14 @@ const AdminDeliveryFeeModal = ({
   const [loading, setLoading] = useState(false);
   const [currency, setCurrency] = useState('USD');
   const [paymentLink, setPaymentLink] = useState('');
-
+  
   useEffect(() => {
     if (selectedOrder) {
       setDeliveryFee(selectedOrder.delivery_fee || 0);
       setCurrency(selectedOrder.currency || 'USD');
     }
   }, [selectedOrder]);
-
+  
   const generatePaymentLink = async () => {
     try {
       setLoading(true);
@@ -84,14 +87,14 @@ const AdminDeliveryFeeModal = ({
       setLoading(false);
     }
   };
-
+  
   const copyToClipboard = () => {
     navigator.clipboard.writeText(paymentLink);
     toast.success('Payment link copied to clipboard!');
   };
-
+  
   if (!showDeliveryFeeModal || !selectedOrder) return null;
-
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
