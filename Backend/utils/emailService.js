@@ -28,13 +28,19 @@ export const sendResetEmail = async (to, token) => {
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to,
-    subject: 'Password Reset Request',
-    html,
-  });
-  console.log(`✅ Sent password reset email to ${to}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to,
+      subject: 'Password Reset Request',
+      html,
+    });
+    console.log(`✅ Sent password reset email to ${to}`);
+  } catch (error) {
+    console.error(`❌ Error sending password reset email to ${to}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
 
 export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerName, deliveryFee, currency) => {
@@ -68,13 +74,19 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to: process.env.ADMIN_EMAIL,
-    subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
-    html,
-  });
-  console.log(`✅ Sent admin delivery fee payment confirmation for order ${orderId}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent admin delivery fee payment confirmation for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending admin delivery fee payment confirmation for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
 
 export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, paymentLink, currency) => {
@@ -95,7 +107,7 @@ export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, p
           </a>
         </div>
         <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
-          Please pay the delivery fee to complete your order. Contact Thetiabrand1@gmail.com for assistance.
+          Please pay the delivery fee to complete your order. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
         </p>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
           — The Tia Brand Team
@@ -103,13 +115,19 @@ export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, p
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to,
-    subject: 'Your International Delivery Fee',
-    html,
-  });
-  console.log(`✅ Sent delivery fee email to ${to}`);
+  try {
+    const response = await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to,
+      subject: 'Your International Delivery Fee',
+      html,
+    });
+    console.log(`✅ Sent delivery fee email to ${to} with response:`, response.data);
+  } catch (error) {
+    console.error(`❌ Error sending delivery fee email to ${to}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error; // Rethrow to allow caller to handle
+  }
 };
 
 export const sendAdminDeliveryFeeNotification = async (orderId, userName, country, address) => {
@@ -134,19 +152,23 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to: process.env.ADMIN_EMAIL,
-    subject: `Action Required: DHL Delivery Fee for Order ${orderId}`,
-    html,
-  });
-  console.log(`✅ Sent admin delivery fee notification for order ${orderId}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `Action Required: DHL Delivery Fee for Order ${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent admin delivery fee notification for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending admin delivery fee notification for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
 
-// Updated function to accept payment status as a parameter
 export const sendOrderConfirmationEmail = async (to, name, orderId, total, currency, paymentStatus = null) => {
   try {
-    // Fetch order details, items, shipping, and billing addresses
     const [orderDetails, itemsResult] = await Promise.all([
       sql`
         SELECT 
@@ -173,21 +195,19 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         WHERE oi.order_id = ${orderId}
       `,
     ]);
-    
+
     if (orderDetails.length === 0) {
       throw new Error('Order not found');
     }
-    
+
     const [order] = orderDetails;
-    // Override payment status if explicitly provided
     if (paymentStatus) {
       order.payment_status = paymentStatus;
     }
-    
+
     const items = itemsResult;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    // Collect variant IDs for bundle items needing images
+
     const variantsNeedingImages = [];
     const bundleItems = [];
     items.forEach((item) => {
@@ -209,8 +229,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         item.bundle_details = bundleContents;
       }
     });
-    
-    // Fetch missing images
+
     let variantImages = {};
     if (variantsNeedingImages.length > 0) {
       const imagesResult = await sql`
@@ -218,13 +237,12 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         FROM product_images
         WHERE variant_id = ANY(${variantsNeedingImages}) AND is_primary = true
       `;
-      
+
       imagesResult.forEach((row) => {
         variantImages[row.variant_id] = row.image_url;
       });
     }
-    
-    // Process items to include images in bundle_details
+
     const processedItems = items.map((item) => {
       if (item.bundle_id && item.bundle_details) {
         item.bundle_details = item.bundle_details.map((content) => ({
@@ -234,8 +252,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
       }
       return item;
     });
-    
-    // Format currency
+
     const formatCurrency = (amount, curr) => {
       if (curr === 'NGN') {
         return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`;
@@ -245,10 +262,9 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
       }
       return `${amount} ${curr}`;
     };
-    
+
     const formattedTotal = formatCurrency(total, currency);
-    
-    // Generate items HTML
+
     const itemsHtml = processedItems
       .map((item) => {
         const itemTotal = item.quantity * item.price;
@@ -294,8 +310,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         return itemDetails + '</div></li>';
       })
       .join('');
-    
-    // Generate order summary HTML
+
     const orderSummaryHtml = `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
         <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Order Summary</h3>
@@ -320,8 +335,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-    
-    // Generate shipping address HTML
+
     const shippingAddressHtml = order.shipping_address_title ? `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
         <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Shipping Address</h3>
@@ -341,8 +355,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         <p style="font-size: 14px; color: #6b7280;">No shipping address provided</p>
       </div>
     `;
-    
-    // Generate billing address HTML
+
     const billingAddressHtml = order.billing_address_full_name ? `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
         <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Billing Address</h3>
@@ -363,8 +376,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         <p style="font-size: 14px; color: #6b7280;">No billing address provided</p>
       </div>
     `;
-    
-    // Generate payment and shipping method HTML
+
     const paymentShippingHtml = `
       <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
         <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Payment & Shipping Method</h3>
@@ -377,8 +389,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-    
-    // Complete email HTML
+
     const html = `
       <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
@@ -408,16 +419,22 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         </div>
       </div>
     `;
-    
-    await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
-      to,
-      subject: `Order Confirmation - Order #${orderId}`,
-      html,
-    });
-    console.log(`✅ Sent order confirmation email to ${to} for order ${orderId} with status: ${order.payment_status}`);
+
+    try {
+      await resend.emails.send({
+        from: 'The Tia Brand <onboarding@resend.dev>',
+        to,
+        subject: `Order Confirmation - Order #${orderId}`,
+        html,
+      });
+      console.log(`✅ Sent order confirmation email to ${to} for order ${orderId} with status: ${order.payment_status}`);
+    } catch (error) {
+      console.error(`❌ Error sending order confirmation email to ${to}:`, error.message);
+      console.error('Email error details:', error.response?.data || error);
+      throw error;
+    }
   } catch (error) {
-    console.error(`❌ Error sending order confirmation email to ${to}:`, error.message);
+    console.error(`❌ Error processing order confirmation email for order ${orderId}:`, error.message);
     throw error;
   }
 };
@@ -425,8 +442,10 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
 export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, additionalInfo = {}) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   let statusMessage = `Your order #${orderId} status has been updated to <strong>${status}</strong>.`;
-  if (status === 'delivery_fee_paid' && additionalInfo.deliveryFee) {
-    const formattedFee = `$${additionalInfo.deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  if (status === 'delivery_fee_paid' && additionalInfo.deliveryFee && additionalInfo.currency) {
+    const formattedFee = additionalInfo.currency === 'NGN'
+      ? `₦${additionalInfo.deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+      : `$${additionalInfo.deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     statusMessage = `Thank you for paying the delivery fee of ${formattedFee} for order #${orderId}.`;
   }
   const html = `
@@ -452,16 +471,21 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to,
-    subject: `${status === 'delivery_fee_paid' ? 'Delivery Fee Payment Confirmation' : 'Order Status Update'} - Order #${orderId}`,
-    html,
-  });
-  console.log(`✅ Sent ${status === 'delivery_fee_paid' ? 'delivery fee payment confirmation' : 'order status update'} email to ${to} for order ${orderId}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to,
+      subject: `${status === 'delivery_fee_paid' ? 'Delivery Fee Payment Confirmation' : 'Order Status Update'} - Order #${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent ${status === 'delivery_fee_paid' ? 'delivery fee payment confirmation' : 'order status update'} email to ${to} for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending order status update email to ${to} for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
 
-// New function: sendDeliveryFeePaymentConfirmation
 export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, deliveryFee, currency) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const formattedFee = currency === 'NGN'
@@ -488,7 +512,7 @@ export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, 
           </a>
         </div>
         <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
-          Thank you for your payment. Contact Thetiabrand1@gmail.com for any questions.
+          Thank you for your payment. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for any questions.
         </p>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
           — The Tia Brand Team
@@ -496,13 +520,19 @@ export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, 
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to,
-    subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
-    html,
-  });
-  console.log(`✅ Sent delivery fee payment confirmation to ${to} for order ${orderId}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to,
+      subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent delivery fee payment confirmation to ${to} for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending delivery fee payment confirmation to ${to} for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
 
 export const sendAdminPaymentConfirmationNotification = async (orderId, customerName, total, currency) => {
@@ -536,11 +566,17 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
       </div>
     </div>
   `;
-  await resend.emails.send({
-    from: 'The Tia Brand <onboarding@resend.dev>',
-    to: process.env.ADMIN_EMAIL,
-    subject: `Payment Confirmed for Order #${orderId}`,
-    html,
-  });
-  console.log(`✅ Sent admin payment confirmation notification for order ${orderId}`);
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL,
+      subject: `Payment Confirmed for Order #${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent admin payment confirmation notification for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending admin payment confirmation notification for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
 };
