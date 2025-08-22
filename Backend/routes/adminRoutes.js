@@ -38,7 +38,6 @@ router.get('/orders/:orderId/bundle-items', authenticateToken, requireAdmin, get
 router.get('/orders/:orderId/shipping-address', authenticateToken, requireAdmin, getOrderShippingAddress); // Get order shipping address for admin
 router.get('/orders/:orderId/billing-address', authenticateToken, requireAdmin, getOrderBillingAddress); // Get order billing address for admin
 router.put('/orders/:orderId/status', authenticateToken, requireAdmin, updateOrderStatus); // Update order status
-router.post('/orders/delivery-fee', authenticateToken, requireAdmin, setDeliveryFee); // Set delivery fee for international orders
 router.delete('/orders/:orderId', authenticateToken, requireAdmin, deleteOrder); // Delete an order by ID
 // Add this route to your adminRoutes.js
 router.put('/orders/:orderId/delivery-fee', authenticateToken, requireAdmin, setDeliveryFee);
