@@ -177,7 +177,7 @@ const OrderDetailsModal = ({
                       <p className="text-sm text-gray-500">Delivery Fee</p>
                       <p className="font-medium">
                         {orderData.delivery_fee ? 
-                          `${formatCurrency(orderData.delivery_fee, 'USD')} (${orderData.delivery_fee_paid ? 'Paid' : 'Pending'})` : 
+                          `${formatCurrency(orderData.delivery_fee, orderData.currency)} (${orderData.delivery_fee_paid ? 'Paid' : 'Pending'})` : 
                           'Not Set'}
                       </p>
                     </div>
