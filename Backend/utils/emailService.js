@@ -36,6 +36,44 @@ export const sendResetEmail = async (to, token) => {
   });
   console.log(`✅ Sent password reset email to ${to}`);
 };
+// Add this function to emailService.js
+export const sendDeliveryFeePaymentConfirmation = async (to, name, orderId, deliveryFee, currency) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const formattedFee = currency === 'NGN' 
+    ? `₦${deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+    : `$${deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    
+  const html = `
+    <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Delivery Fee Payment Confirmation</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px; text-align: center;">
+          Dear ${name},<br>Thank you for paying the delivery fee of ${formattedFee} for order #${orderId}.
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${frontendUrl}/orders?orderId=${orderId}" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+            View Order
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+          You can track your order status in your account. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+        </p>
+        <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
+          — The Tia Brand Team
+        </p>
+      </div>
+    </div>
+  `;
+  
+  await resend.emails.send({
+    from: 'The Tia Brand <onboarding@resend.dev>',
+    to,
+    subject: `Delivery Fee Payment Confirmation - Order #${orderId}`,
+    html,
+  });
+  
+  console.log(`✅ Sent delivery fee payment confirmation email to ${to} for order ${orderId}`);
+};
 
 export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, paymentLink) => {
   const html = `

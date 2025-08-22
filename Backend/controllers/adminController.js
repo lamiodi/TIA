@@ -493,61 +493,46 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
+// Add this new controller function for setting delivery fee
 export const setDeliveryFee = async (req, res) => {
   try {
-    const { orderId, fee, paymentLink } = req.body;
+    const { orderId } = req.params;
+    const { delivery_fee } = req.body;
+    
     if (!orderId || isNaN(orderId)) {
       return res.status(400).json({ error: 'Invalid order ID' });
     }
-    if (typeof fee !== 'number' || isNaN(fee) || fee < 0) {
+    
+    if (typeof delivery_fee !== 'number' || isNaN(delivery_fee) || delivery_fee < 0) {
       return res.status(400).json({ error: 'Invalid delivery fee. Must be a positive number' });
     }
-    if (!paymentLink || typeof paymentLink !== 'string') {
-      return res.status(400).json({ error: 'Payment link is required' });
+    
+    const [order] = await sql`
+      SELECT * FROM orders
+      WHERE id = ${orderId} AND deleted_at IS NULL
+    `;
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
     }
-
-    await sql.begin(async (sql) => {
-      const [order] = await sql`
-        SELECT o.*, u.email, u.first_name, u.last_name
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        WHERE o.id = ${orderId} AND o.deleted_at IS NULL
-      `;
-      if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
-      }
-      if (order.shipping_country.toLowerCase() === 'nigeria') {
-        return res.status(400).json({ error: 'Delivery fee can only be set for international orders' });
-      }
-      if (order.payment_status !== 'completed') {
-        return res.status(400).json({ error: 'Order payment must be completed' });
-      }
-      if (order.delivery_fee_paid) {
-        return res.status(400).json({ error: 'Delivery fee already paid' });
-      }
-
-      const [updatedOrder] = await sql`
-        UPDATE orders
-        SET delivery_fee = ${fee}, updated_at = NOW()
-        WHERE id = ${orderId}
-        RETURNING *
-      `;
-
-      // Trigger email via emailRoutes (assumes email.js handles /api/email/send-delivery-fee-email)
-      await axios.post(
-        `${process.env.API_BASE_URL || 'https://tia-backend-r331.onrender.com'}/api/email/send-delivery-fee-email`,
-        { orderId, fee, paymentLink },
-        {
-          headers: {
-            Authorization: req.headers.authorization, // Pass admin token
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      console.log(`setDeliveryFee: Set fee ${fee} for order ${orderId}`);
-      res.json(updatedOrder);
-    });
+    
+    if (order.shipping_country.toLowerCase() === 'nigeria') {
+      return res.status(400).json({ error: 'Delivery fee can only be set for international orders' });
+    }
+    
+    if (order.payment_status !== 'completed') {
+      return res.status(400).json({ error: 'Order payment must be completed' });
+    }
+    
+    const [updatedOrder] = await sql`
+      UPDATE orders
+      SET delivery_fee = ${delivery_fee}, updated_at = NOW()
+      WHERE id = ${orderId}
+      RETURNING *
+    `;
+    
+    console.log(`setDeliveryFee: Set fee ${delivery_fee} for order ${orderId}`);
+    res.json(updatedOrder);
   } catch (error) {
     console.error('setDeliveryFee error:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to set delivery fee' });

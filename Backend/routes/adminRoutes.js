@@ -40,6 +40,8 @@ router.get('/orders/:orderId/billing-address', authenticateToken, requireAdmin, 
 router.put('/orders/:orderId/status', authenticateToken, requireAdmin, updateOrderStatus); // Update order status
 router.post('/orders/delivery-fee', authenticateToken, requireAdmin, setDeliveryFee); // Set delivery fee for international orders
 router.delete('/orders/:orderId', authenticateToken, requireAdmin, deleteOrder); // Delete an order by ID
+// Add this route to your adminRoutes.js
+router.put('/orders/:orderId/delivery-fee', authenticateToken, requireAdmin, setDeliveryFee);
 
 
 // Discount management routes
