@@ -29,10 +29,14 @@ const AdminDeliveryFeeModal = ({
       setLoading(true);
       const adminToken = localStorage.getItem('adminToken');
       
-      // First update the delivery fee amount
-      await axios.put(
-        `${API_BASE_URL}/api/admin/orders/${selectedOrder.id}/delivery-fee`,
-        { delivery_fee: deliveryFee },
+      // Call the backend endpoint instead of Paystack directly
+      const response = await axios.post(
+        `${API_BASE_URL}/api/paystack/delivery-fee/initialize`,
+        {
+          order_id: selectedOrder.id,
+          delivery_fee: deliveryFee,
+          currency: currency
+        },
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -41,32 +45,7 @@ const AdminDeliveryFeeModal = ({
         }
       );
       
-      // Generate unique reference with DF- prefix
-      const reference = `DF-${selectedOrder.id}`;
-      
-      // Initialize payment with Paystack
-      const response = await axios.post(
-        'https://api.paystack.co/transaction/initialize',
-        {
-          email: selectedOrder.user_email,
-          amount: deliveryFee * 100, // Convert to kobo/cents
-          reference,
-          currency,
-          callback_url: `${window.location.origin}/admin/orders`,
-          metadata: {
-            order_id: selectedOrder.id,
-            payment_type: 'delivery_fee'
-          }
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      const { authorization_url } = response.data.data;
+      const { authorization_url } = response.data;
       setPaymentLink(authorization_url);
       
       // Copy to clipboard
