@@ -1,14 +1,14 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BillingAddressForm from '../components/BillingAddressForm';
 import ShippingAddressForm from '../components/ShippingAddressForm';
 import WhatsAppChatWidget from '../components/WhatsAppChatWidget';
 import { useAuth } from '../context/AuthContext';
-import { useUserManager } from '../hooks/useUserManager'; // Import the custom hook
+import { useUserManager } from '../hooks/useUserManager';
 import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
@@ -84,6 +84,9 @@ const CheckoutPage = () => {
     zip_code: '',
     country: 'Nigeria',
   });
+  
+  // New state for billing address option
+  const [billingAddressOption, setBillingAddressOption] = useState('same'); // 'same' or 'different'
   
   // Discount states
   const [firstOrderDiscount, setFirstOrderDiscount] = useState(0);
@@ -310,6 +313,50 @@ const handleApplyCoupon = async (e) => {
       const created = response.data?.data || response.data;
       setShippingAddresses(prev => [created, ...prev]);
       setShippingAddressId(String(created.id));
+      
+      // If billing address option is 'same', update billing address to match
+      if (billingAddressOption === 'same') {
+        // Create a billing address object from the shipping address
+        const billingAddress = {
+          full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
+          email: user?.email || '',
+          phone_number: data.phone_number,
+          address_line_1: data.address_line_1,
+          address_line_2: data.address_line_2,
+          city: data.city,
+          state: data.state,
+          zip_code: data.zip_code,
+          country: data.country,
+        };
+        
+        // Try to find if this billing address already exists
+        const matchingBillingAddress = billingAddresses.find(addr => 
+          addr.address_line_1 === billingAddress.address_line_1 &&
+          addr.city === billingAddress.city &&
+          addr.state === billingAddress.state
+        );
+        
+        if (matchingBillingAddress) {
+          setBillingAddressId(String(matchingBillingAddress.id));
+        } else {
+          // Create a new billing address
+          try {
+            const billingResponse = await axios.post(
+              `${API_BASE_URL}/api/billing-addresses`,
+              { user_id: userId, ...billingAddress },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            const newBillingAddress = billingResponse.data?.data || billingResponse.data;
+            setBillingAddresses(prev => [newBillingAddress, ...prev]);
+            setBillingAddressId(String(newBillingAddress.id));
+          } catch (err) {
+            console.error('Error creating billing address:', err);
+            toast.error('Failed to create billing address from shipping address');
+          }
+        }
+      }
+      
       setShowShippingForm(false);
       setFormErrors({});
       setSuccess('Shipping address added successfully.');
@@ -365,33 +412,77 @@ const handleApplyCoupon = async (e) => {
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-    
+  
     try {
       setLoading(true);
       const token = getToken();
+  
+      // 1. Delete address from backend
       await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+  
       if (type === 'addresses') {
-        setShippingAddresses(prev => {
-          const remaining = prev.filter(addr => String(addr.id) !== String(addressId));
-          // if deleted address was selected, pick first remaining or null
-          if (String(shippingAddressId) === String(addressId)) {
-            setShippingAddressId(remaining.length ? String(remaining[0].id) : null);
+        // Remove from local state
+        const remaining = shippingAddresses.filter(addr => String(addr.id) !== String(addressId));
+        setShippingAddresses(remaining);
+  
+        // If deleted address was selected, pick first remaining or null
+        if (String(shippingAddressId) === String(addressId)) {
+          const newShippingId = remaining.length ? String(remaining[0].id) : null;
+          setShippingAddressId(newShippingId);
+  
+          if (billingAddressOption === 'same' && remaining.length > 0) {
+            const newShippingAddress = remaining[0];
+  
+            // Check for matching billing address
+            const matchingBillingAddress = billingAddresses.find(addr =>
+              addr.address_line_1 === newShippingAddress.address_line_1 &&
+              addr.city === newShippingAddress.city &&
+              addr.state === newShippingAddress.state
+            );
+  
+            if (matchingBillingAddress) {
+              setBillingAddressId(String(matchingBillingAddress.id));
+            } else {
+              // Create new billing address from shipping
+              const billingAddress = {
+                full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
+                email: user?.email || '',
+                phone_number: newShippingAddress.phone_number,
+                address_line_1: newShippingAddress.address_line_1,
+                address_line_2: newShippingAddress.address_line_2,
+                city: newShippingAddress.city,
+                state: newShippingAddress.state,
+                zip_code: newShippingAddress.zip_code,
+                country: newShippingAddress.country,
+              };
+  
+              try {
+                const billingResponse = await axios.post(
+                  `${API_BASE_URL}/api/billing-addresses`,
+                  { user_id: getUserId(), ...billingAddress },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+  
+                const newBillingAddress = billingResponse.data?.data || billingResponse.data;
+                setBillingAddresses(prev => [newBillingAddress, ...prev]);
+                setBillingAddressId(String(newBillingAddress.id));
+              } catch (err) {
+                console.error('Error creating billing address:', err);
+              }
+            }
           }
-          return remaining;
-        });
+        }
       } else {
-        setBillingAddresses(prev => {
-          const remaining = prev.filter(addr => String(addr.id) !== String(addressId));
-          if (String(billingAddressId) === String(addressId)) {
-            setBillingAddressId(remaining.length ? String(remaining[0].id) : null);
-          }
-          return remaining;
-        });
+        // Type = 'billing-addresses'
+        const remaining = billingAddresses.filter(addr => String(addr.id) !== String(addressId));
+        setBillingAddresses(remaining);
+        if (String(billingAddressId) === String(addressId)) {
+          setBillingAddressId(remaining.length ? String(remaining[0].id) : null);
+        }
       }
-      
+  
       setSuccess(`Successfully deleted ${type === 'addresses' ? 'shipping' : 'billing'} address.`);
       toast.success(`Deleted ${type === 'addresses' ? 'shipping' : 'billing'} address`);
     } catch (err) {
@@ -400,6 +491,69 @@ const handleApplyCoupon = async (e) => {
       toast.error(`Failed to delete address: ${errorMessage}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  
+  // Copy shipping address to billing address
+  const copyShippingToBilling = () => {
+    const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+    if (!selectedShippingAddress) {
+      toast.error('Please select a shipping address first');
+      return;
+    }
+    
+    // Create a billing address object from the shipping address
+    const billingAddress = {
+      full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
+      email: user?.email || '',
+      phone_number: selectedShippingAddress.phone_number,
+      address_line_1: selectedShippingAddress.address_line_1,
+      address_line_2: selectedShippingAddress.address_line_2,
+      city: selectedShippingAddress.city,
+      state: selectedShippingAddress.state,
+      zip_code: selectedShippingAddress.zip_code,
+      country: selectedShippingAddress.country,
+    };
+    
+    // Try to find if this billing address already exists
+    const matchingBillingAddress = billingAddresses.find(addr => 
+      addr.address_line_1 === billingAddress.address_line_1 &&
+      addr.city === billingAddress.city &&
+      addr.state === billingAddress.state
+    );
+    
+    if (matchingBillingAddress) {
+      setBillingAddressId(String(matchingBillingAddress.id));
+      toast.success('Billing address updated to match shipping address');
+    } else {
+      // Create a new billing address
+      const createBillingAddress = async () => {
+        try {
+          setLoading(true);
+          const userId = getUserId();
+          const token = getToken();
+          
+          const response = await axios.post(
+            `${API_BASE_URL}/api/billing-addresses`,
+            { user_id: userId, ...billingAddress },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          const newBillingAddress = response.data?.data || response.data;
+          setBillingAddresses(prev => [newBillingAddress, ...prev]);
+          setBillingAddressId(String(newBillingAddress.id));
+          toast.success('Billing address created to match shipping address');
+        } catch (err) {
+          const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
+          setError(`Failed to create billing address: ${errorMessage}`);
+          toast.error(`Failed to create billing address: ${errorMessage}`);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      createBillingAddress();
     }
   };
   
@@ -504,6 +658,25 @@ const handleApplyCoupon = async (e) => {
       fetchCartAndAddresses();
     }
   }, [user, authLoading, contextLoading, navigate]);
+  
+  // Update billing address when shipping address changes if option is 'same'
+  useEffect(() => {
+    if (billingAddressOption === 'same' && shippingAddressId) {
+      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+      if (selectedShippingAddress) {
+        // Try to find a matching billing address
+        const matchingBillingAddress = billingAddresses.find(addr => 
+          addr.address_line_1 === selectedShippingAddress.address_line_1 &&
+          addr.city === selectedShippingAddress.city &&
+          addr.state === selectedShippingAddress.state
+        );
+        
+        if (matchingBillingAddress) {
+          setBillingAddressId(String(matchingBillingAddress.id));
+        }
+      }
+    }
+  }, [shippingAddressId, billingAddressOption, shippingAddresses, billingAddresses]);
   
   useEffect(() => {
     if (shippingAddresses.length > 0 && !shippingAddressId) {
@@ -1084,59 +1257,116 @@ const handleApplyCoupon = async (e) => {
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
               
-              {billingAddresses.length > 0 ? (
-                <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
-                    <select
-                      value={billingAddressId ?? ''}
-                      onChange={(e) => setBillingAddressId(String(e.target.value))}
-                      className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                    >
-                      {billingAddresses.map((address) => (
-                        <option key={address.id} value={String(address.id)}>
-                          {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-4">
+              {/* Billing Address Option Selector */}
+              <div className="mb-6">
+                <div className="flex items-center space-x-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAddressOption"
+                      value="same"
+                      checked={billingAddressOption === 'same'}
+                      onChange={() => setBillingAddressOption('same')}
+                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                    />
+                    <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAddressOption"
+                      value="different"
+                      checked={billingAddressOption === 'different'}
+                      onChange={() => setBillingAddressOption('different')}
+                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                    />
+                    <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                  </label>
+                </div>
+              </div>
+              
+              {billingAddressOption === 'same' ? (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                      {selectedShippingAddress ? (
+                        <div className="text-sm text-Accent font-Jost">
+                          <p>{selectedShippingAddress.address_line_1}</p>
+                          {selectedShippingAddress.address_line_2 && <p>{selectedShippingAddress.address_line_2}</p>}
+                          <p>{selectedShippingAddress.city}, {selectedShippingAddress.state} {selectedShippingAddress.zip_code}</p>
+                          <p>{selectedShippingAddress.country}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
+                      )}
+                    </div>
                     <button
-                      onClick={() => setShowBillingForm(true)}
-                      className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
+                      onClick={copyShippingToBilling}
+                      className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                      title="Copy shipping address to billing address"
                     >
-                      Add New Address
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
-                      className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                      <Copy className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <button
-                    onClick={() => setShowBillingForm(!showBillingForm)}
-                    className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                  >
-                    {showBillingForm ? 'Cancel' : 'Add Billing Address'}
-                  </button>
-                  {showBillingForm && (
-                    <BillingAddressForm
-                      address={{ state: billingForm, setState: setBillingForm }}
-                      onSubmit={handleBillingSubmit}
-                      onCancel={() => setShowBillingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                    />
+                <>
+                  {billingAddresses.length > 0 ? (
+                    <div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
+                        <select
+                          value={billingAddressId ?? ''}
+                          onChange={(e) => setBillingAddressId(String(e.target.value))}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                        >
+                          {billingAddresses.map((address) => (
+                            <option key={address.id} value={String(address.id)}>
+                              {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => setShowBillingForm(true)}
+                          className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                          disabled={loading}
+                        >
+                          Add New Address
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
+                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={() => setShowBillingForm(!showBillingForm)}
+                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                      >
+                        {showBillingForm ? 'Cancel' : 'Add Billing Address'}
+                      </button>
+                      {showBillingForm && (
+                        <BillingAddressForm
+                          address={{ state: billingForm, setState: setBillingForm }}
+                          onSubmit={handleBillingSubmit}
+                          onCancel={() => setShowBillingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                        />
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </div>
             

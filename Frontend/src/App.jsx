@@ -19,7 +19,7 @@ import ResetPassword from './pages/ResetPassword';
 import MorePage from './pages/Moresection';
 import HelpPage from './pages/Helpsection';
 import ThankYou from './pages/ThankYou';
-import DeliveryFeeThankYou from './pages/DeliveryFeeThankYou'; // Add this import
+import DeliveryFeeThankYou from './pages/DeliveryFeeThankYou';
 import AdminLogin from './pages/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -43,12 +43,12 @@ function App() {
             <Route path="/more" element={<MorePage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/" element={<Home />} />
-            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+            <Route path="/cart" element={<Cart />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/orders" element={<ProtectedRoute><UserOrders /></ProtectedRoute>} />
-            <Route path="/checkout" element={<ProtectedRoute><Checkoutprocess /></ProtectedRoute>} />
+            <Route path="/checkout" element={<Checkoutprocess />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/thank-you" element={<ProtectedRoute><ThankYou /></ProtectedRoute>} />
-            <Route path="/delivery-fee-thank-you" element={<ProtectedRoute><DeliveryFeeThankYou /></ProtectedRoute>} /> {/* Add this route */}
+            <Route path="/thank-you" element={<ThankYou />} /> {/* Removed ProtectedRoute for guest access */}
+            <Route path="/delivery-fee-thank-you" element={<DeliveryFeeThankYou />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           </Routes>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
@@ -38,7 +38,7 @@ const Cart = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
+  
   // Safely access CurrencyContext with error handling
   let currencyContext;
   try {
@@ -52,19 +52,20 @@ const Cart = () => {
       contextLoading: false,
     };
   }
-
+  
   const {
     currency = 'NGN',
     exchangeRate = 1,
     country = 'Nigeria',
     contextLoading = false,
   } = currencyContext || {};
-
+  
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
   const [error, setError] = useState('');
   const [isUpdating, setIsUpdating] = useState(null);
   const [isCartLoading, setIsCartLoading] = useState(true);
-
+  const [isGuest, setIsGuest] = useState(false);
+  
   // Helper function to decode JWT token
   const decodeToken = useCallback((token) => {
     try {
@@ -82,7 +83,7 @@ const Cart = () => {
       return null;
     }
   }, []);
-
+  
   // Helper function to get the JWT token
   const getToken = useCallback(() => {
     if (user && user.token) {
@@ -90,21 +91,20 @@ const Cart = () => {
     }
     return localStorage.getItem('token');
   }, [user]);
-
+  
   // Helper function to check if user is authenticated
   const isAuthenticated = useCallback(() => {
     return !!getToken();
   }, [getToken]);
-
+  
   // Helper function to get user ID
   const getUserId = useCallback(() => {
     const token = getToken();
     if (!token) return null;
-
     const tokenData = decodeToken(token);
     return tokenData?.id;
   }, [getToken, decodeToken]);
-
+  
   // Helper function to handle authentication errors
   const handleAuthError = useCallback(() => {
     console.log('Cart: Authentication error, clearing user data and redirecting');
@@ -117,14 +117,13 @@ const Cart = () => {
     toast.error('Your session has expired. Please log in again.');
     navigate('/login', { state: { from: location.pathname } });
   }, [logout, navigate, location.pathname]);
-
+  
   // Create a centralized axios instance with auth headers
   const getAuthAxios = useCallback(() => {
     const token = getToken();
     if (!token) {
       throw new Error('User not authenticated');
     }
-
     return axios.create({
       baseURL: API_BASE_URL,
       headers: {
@@ -136,39 +135,61 @@ const Cart = () => {
       withCredentials: true,
     });
   }, [getToken, country]);
-
+  
+  // Load guest cart from localStorage
+  const loadGuestCart = useCallback(() => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+        setCart(parsedCart);
+        setIsGuest(true);
+      } else {
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+        setIsGuest(true);
+      }
+    } catch (err) {
+      console.error('Error loading guest cart:', err);
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+      setIsGuest(true);
+    }
+    setIsCartLoading(false);
+  }, []);
+  
+  // Save guest cart to localStorage
+  const saveGuestCart = useCallback((updatedCart) => {
+    try {
+      localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+    } catch (err) {
+      console.error('Error saving guest cart:', err);
+    }
+  }, []);
+  
   // Fetch cart data
   useEffect(() => {
     const fetchCart = async (retries = 3, delay = 1000) => {
       if (!isAuthenticated()) {
-        console.log('Cart: No valid user session, redirecting to /login');
-        setError('Please log in to view your cart.');
-        toast.error('Please log in to view your cart.');
-        navigate('/login', { state: { from: location.pathname } });
-        setIsCartLoading(false);
+        console.log('Cart: No valid user session, loading guest cart');
+        loadGuestCart();
         return;
       }
-
+      
       try {
         const userId = getUserId();
         if (!userId) {
           throw new Error('Could not determine user ID from authentication data');
         }
-
         console.log('Cart: Fetching cart for userId=', userId, 'URL=', `/cart/${userId}`);
-
         const authAxios = getAuthAxios();
         const response = await authAxios.get(`/cart/${userId}`);
-
         if (response.status !== 200) {
           throw new Error(`HTTP error ${response.status}`);
         }
-
         if (typeof response.data === 'string' && response.data.startsWith('<!doctype html')) {
           throw new Error('Received HTML instead of JSON; check Vite proxy configuration');
         }
-
         setCart(response.data);
+        setIsGuest(false);
         setError('');
       } catch (err) {
         console.error('Cart: Fetch error details:', {
@@ -182,37 +203,33 @@ const Cart = () => {
             : 'No response',
           config: err.config,
         });
-
         if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
           handleAuthError();
           return;
         }
-
         if (retries > 0 && (err.code === 'ECONNABORTED' || err.message.includes('Network Error') || err.message.includes('HTML instead of JSON'))) {
           console.log(`Cart: Retrying fetchCart (${retries} retries left)...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           return fetchCart(retries - 1, delay * 2);
         }
-
         const errorMessage =
           err.response?.status === 404
             ? 'Cart not found. Start shopping to add items!'
             : err.response?.status === 401
             ? 'Unauthorized. Please log in again.'
             : `Server error: ${err.message}. Check backend server and Vite proxy settings.`;
-
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
         setIsCartLoading(false);
       }
     };
-
+    
     if (!authLoading && !contextLoading) {
       fetchCart();
     }
-  }, [user, authLoading, contextLoading, country, navigate, location.pathname, isAuthenticated, getUserId, getAuthAxios, handleAuthError]);
-
+  }, [user, authLoading, contextLoading, country, navigate, location.pathname, isAuthenticated, getUserId, getAuthAxios, handleAuthError, loadGuestCart]);
+  
   // Debounce function
   const debounce = useCallback((func, wait) => {
     let timeout;
@@ -221,16 +238,53 @@ const Cart = () => {
       timeout = setTimeout(() => func(...args), wait);
     };
   }, []);
-
+  
   // Update quantity
   const updateQuantity = useCallback(
     async (itemId, newQuantity) => {
       if (newQuantity < 1 || isUpdating === itemId) return;
-
       console.log(`Cart: Updating quantity for cart_item_id ${itemId} to ${newQuantity}`);
       setIsUpdating(itemId);
-
+      
       try {
+        if (isGuest) {
+          // Handle guest cart update
+          const item = cart.items.find((item) => item.id === itemId);
+          if (!item) throw new Error('Item not found in cart');
+          
+          // Validate stock quantity
+          let maxStock = item.item.stock_quantity;
+          if (!item.item.is_product && Array.isArray(item.item.items)) {
+            maxStock = Math.min(...item.item.items.map((bi) => bi.stock_quantity || 0));
+          }
+          if (maxStock === undefined || maxStock === null) {
+            throw new Error('Stock quantity information is missing');
+          }
+          if (newQuantity > maxStock) {
+            setError(`Cannot add more. Only ${maxStock} in stock.`);
+            toast.error(`Cannot add more. Only ${maxStock} in stock.`);
+            return;
+          }
+          
+          // Update cart
+          const updatedItems = cart.items.map((cartItem) =>
+            cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
+          );
+          const subtotal = updatedItems.reduce(
+            (sum, cartItem) => sum + cartItem.quantity * cartItem.item.price,
+            0
+          );
+          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+          const total = subtotal + tax;
+          
+          const updatedCart = { ...cart, items: updatedItems, subtotal, tax, total };
+          setCart(updatedCart);
+          saveGuestCart(updatedCart);
+          toast.success('Quantity updated successfully');
+          return;
+        }
+        
+        // Handle authenticated user cart update
         if (!isAuthenticated()) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
@@ -238,12 +292,10 @@ const Cart = () => {
           navigate('/login', { state: { from: location.pathname } });
           return;
         }
-
+        
         const item = cart.items.find((item) => item.id === itemId);
         if (!item) throw new Error('Item not found in cart');
-
-        const oldQuantity = item.quantity;
-
+        
         // Validate stock quantity
         let maxStock = item.item.stock_quantity;
         if (!item.item.is_product && Array.isArray(item.item.items)) {
@@ -252,13 +304,12 @@ const Cart = () => {
         if (maxStock === undefined || maxStock === null) {
           throw new Error('Stock quantity information is missing');
         }
-
         if (newQuantity > maxStock) {
           setError(`Cannot add more. Only ${maxStock} in stock.`);
           toast.error(`Cannot add more. Only ${maxStock} in stock.`);
           return;
         }
-
+        
         // Optimistic update
         setCart((prev) => {
           const updatedItems = prev.items.map((cartItem) =>
@@ -273,57 +324,75 @@ const Cart = () => {
           console.log('Cart: Optimistic cart update:', { items: updatedItems, subtotal, tax, total });
           return { ...prev, items: updatedItems, subtotal, tax, total };
         });
-
+        
         const authAxios = getAuthAxios();
         const response = await authAxios.put(`/cart/${itemId}`, { quantity: newQuantity });
-
         if (response.status !== 200) {
           throw new Error(response.data?.error || 'Failed to update quantity');
         }
-
+        
         // Fetch the updated cart to ensure consistency
         const userId = getUserId();
         if (userId) {
           const cartResponse = await authAxios.get(`/cart/${userId}`);
           setCart(cartResponse.data);
         }
-
         toast.success('Quantity updated successfully');
       } catch (err) {
         console.error('Cart: Update error:', err);
-
         if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
           handleAuthError();
           return;
         }
-
         const errorMessage = err.response?.status === 404
           ? 'Item not found.'
           : err.message || 'Server error';
-
         setError(errorMessage);
         toast.error(errorMessage);
-
+        
         // Revert optimistic update by fetching the latest cart
-        const userId = getUserId();
-        if (userId) {
-          const authAxios = getAuthAxios();
-          const cartResponse = await authAxios.get(`/cart/${userId}`);
-          setCart(cartResponse.data);
+        if (!isGuest) {
+          const userId = getUserId();
+          if (userId) {
+            const authAxios = getAuthAxios();
+            const cartResponse = await authAxios.get(`/cart/${userId}`);
+            setCart(cartResponse.data);
+          }
         }
       } finally {
         setIsUpdating(null);
       }
     },
-    [isUpdating, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, setCart]
+    [isUpdating, isGuest, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, saveGuestCart]
   );
-
+  
   const debouncedUpdateQuantity = useMemo(() => debounce(updateQuantity, 500), [updateQuantity, debounce]);
-
+  
   // Remove item
   const removeItem = useCallback(
     async (itemId) => {
       try {
+        if (isGuest) {
+          // Handle guest cart item removal
+          console.log(`Cart: Removing item with cart_item_id ${itemId} from guest cart`);
+          
+          const remaining = cart.items.filter((item) => item.id !== itemId);
+          const subtotal = remaining.reduce(
+            (sum, item) => sum + item.quantity * item.item.price,
+            0
+          );
+          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+          const total = subtotal + tax;
+          
+          const updatedCart = { ...cart, items: remaining, subtotal, tax, total };
+          setCart(updatedCart);
+          saveGuestCart(updatedCart);
+          setError('');
+          toast.success('Item removed from cart');
+          return;
+        }
+        
+        // Handle authenticated user cart item removal
         if (!isAuthenticated()) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
@@ -331,9 +400,9 @@ const Cart = () => {
           navigate('/login', { state: { from: location.pathname } });
           return;
         }
-
+        
         console.log(`Cart: Removing item with cart_item_id ${itemId}`);
-
+        
         // Optimistic update
         setCart((prev) => {
           const remaining = prev.items.filter((item) => item.id !== itemId);
@@ -346,48 +415,58 @@ const Cart = () => {
           console.log('Cart: Item removed, updated cart:', { items: remaining, subtotal, tax, total });
           return { ...prev, items: remaining, subtotal, tax, total };
         });
-
+        
         const authAxios = getAuthAxios();
         const response = await authAxios.delete(`/cart/${itemId}`);
-
         if (response.status !== 200) {
           throw new Error(response.data?.error || 'Failed to remove item');
         }
-
+        
         setError('');
         toast.success('Item removed from cart');
       } catch (err) {
         console.error('Cart: Remove error:', err);
-
         if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
           handleAuthError();
           return;
         }
-
         const errorMessage =
           err.response?.status === 404
             ? 'Item not found.'
             : err.response?.data?.error || 'Server error';
-
         setError(errorMessage);
         toast.error(errorMessage);
-
+        
         // Refresh cart from backend to revert optimistic update
-        const userId = getUserId();
-        if (userId) {
-          const authAxios = getAuthAxios();
-          const response = await authAxios.get(`/cart/${userId}`);
-          setCart(response.data);
+        if (!isGuest) {
+          const userId = getUserId();
+          if (userId) {
+            const authAxios = getAuthAxios();
+            const response = await authAxios.get(`/cart/${userId}`);
+            setCart(response.data);
+          }
         }
       }
     },
-    [isAuthenticated, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, setCart]
+    [isGuest, isAuthenticated, cart, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, saveGuestCart]
   );
-
+  
   // Clear cart
   const clearCart = useCallback(
     async () => {
       try {
+        if (isGuest) {
+          // Handle guest cart clearing
+          console.log('Cart: Clearing guest cart');
+          const updatedCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
+          setCart(updatedCart);
+          saveGuestCart(updatedCart);
+          setError('');
+          toast.success('Cart cleared successfully');
+          return;
+        }
+        
+        // Handle authenticated user cart clearing
         if (!isAuthenticated()) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
@@ -395,11 +474,11 @@ const Cart = () => {
           navigate('/login', { state: { from: location.pathname } });
           return;
         }
-
+        
         const userId = getUserId();
         const authAxios = getAuthAxios();
         console.log(`Cart: Attempting to clear cart for userId=${userId}, URL=${API_BASE_URL}/cart/clear/${userId}`);
-
+        
         let response;
         try {
           // Try DELETE first
@@ -418,7 +497,7 @@ const Cart = () => {
             throw deleteErr;
           }
         }
-
+        
         if (response.status === 200 || response.status === 204) {
           setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
           setError('');
@@ -433,26 +512,23 @@ const Cart = () => {
           data: err.response?.data,
           url: err.config?.url,
         });
-
         if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
           handleAuthError();
           return;
         }
-
         const errorMessage =
           err.response?.status === 404
             ? 'Cart not found.'
             : err.response?.status === 405
             ? 'Unable to clear cart. Please try again or contact support.'
             : err.response?.data?.error || `Server error: ${err.message}`;
-
         setError(errorMessage);
         toast.error(errorMessage);
       }
     },
-    [isAuthenticated, getUserId, navigate, location.pathname, getAuthAxios, handleAuthError]
+    [isGuest, isAuthenticated, getUserId, navigate, location.pathname, getAuthAxios, handleAuthError, saveGuestCart]
   );
-
+  
   // Loading state
   if (authLoading || contextLoading) {
     return (
@@ -478,45 +554,23 @@ const Cart = () => {
       </div>
     );
   }
-
-  // Not authenticated
-  if (!isAuthenticated() && !authLoading) {
-    return (
-      <div
-        style={{
-          '--color-Primarycolor': '#1E1E1E',
-          '--color-Secondarycolor': '#ffffff',
-          '--color-Accent': '#6E6E6E',
-          '--font-Manrope': '"Manrope", "sans-serif"',
-          '--font-Jost': '"Jost", "sans-serif"',
-        }}
-      >
-        <Navbar />
-        <div className="text-center py-16 text-red-600 font-Jost">Please log in to view your cart.</div>
-        <Suspense fallback={null}>
-          <Footer />
-        </Suspense>
-      </div>
-    );
-  }
-
+  
   // Calculate cart totals with safe fallbacks
   const subtotal = Number(cart.subtotal) || 0;
   const tax = Number(cart.tax) || 0;
   const total = Number(cart.total) || 0;
-
+  
   // Format values for display
   const displaySubtotal = country === 'Nigeria' ? subtotal : subtotal * exchangeRate;
   const displayTax = country === 'Nigeria' ? tax : tax * exchangeRate;
   const displayTotal = country === 'Nigeria' ? total : total * exchangeRate;
-
+  
   // Memoized Cart Item Component
   const CartItem = useMemo(
     () =>
       ({ item }) => {
         const bundleItems = item.item.is_product ? [] : item.item.items || [];
         console.log(`Cart: Rendering cart_item_id ${item.id}, bundle items:`, JSON.stringify(bundleItems, null, 2));
-
         const basePrice = Number(item.item.price) || 0;
         const displayPrice = country === 'Nigeria' ? basePrice : basePrice * exchangeRate;
         const formattedPrice = displayPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
@@ -530,9 +584,8 @@ const Cart = () => {
           currency: currency,
           minimumFractionDigits: 0,
         });
-
         const isOutOfStock = item.item.stock_quantity === 0;
-
+        
         return (
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -561,7 +614,7 @@ const Cart = () => {
                   )}
                 </div>
               </div>
-
+              
               {/* Product Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
@@ -578,7 +631,7 @@ const Cart = () => {
                             </span>
                           )}
                         </h3>
-
+                        
                         {/* Product Variants */}
                         {item.item.is_product && (item.item.color || item.item.size) && (
                           <div className="flex flex-wrap gap-2 mt-2">
@@ -594,7 +647,7 @@ const Cart = () => {
                             )}
                           </div>
                         )}
-
+                        
                         {/* Stock Status */}
                         <div className="mt-2 flex items-center gap-2">
                           {isOutOfStock ? (
@@ -614,7 +667,7 @@ const Cart = () => {
                           )}
                         </div>
                       </div>
-
+                      
                       {/* Delete Button - Top Right */}
                       <button
                         onClick={() => removeItem(item.id)}
@@ -624,7 +677,7 @@ const Cart = () => {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-
+                    
                     {/* Bundle Items Display */}
                     {!item.item.is_product && Array.isArray(bundleItems) && bundleItems.length > 0 && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-lg">
@@ -663,13 +716,14 @@ const Cart = () => {
                         </div>
                       </div>
                     )}
+                    
                     {!item.item.is_product && (!Array.isArray(bundleItems) || bundleItems.length === 0) && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                         <p className="text-xs text-red-600">Bundle items not available. Please remove and re-add the bundle.</p>
                       </div>
                     )}
                   </div>
-
+                  
                   {/* Price Section */}
                   <div className="flex-shrink-0 text-right">
                     <div className="space-y-1">
@@ -678,7 +732,7 @@ const Cart = () => {
                     </div>
                   </div>
                 </div>
-
+                
                 {/* Quantity Controls */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-gray-200 gap-3">
                   <div className="flex items-center">
@@ -707,7 +761,7 @@ const Cart = () => {
                       </button>
                     </div>
                   </div>
-
+                  
                   {/* Delete Button - Bottom */}
                   <button
                     onClick={() => removeItem(item.id)}
@@ -721,8 +775,10 @@ const Cart = () => {
             </div>
           </div>
         );
-  }, [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]);
-
+      },
+    [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]
+  );
+  
   return (
     <div
       style={{
@@ -743,9 +799,15 @@ const Cart = () => {
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-Manrope text-gray-900">Shopping Cart</h1>
                 <p className="font-Jost text-gray-600 text-sm md:text-base mt-1">
                   {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
+                  {isGuest && (
+                    <span className="ml-2 text-sm font-Jost text-gray-500 flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      Guest Cart
+                    </span>
+                  )}
                 </p>
               </div>
-
+              
               {/* Continue Shopping Button - Better Position */}
               {cart.items.length > 0 && (
                 <Link to="/shop" className="self-start">
@@ -757,7 +819,7 @@ const Cart = () => {
               )}
             </div>
           </div>
-
+          
           {/* Error Display */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -765,7 +827,7 @@ const Cart = () => {
               <span className="text-red-700 font-Jost text-sm">{error}</span>
             </div>
           )}
-
+          
           {/* Empty Cart State */}
           {cart.items.length === 0 ? (
             <div className="text-center py-16 md:py-24">
@@ -779,13 +841,20 @@ const Cart = () => {
                     Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
                   </p>
                 </div>
-
                 <div className="space-y-3">
                   <Link to="/shop">
                     <button className="w-full bg-gray-900 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-medium font-Jost">
                       Continue Shopping
                     </button>
                   </Link>
+                  
+                  {isGuest && (
+                    <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                      <p className="text-sm text-blue-700 font-Jost">
+                        <span className="font-medium">Shopping as a guest?</span> Your cart will be saved until you complete your purchase.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -806,7 +875,7 @@ const Cart = () => {
                       Clear All Items
                     </button>
                   </div>
-
+                  
                   {/* Cart Items List */}
                   <div className="space-y-4">
                     {isCartLoading ? (
@@ -820,7 +889,7 @@ const Cart = () => {
                   </div>
                 </div>
               </div>
-
+              
               {/* Order Summary Section */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
@@ -828,7 +897,7 @@ const Cart = () => {
                   <div className="p-6 border-b border-gray-200">
                     <h2 className="text-xl font-semibold font-Manrope text-gray-900">Order Summary</h2>
                   </div>
-
+                  
                   {/* Summary Details */}
                   <div className="p-6 space-y-4">
                     {/* Items Count */}
@@ -842,13 +911,13 @@ const Cart = () => {
                         })}
                       </span>
                     </div>
-
+                    
                     {/* Shipping Info */}
                     <div className="flex justify-between text-sm">
                       <span className="font-Jost text-gray-600">Shipping</span>
                       <span className="font-medium font-Manrope text-gray-900">Calculated at checkout</span>
                     </div>
-
+                    
                     {/* Free Shipping Progress */}
                     {country === 'Nigeria' && subtotal < 7500 && (
                       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -875,7 +944,7 @@ const Cart = () => {
                         </div>
                       </div>
                     )}
-
+                    
                     {/* Tax (for international) */}
                     {displayTax > 0 && (
                       <div className="flex justify-between text-sm">
@@ -889,7 +958,7 @@ const Cart = () => {
                         </span>
                       </div>
                     )}
-
+                    
                     {/* Divider */}
                     <div className="border-t border-gray-200 pt-4">
                       <div className="flex justify-between text-lg font-bold">
@@ -903,7 +972,7 @@ const Cart = () => {
                         </span>
                       </div>
                     </div>
-
+                    
                     {/* Checkout Button */}
                     <Link to="/checkout">
                       <button
@@ -914,7 +983,7 @@ const Cart = () => {
                         <ArrowRight className="h-5 w-5" />
                       </button>
                     </Link>
-
+                    
                     {/* Warning for out of stock items */}
                     {cart.items.some((item) => item.item.stock_quantity === 0) && (
                       <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
@@ -924,7 +993,19 @@ const Cart = () => {
                         </div>
                       </div>
                     )}
-
+                    
+                    {/* Guest Notice */}
+                    {isGuest && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <p className="text-xs text-blue-700 font-Jost">
+                            You're shopping as a guest. You'll have the option to create an account during checkout.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Shipping Note */}
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-600 font-Jost text-center">
@@ -933,7 +1014,7 @@ const Cart = () => {
                           : '✈️ International shipping fees will be provided via email after order confirmation.'}
                       </p>
                     </div>
-
+                    
                     {/* Security Badge */}
                     <div className="flex items-center justify-center gap-2 pt-2">
                       <div className="flex items-center gap-1 text-xs text-gray-500">

@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 import {
-  ChevronLeft, ChevronRight, Heart, Minus, Plus, Share2, ShoppingCart, Star, Check, Truck, Shield, RotateCcw, Package
+  ChevronLeft, ChevronRight, Heart, Minus, Plus, Share2, ShoppingCart, Star, Check, Truck, Shield, RotateCcw, Package, User
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -55,7 +55,8 @@ const ProductDetails = () => {
   const [bundleType, setBundleType] = useState('3-in-1');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedBundleVariants, setSelectedBundleVariants] = useState({});
-  const [isAddingToCart, setIsAddingToCart] = useState(false); // Added to prevent multiple clicks
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   
   const colorMap = {
     'Black': '#000000',
@@ -109,7 +110,69 @@ const ProductDetails = () => {
     return !!token; // Just check if token exists
   };
   
+  // Load guest cart from localStorage
+  const loadGuestCart = () => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        return JSON.parse(guestCart);
+      }
+    } catch (err) {
+      console.error('Error loading guest cart:', err);
+    }
+    return { items: [] };
+  };
+  
+  // Save guest cart to localStorage
+  const saveGuestCart = (cart) => {
+    try {
+      localStorage.setItem('guestCart', JSON.stringify(cart));
+    } catch (err) {
+      console.error('Error saving guest cart:', err);
+    }
+  };
+  
+  // Add item to guest cart
+  const addToGuestCart = (item) => {
+    const guestCart = loadGuestCart();
+    
+    // Check if item already exists in cart
+    const existingItemIndex = guestCart.items.findIndex(cartItem => {
+      if (item.product_type === 'single') {
+        return cartItem.variant_id === item.variant_id && 
+               cartItem.size_id === item.size_id;
+      } else {
+        return cartItem.bundle_id === item.bundle_id;
+      }
+    });
+    
+    if (existingItemIndex >= 0) {
+      // Update quantity if item exists
+      guestCart.items[existingItemIndex].quantity += item.quantity;
+    } else {
+      // Add new item with unique ID
+      guestCart.items.push({
+        id: Date.now(), // Temporary ID
+        ...item
+      });
+    }
+    
+    // Recalculate totals
+    guestCart.subtotal = guestCart.items.reduce(
+      (sum, cartItem) => sum + cartItem.quantity * cartItem.price,
+      0
+    );
+    guestCart.tax = country === 'Nigeria' ? 0 : guestCart.subtotal * 0.05;
+    guestCart.total = guestCart.subtotal + guestCart.tax;
+    
+    saveGuestCart(guestCart);
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+  
   useEffect(() => {
+    // Check if user is guest
+    setIsGuest(!isAuthenticated());
+    
     const fetchProduct = async () => {
       if (!id) {
         setError('Product ID is missing');
@@ -262,26 +325,8 @@ const ProductDetails = () => {
   const handleAddToCart = async () => {
     if (isAddingToCart) return; // Prevent multiple calls
     setIsAddingToCart(true);
-
+    
     try {
-      if (!isAuthenticated()) {
-        console.log('ProductDetails.jsx: No authenticated user, redirecting to /login');
-        toastError('Please log in to add items to cart');
-        navigate(`/login`, { 
-          state: { 
-            from: `/product/${id}${variantParam ? `?variant=${variantParam}` : ''}` 
-          } 
-        });
-        return;
-      }
-      
-      const userId = getUserId();
-      if (!userId) {
-        throw new Error('Could not determine user ID from authentication data');
-      }
-      
-      const token = getToken();
-      
       // Single product
       if (productData.type === 'product') {
         if (!selectedVariant || !selectedSize) {
@@ -297,24 +342,65 @@ const ProductDetails = () => {
           return;
         }
         
-        console.log('Adding to cart: user_id=', userId, 'variant_id=', selectedVariant.variant_id, 'size_id=', selectedSizeObj.size_id);
+        // Get product image
+        const productImage = selectedVariant.images?.[0] || 'https://via.placeholder.com/500';
         
-        const authAxios = axios.create({
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Get product name
+        const productName = productData?.data?.name || 'Unnamed Product';
+        
+        // Get product price
+        const productPrice = parseFloat(productData?.data?.price) || 0;
+        
+        // Check if user is authenticated
+        if (isAuthenticated()) {
+          const userId = getUserId();
+          if (!userId) {
+            throw new Error('Could not determine user ID from authentication data');
           }
-        });
-        
-        await authAxios.post(`${API_BASE_URL}/api/cart`, {
-          user_id: userId,
-          product_type: 'single',
-          variant_id: selectedVariant.variant_id,
-          size_id: selectedSizeObj.size_id,
-          quantity,
-        });
-        
-        toastSuccess('Product added to cart');
-        window.dispatchEvent(new Event('cartUpdated'));
+          
+          const token = getToken();
+          
+          console.log('Adding to cart: user_id=', userId, 'variant_id=', selectedVariant.variant_id, 'size_id=', selectedSizeObj.size_id);
+          
+          const authAxios = axios.create({
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          await authAxios.post(`${API_BASE_URL}/api/cart`, {
+            user_id: userId,
+            product_type: 'single',
+            variant_id: selectedVariant.variant_id,
+            size_id: selectedSizeObj.size_id,
+            quantity,
+          });
+          
+          toastSuccess('Product added to cart');
+          window.dispatchEvent(new Event('cartUpdated'));
+        } else {
+          // Add to guest cart
+          addToGuestCart({
+            product_type: 'single',
+            variant_id: selectedVariant.variant_id,
+            size_id: selectedSizeObj.size_id,
+            quantity,
+            price: productPrice,
+            item: {
+              id: selectedVariant.variant_id,
+              name: productName,
+              image: productImage,
+              color: selectedColor,
+              size: selectedSize,
+              price: productPrice,
+              stock_quantity: selectedSizeObj.stock_quantity,
+              is_product: true
+            }
+          });
+          
+          toastSuccess('Product added to guest cart');
+          window.dispatchEvent(new Event('cartUpdated'));
+        }
       }
       // Bundle product
       else if (productData.type === 'bundle') {
@@ -332,30 +418,81 @@ const ProductDetails = () => {
           return;
         }
         
-        console.log('Adding bundle to cart: user_id=', userId, 'bundle_id=', productData.data.id, 'items=', selectedItems);
+        // Get bundle image
+        const bundleImage = productData?.data?.images?.[0] || 'https://via.placeholder.com/500';
         
-        const authAxios = axios.create({
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Get bundle name
+        const bundleName = productData?.data?.name || 'Unnamed Bundle';
+        
+        // Get bundle price
+        const bundlePrice = getBundlePrice();
+        
+        // Check if user is authenticated
+        if (isAuthenticated()) {
+          const userId = getUserId();
+          if (!userId) {
+            throw new Error('Could not determine user ID from authentication data');
           }
-        });
-        
-        await authAxios.post(`${API_BASE_URL}/api/cart`, {
-          user_id: userId,
-          product_type: 'bundle',
-          bundle_id: productData.data.id,
-          quantity,
-          items: selectedItems.map((item) => ({
-            variant_id: item.variantId,
-            size_id: item.sizeId,
-          })),
-        });
-        
-        toastSuccess('Bundle added to cart');
-        window.dispatchEvent(new Event('cartUpdated'));
-        
-        // Reset bundle progress after adding to cart
-        setSelectedBundleVariants({});
+          
+          const token = getToken();
+          
+          console.log('Adding bundle to cart: user_id=', userId, 'bundle_id=', productData.data.id, 'items=', selectedItems);
+          
+          const authAxios = axios.create({
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          await authAxios.post(`${API_BASE_URL}/api/cart`, {
+            user_id: userId,
+            product_type: 'bundle',
+            bundle_id: productData.data.id,
+            quantity,
+            items: selectedItems.map((item) => ({
+              variant_id: item.variantId,
+              size_id: item.sizeId,
+            })),
+          });
+          
+          toastSuccess('Bundle added to cart');
+          window.dispatchEvent(new Event('cartUpdated'));
+          
+          // Reset bundle progress after adding to cart
+          setSelectedBundleVariants({});
+        } else {
+          // Add to guest cart
+          addToGuestCart({
+            product_type: 'bundle',
+            bundle_id: productData.data.id,
+            quantity,
+            price: bundlePrice,
+            items: selectedItems.map((item) => ({
+              variant_id: item.variantId,
+              size_id: item.sizeId,
+            })),
+            item: {
+              id: productData.data.id,
+              name: bundleName,
+              image: bundleImage,
+              price: bundlePrice,
+              is_product: false,
+              items: selectedItems.map(item => ({
+                variant_id: item.variantId,
+                size_id: item.sizeId,
+                color_name: item.colorName,
+                size_name: item.sizeName,
+                product_name: bundleName
+              }))
+            }
+          });
+          
+          toastSuccess('Bundle added to guest cart');
+          window.dispatchEvent(new Event('cartUpdated'));
+          
+          // Reset bundle progress after adding to cart
+          setSelectedBundleVariants({});
+        }
       }
     } catch (err) {
       console.error('❌ Add to cart error:', err.response?.data || err.message);
@@ -559,8 +696,15 @@ const ProductDetails = () => {
                         {bundleType} Bundle
                       </span>
                     )}
+                    {isGuest && (
+                      <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-Jost flex items-center">
+                        <User className="w-3 h-3 mr-1" />
+                        Guest Shopping
+                      </span>
+                    )}
                   </div>
                 </div>
+                
                 {/* Product Options */}
                 {isProduct && (
                   <div className="space-y-6">
@@ -621,6 +765,7 @@ const ProductDetails = () => {
                     </div>
                   </div>
                 )}
+                
                 {/* Bundle Options */}
                 {!isProduct && (
                   <div className="space-y-6">
@@ -779,6 +924,7 @@ const ProductDetails = () => {
                     </div>
                   </div>
                 )}
+                
                 {/* Quantity and Add to Cart */}
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4">
@@ -802,7 +948,7 @@ const ProductDetails = () => {
                   <div className="flex space-x-4">
                     <button
                       onClick={handleAddToCart}
-                      disabled={isAddingToCart} // Disable button while adding
+                      disabled={isAddingToCart}
                       className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="h-5 w-5 " />
@@ -812,7 +958,20 @@ const ProductDetails = () => {
                       <Share2 className="h-5 w-5" />
                     </button>
                   </div>
+                  
+                  {/* Guest Notice */}
+                  {isGuest && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <p className="text-xs text-blue-700 font-Jost">
+                          You're shopping as a guest. Your cart will be saved until you complete your purchase.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                
                 {/* Features */}
                 <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                   <div className="text-center space-y-2">

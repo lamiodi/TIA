@@ -282,7 +282,7 @@ const CtaSlideshow = () => {
   
   // Slide 4: Newsletter CTA
   const renderSlide4 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:max-h-[510px] xl:max-h-[630px] 2xl:max-h-[970px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.7] xl:h-[630px] 2xl:max-h-[970px] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
