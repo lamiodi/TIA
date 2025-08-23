@@ -58,7 +58,14 @@ const CheckoutPage = memo(() => {
     couponLoading: false,
     couponError: '',
     couponSuccess: '',
-    userDataRefreshed: false
+    userDataRefreshed: false,
+    isGuest: !authUser,
+    guestData: {
+      email: '',
+      first_name: '',
+      last_name: '',
+      phone_number: ''
+    }
   });
 
   const shippingFormInitial = useMemo(() => ({
@@ -131,13 +138,14 @@ const CheckoutPage = memo(() => {
 
   const getToken = useCallback(() => user?.token || localStorage.getItem('token'), [user]);
   const getUserId = useCallback(() => {
+    if (state.isGuest) return null;
     const token = getToken();
     if (!token) return null;
     const tokenData = decodeToken(token);
     return tokenData?.id;
-  }, [getToken, decodeToken]);
+  }, [state.isGuest, getToken, decodeToken]);
 
-  const isAuthenticated = useCallback(() => !!getToken(), [getToken]);
+  const isAuthenticated = useCallback(() => !!getToken() && !state.isGuest, [getToken, state.isGuest]);
 
   const retryApiCall = useCallback(async (fn, retries = MAX_API_RETRIES) => {
     for (let i = 0; i < retries; i++) {
@@ -151,6 +159,7 @@ const CheckoutPage = memo(() => {
   }, []);
 
   const refreshUserData = useCallback(async () => {
+    if (state.isGuest) return null;
     try {
       const updatedUser = await refreshUser();
       if (updatedUser) {
@@ -162,7 +171,7 @@ const CheckoutPage = memo(() => {
       console.error('Failed to refresh user data:', err);
       return null;
     }
-  }, [refreshUser]);
+  }, [refreshUser, state.isGuest]);
 
   useEffect(() => {
     if (user && isAuthenticated() && !state.userDataRefreshed) {
@@ -172,13 +181,13 @@ const CheckoutPage = memo(() => {
 
   useEffect(() => {
     const currentSubtotal = state.cart.subtotal;
-    if (user?.first_order && currentSubtotal > 0) {
+    if ((user?.first_order || state.isGuest) && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setState(prev => ({ ...prev, firstOrderDiscount: discountAmount }));
     } else {
       setState(prev => ({ ...prev, firstOrderDiscount: 0 }));
     }
-  }, [user?.first_order, state.cart.subtotal, state.userDataRefreshed, refreshCount]);
+  }, [user?.first_order, state.cart.subtotal, state.userDataRefreshed, refreshCount, state.isGuest]);
 
   const handleApplyCoupon = useCallback(async (e) => {
     e.preventDefault();
@@ -198,7 +207,7 @@ const CheckoutPage = memo(() => {
       const response = await retryApiCall(() => axios.post(
         `${API_BASE_URL}/api/admin/discounts/validate`,
         { code: state.couponCode },
-        { headers: { Authorization: `Bearer ${token}` } }
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
       ));
 
       if (response.data.valid) {
@@ -820,7 +829,7 @@ const CheckoutPage = memo(() => {
                 `${API_BASE_URL}/api/paystack/verify`,
                 { reference: orderData.reference },
                 { headers: { Authorization: `Bearer ${token}` } }
-              ));
+              }));
 
               if (paymentResponse.data.order?.payment_status === 'completed') {
                 toast.success('Payment was successful!');
@@ -1709,6 +1718,6 @@ const CheckoutPage = memo(() => {
       <Footer />
     </div>
   );
-});
+};
 
 export default CheckoutPage;
