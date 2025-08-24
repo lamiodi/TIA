@@ -69,8 +69,7 @@ const CheckoutPage = () => {
     first_name: '',
     last_name: '',
     email: '',
-    password: '',
-    phone_number: ''
+    phone_number: ''  // Remove password field
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [isGuestConversion, setIsGuestConversion] = useState(false); // Track if this is a guest conversion
@@ -1194,129 +1193,110 @@ const handleApplyCoupon = async (e) => {
             </div>
           )}
           
-          <form onSubmit={handleGuestRegistration} className="space-y-4">
-            <div>
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-Jost">
-                First Name
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="first_name"
-                  name="first_name"
-                  type="text"
-                  required
-                  value={guestForm.first_name}
-                  onChange={(e) => setGuestForm({...guestForm, first_name: e.target.value})}
-                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-                  placeholder="John"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 font-Jost">
-                Last Name
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="last_name"
-                  name="last_name"
-                  type="text"
-                  required
-                  value={guestForm.last_name}
-                  onChange={(e) => setGuestForm({...guestForm, last_name: e.target.value})}
-                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Jost">
-                Email Address
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={guestForm.email}
-                  onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
-                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-                  placeholder="john@example.com"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-Jost">
-                Password
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={guestForm.password}
-                  onChange={(e) => setGuestForm({...guestForm, password: e.target.value})}
-                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 font-Jost">
-                Phone Number
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone_number"
-                  name="phone_number"
-                  type="tel"
-                  required
-                  value={guestForm.phone_number}
-                  onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
-                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-                  placeholder="08012345678"
-                />
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isCreatingAccount}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope disabled:opacity-50"
-              >
-                {isCreatingAccount ? (
-                  <>
-                    <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account & Continue'
-                )}
-              </button>
-            </div>
-          </form>
+          // In CheckoutPage.jsx, update the guest registration form to remove the password field:
+
+<form onSubmit={handleGuestRegistration} className="space-y-4">
+  <div>
+    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-Jost">
+      First Name
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <User className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        id="first_name"
+        name="first_name"
+        type="text"
+        required
+        value={guestForm.first_name}
+        onChange={(e) => setGuestForm({...guestForm, first_name: e.target.value})}
+        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+        placeholder="John"
+      />
+    </div>
+  </div>
+  
+  <div>
+    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 font-Jost">
+      Last Name
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <User className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        id="last_name"
+        name="last_name"
+        type="text"
+        required
+        value={guestForm.last_name}
+        onChange={(e) => setGuestForm({...guestForm, last_name: e.target.value})}
+        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+        placeholder="Doe"
+      />
+    </div>
+  </div>
+  
+  <div>
+    <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Jost">
+      Email Address
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Mail className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        required
+        value={guestForm.email}
+        onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
+        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+        placeholder="john@example.com"
+      />
+    </div>
+  </div>
+  
+  <div>
+    <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 font-Jost">
+      Phone Number
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Phone className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        id="phone_number"
+        name="phone_number"
+        type="tel"
+        required
+        value={guestForm.phone_number}
+        onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+        placeholder="08012345678"
+      />
+    </div>
+  </div>
+  
+  <div className="pt-2">
+    <button
+      type="submit"
+      disabled={isCreatingAccount}
+      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope disabled:opacity-50"
+    >
+      {isCreatingAccount ? (
+        <>
+          <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+          Creating Account...
+        </>
+      ) : (
+        'Create Account & Continue'
+      )}
+    </button>
+  </div>
+</form>
           
           <div className="mt-6">
             <div className="relative">

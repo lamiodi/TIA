@@ -76,7 +76,7 @@ const CtaSlideshow = () => {
   
   // Slide 1: Original CTA
   const renderSlide1 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.8] xl:max-h-[730px] 2xl:max-h-[990px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -143,7 +143,7 @@ const CtaSlideshow = () => {
   
   // Slide 2: Sign Up CTA
   const renderSlide2 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.8] xl:max-h-[730px] 2xl:max-h-[990px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -211,7 +211,7 @@ const CtaSlideshow = () => {
   
   // Slide 3: 3-in-1 Bundle CTA
   const renderSlide3 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.8] xl:max-h-[730px] 2xl:max-h-[990px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -282,7 +282,7 @@ const CtaSlideshow = () => {
   
   // Slide 4: Newsletter CTA
   const renderSlide4 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.8] xl:h-[730px] 2xl:max-h-[990px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
