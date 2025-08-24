@@ -136,64 +136,35 @@ const Cart = () => {
     });
   }, [getToken, country]);
   
- // In Cart.js, update loadGuestCart (line 220)
-const loadGuestCart = useCallback(() => {
-  try {
-    const guestCart = localStorage.getItem('cart'); // Changed from 'guestCart' to 'cart'
-    if (guestCart) {
-      const parsedCart = JSON.parse(guestCart);
-      setCart(parsedCart);
-      setIsGuest(true);
-    } else {
+  // Load guest cart from localStorage
+  const loadGuestCart = useCallback(() => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+        setCart(parsedCart);
+        setIsGuest(true);
+      } else {
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+        setIsGuest(true);
+      }
+    } catch (err) {
+      console.error('Error loading guest cart:', err);
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
       setIsGuest(true);
     }
-  } catch (err) {
-    console.error('Error loading guest cart:', err);
-    setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-    setIsGuest(true);
-  }
-  setIsCartLoading(false);
-}, []);
-
-
-const saveGuestCart = useCallback((updatedCart) => {
-  try {
-    localStorage.setItem('cart', JSON.stringify(updatedCart)); // Changed from 'guestCart' to 'cart'
-  } catch (err) {
-    console.error('Error saving guest cart:', err);
-  }
-}, []);
-const handleCheckout = useCallback(async () => {
-  if (cart.items.length === 0) {
-    toast.error('Your cart is empty. Please add items to proceed.');
-    return;
-  }
-  if (cart.items.some(item => item.item.stock_quantity === 0)) {
-    toast.error('Please remove out-of-stock items before proceeding.');
-    return;
-  }
-
-  if (isGuest) {
-    // Ensure guest cart is saved
-    saveGuestCart(cart);
-  } else if (isAuthenticated()) {
+    setIsCartLoading(false);
+  }, []);
+  
+  // Save guest cart to localStorage
+  const saveGuestCart = useCallback((updatedCart) => {
     try {
-      const userId = getUserId();
-      if (!userId) {
-        throw new Error('Could not determine user ID');
-      }
-      const authAxios = getAuthAxios();
-      // Sync cart with backend
-      await authAxios.post(`${API_BASE_URL}/api/cart/sync/${userId}`, { items: cart.items });
+      localStorage.setItem('guestCart', JSON.stringify(updatedCart));
     } catch (err) {
-      console.error('Error syncing cart before checkout:', err);
-      toast.error('Failed to sync cart. Please try again.');
-      return;
+      console.error('Error saving guest cart:', err);
     }
-  }
-  navigate('/checkout');
-}, [cart, isGuest, isAuthenticated, getUserId, getAuthAxios, saveGuestCart, navigate]);
+  }, []);
+  
   // Fetch cart data
   useEffect(() => {
     const fetchCart = async (retries = 3, delay = 1000) => {
@@ -1003,14 +974,15 @@ const handleCheckout = useCallback(async () => {
                     </div>
                     
                     {/* Checkout Button */}
-                    <button
-  onClick={handleCheckout}
-  className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-  disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
->
-  <span>Proceed to Checkout</span>
-  <ArrowRight className="h-5 w-5" />
-</button>
+                    <Link to="/checkout">
+                      <button
+                        className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
+                      >
+                        <span>Proceed to Checkout</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </button>
+                    </Link>
                     
                     {/* Warning for out of stock items */}
                     {cart.items.some((item) => item.item.stock_quantity === 0) && (

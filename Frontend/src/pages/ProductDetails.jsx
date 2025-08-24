@@ -110,125 +110,64 @@ const ProductDetails = () => {
     return !!token; // Just check if token exists
   };
   
-  // In ProductDetails.js, update loadGuestCart (line 100)
-const loadGuestCart = () => {
-  try {
-    const guestCart = localStorage.getItem('cart'); // Changed from 'guestCart' to 'cart'
-    if (guestCart) {
-      return JSON.parse(guestCart);
+  // Load guest cart from localStorage
+  const loadGuestCart = () => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        return JSON.parse(guestCart);
+      }
+    } catch (err) {
+      console.error('Error loading guest cart:', err);
     }
-  } catch (err) {
-    console.error('Error loading guest cart:', err);
-  }
-  return { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] }; // Ensure full cart structure
-};
-
-// Update saveGuestCart (line 110)
-const saveGuestCart = (cart) => {
-  try {
-    localStorage.setItem('cart', JSON.stringify(cart)); // Changed from 'guestCart' to 'cart'
-  } catch (err) {
-    console.error('Error saving guest cart:', err);
-  }
-};
+    return { items: [] };
+  };
   
-  // In ProductDetails.js, update addToGuestCart (line 120)
-// In ProductDetails.js
-const addToGuestCart = (item, quantity, variantId, sizeId, bundleItems = []) => {
-  try {
-    let guestCart = localStorage.getItem('cart');
-    guestCart = guestCart ? JSON.parse(guestCart) : { cartId: `guest_${Date.now()}`, subtotal: 0, tax: 0, total: 0, items: [] };
-
-    // Validate input
-    if (!item || typeof quantity !== 'number' || quantity < 1) {
-      console.error('Invalid input for addToGuestCart:', { item, quantity, variantId, sizeId });
-      toastError('Invalid item or quantity. Please try again.');
-      return;
+  // Save guest cart to localStorage
+  const saveGuestCart = (cart) => {
+    try {
+      localStorage.setItem('guestCart', JSON.stringify(cart));
+    } catch (err) {
+      console.error('Error saving guest cart:', err);
     }
-
-    // Validate stock
-    if (item.is_product) {
-      if (typeof item.stock_quantity !== 'number' || item.stock_quantity < quantity) {
-        toastError(`Cannot add to cart. Only ${item.stock_quantity || 0} items available.`);
-        return;
-      }
-    } else {
-      const minStock = Math.min(...bundleItems.map(bi => bi.stock_quantity || 0));
-      if (typeof minStock !== 'number' || minStock < quantity) {
-        toastError(`Cannot add to cart. Only ${minStock || 0} items available for some bundle items.`);
-        return;
-      }
-    }
-
-    // Check for existing item
+  };
+  
+  // Add item to guest cart
+  const addToGuestCart = (item) => {
+    const guestCart = loadGuestCart();
+    
+    // Check if item already exists in cart
     const existingItemIndex = guestCart.items.findIndex(cartItem => {
-      if (item.is_product) {
-        return cartItem.variant_id === variantId && cartItem.size_id === sizeId;
+      if (item.product_type === 'single') {
+        return cartItem.variant_id === item.variant_id && 
+               cartItem.size_id === item.size_id;
       } else {
-        const newItems = bundleItems.sort((a, b) => a.variant_id - b.variant_id);
-        const existingItems = (cartItem.item.items || []).sort((a, b) => a.variant_id - b.variant_id);
-        return cartItem.bundle_id === item.id && JSON.stringify(newItems) === JSON.stringify(existingItems);
+        return cartItem.bundle_id === item.bundle_id;
       }
     });
-
-    // Add or update item
+    
     if (existingItemIndex >= 0) {
-      guestCart.items[existingItemIndex].quantity += quantity;
+      // Update quantity if item exists
+      guestCart.items[existingItemIndex].quantity += item.quantity;
     } else {
-      const cartItem = {
-        id: `guest_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        quantity,
-        item: {
-          id: item.id,
-          name: item.name || 'Unnamed Item',
-          image: item.image || 'https://via.placeholder.com/500',
-          price: parseFloat(item.price) || 0,
-          stock_quantity: item.stock_quantity || 0,
-          is_product: item.is_product
-        }
-      };
-      if (item.is_product) {
-        if (!variantId || !sizeId) {
-          console.error('Missing variantId or sizeId for single product:', { variantId, sizeId });
-          toastError('Please select a color and size.');
-          return;
-        }
-        cartItem.variant_id = variantId;
-        cartItem.size_id = sizeId;
-      } else {
-        if (!item.id || !bundleItems.length) {
-          console.error('Missing bundle_id or bundleItems:', { bundleId: item.id, bundleItems });
-          toastError('Invalid bundle configuration.');
-          return;
-        }
-        cartItem.bundle_id = item.id;
-        cartItem.item.items = bundleItems.map(bi => ({
-          variant_id: bi.variant_id,
-          size_id: bi.size_id,
-          stock_quantity: bi.stock_quantity || 0
-        }));
-      }
-      guestCart.items.push(cartItem);
+      // Add new item with unique ID
+      guestCart.items.push({
+        id: Date.now(), // Temporary ID
+        ...item
+      });
     }
-
-    // Calculate totals
-    guestCart.subtotal = guestCart.items.reduce((sum, cartItem) => {
-      const itemPrice = parseFloat(cartItem.item.price) || 0;
-      return sum + cartItem.quantity * itemPrice;
-    }, 0);
+    
+    // Recalculate totals
+    guestCart.subtotal = guestCart.items.reduce(
+      (sum, cartItem) => sum + cartItem.quantity * cartItem.price,
+      0
+    );
     guestCart.tax = country === 'Nigeria' ? 0 : guestCart.subtotal * 0.05;
     guestCart.total = guestCart.subtotal + guestCart.tax;
-
-    // Save to localStorage
-    localStorage.setItem('cart', JSON.stringify(guestCart));
-    console.log('Guest cart saved:', JSON.stringify(guestCart, null, 2));
-    toastSuccess(`${item.is_product ? 'Product' : 'Bundle'} added to cart`);
+    
+    saveGuestCart(guestCart);
     window.dispatchEvent(new Event('cartUpdated'));
-  } catch (err) {
-    console.error('Error adding to guest cart:', err);
-    toastError('Failed to add item to cart. Please try again.');
-  }
-};
+  };
   
   useEffect(() => {
     // Check if user is guest
