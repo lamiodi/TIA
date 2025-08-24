@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, Mail, Lock, Phone } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BillingAddressForm from '../components/BillingAddressForm';
@@ -19,7 +19,7 @@ const WHATSAPP_NUMBER = '2348104117122';
 
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, login } = useAuth();
   const { user: hookUser, refreshUser, refreshCount } = useUserManager();
   
   // Use the user from our custom hook, fall back to AuthContext if needed
@@ -62,6 +62,19 @@ const CheckoutPage = () => {
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
+  
+  // Guest user form state
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestForm, setGuestForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    phone_number: ''
+  });
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isGuestConversion, setIsGuestConversion] = useState(false); // Track if this is a guest conversion
+  
   const [shippingForm, setShippingForm] = useState({
     title: '',
     address_line_1: '',
@@ -130,6 +143,114 @@ const CheckoutPage = () => {
     return !!getToken();
   };
   
+  // Check if guest cart has items
+  const hasGuestCartItems = () => {
+    const guestCart = localStorage.getItem('guestCart');
+    if (!guestCart) return false;
+    try {
+      const parsedCart = JSON.parse(guestCart);
+      return parsedCart.items && parsedCart.items.length > 0;
+    } catch (err) {
+      console.error('Error parsing guest cart:', err);
+      return false;
+    }
+  };
+  
+  // Transfer guest cart to user account
+  const transferGuestCart = async () => {
+    const guestCart = localStorage.getItem('guestCart');
+    if (guestCart) {
+      try {
+        const token = getToken();
+        const parsedCart = JSON.parse(guestCart);
+        const userId = getUserId();
+        
+        // Add each item to the user's cart
+        for (const item of parsedCart.items) {
+          await axios.post(
+            `${API_BASE_URL}/api/cart/add`,
+            {
+              user_id: userId,
+              variant_id: item.item.is_product ? item.item.id : null,
+              bundle_id: item.item.is_product ? null : item.item.id,
+              quantity: item.quantity,
+              size_id: item.item.size_id || null,
+              color_name: item.item.color || null,
+              size_name: item.item.size || null,
+              price: item.item.price
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+        
+        // Clear the guest cart
+        localStorage.removeItem('guestCart');
+        console.log('Guest cart transferred successfully');
+      } catch (error) {
+        console.error('Error transferring guest cart:', error);
+      }
+    }
+  };
+  
+  // Handle guest user registration and login
+  // In your checkout page component
+
+  const handleGuestRegistration = async (e) => {
+    e.preventDefault();
+    setIsCreatingAccount(true);
+    setError('');
+    
+    try {
+      // Check if guest has items in cart
+      const guestHasItems = hasGuestCartItems();
+      
+      // Create temporary user instead of regular user
+      const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
+        first_name: guestForm.first_name,
+        last_name: guestForm.last_name,
+        email: guestForm.email,
+        phone_number: guestForm.phone_number
+      });
+      
+      const { token, user, isTemporary } = response.data;
+      
+      // Store the token and user data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('isTemporaryUser', isTemporary ? 'true' : 'false');
+      
+      // Update auth context
+      if (login) {
+        login({ token, user });
+      }
+      
+      // Transfer guest cart if exists
+      await transferGuestCart();
+      
+      // Refresh user data
+      await refreshUser();
+      setUserDataRefreshed(true);
+      
+      // Show success message
+      setSuccess('Account created successfully! Proceeding with checkout.');
+      toast.success('Account created successfully!');
+      
+      // Hide guest form and proceed with checkout
+      setShowGuestForm(false);
+      
+      // Fetch cart and addresses
+      await fetchCartAndAddresses();
+      
+    } catch (error) {
+      console.error('Guest registration error:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to create account';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+  
   // Replace your refreshUserData function with this
   const refreshUserData = async () => {
     try {
@@ -172,20 +293,28 @@ const CheckoutPage = () => {
     const currentSubtotal = cart.subtotal; // Always in NGN
     console.log('Calculating first order discount:', {
       userFirstOrder: user?.first_order,
+      isGuestConversion,
       currentSubtotal,
       userDataRefreshed,
       refreshCount
     });
     
-    if (user?.first_order && currentSubtotal > 0) {
+    // Only apply first order discount if:
+    // 1. User has first_order = true
+    // 2. This is NOT a guest conversion (guests who create account don't get discount)
+    if (user?.first_order && !isGuestConversion && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
       console.log('Applied first order discount:', discountAmount);
     } else {
       setFirstOrderDiscount(0);
-      console.log('No first order discount applied');
+      console.log('No first order discount applied', {
+        firstOrder: user?.first_order,
+        isGuestConversion,
+        hasItems: currentSubtotal > 0
+      });
     }
-  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
+  }, [user?.first_order, isGuestConversion, cart.subtotal, userDataRefreshed, refreshCount]); // Added isGuestConversion
   
  // Apply coupon code
 const handleApplyCoupon = async (e) => {
@@ -565,99 +694,106 @@ const handleApplyCoupon = async (e) => {
     return () => document.body.removeChild(script);
   }, []);
   
-  useEffect(() => {
-    const fetchCartAndAddresses = async () => {
-      if (!isAuthenticated()) {
-        setError('Please log in to proceed with checkout.');
-        toast.error('Please log in to proceed with checkout.');
-        navigate('/login', { state: { from: '/checkout' } });
+  // Fetch cart and addresses function
+  const fetchCartAndAddresses = async () => {
+    if (!isAuthenticated()) {
+      setError('Please log in to proceed with checkout.');
+      toast.error('Please log in to proceed with checkout.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const userId = getUserId();
+      const token = getToken();
+      
+      // Transfer guest cart if exists
+      await transferGuestCart();
+      
+      const cartResponse = await axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const cartData = cartResponse.data?.data || cartResponse.data;
+      
+      if (!cartData.cartId || !cartData.items?.length) {
+        setError('Your cart is empty. Please add items to proceed.');
+        toast.error('Your cart is empty. Please add items to proceed.');
+        navigate('/cart');
         return;
       }
       
-      setLoading(true);
+      setCart(cartData);
+      
       try {
-        const userId = getUserId();
-        const token = getToken();
-        
-        const cartResponse = await axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
+        const shippingResponse = await axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log('Shipping addresses response:', shippingResponse.data);
         
-        const cartData = cartResponse.data?.data || cartResponse.data;
-        
-        if (!cartData.cartId || !cartData.items?.length) {
-          setError('Your cart is empty. Please add items to proceed.');
-          toast.error('Your cart is empty. Please add items to proceed.');
-          navigate('/cart');
-          return;
+        let shippingData = shippingResponse.data;
+        if (shippingData && !Array.isArray(shippingData)) {
+          shippingData = [shippingData];
+        } else if (shippingData && Array.isArray(shippingData.data)) {
+          shippingData = shippingData.data;
+        } else if (!shippingData) {
+          shippingData = [];
         }
         
-        setCart(cartData);
-        
-        try {
-          const shippingResponse = await axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('Shipping addresses response:', shippingResponse.data);
-          
-          let shippingData = shippingResponse.data;
-          if (shippingData && !Array.isArray(shippingData)) {
-            shippingData = [shippingData];
-          } else if (shippingData && Array.isArray(shippingData.data)) {
-            shippingData = shippingData.data;
-          } else if (!shippingData) {
-            shippingData = [];
-          }
-          
-          setShippingAddresses(shippingData);
-          if (shippingData.length > 0) {
-            setShippingAddressId(String(shippingData[0].id));
-          }
-        } catch (err) {
-          console.error('Error fetching shipping addresses:', err);
-          toast.error(`Failed to fetch shipping addresses: ${err.response?.data?.error || err.message}`);
-          setShippingAddresses([]);
+        setShippingAddresses(shippingData);
+        if (shippingData.length > 0) {
+          setShippingAddressId(String(shippingData[0].id));
         }
-        
-        try {
-          const billingResponse = await axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('Billing addresses response:', billingResponse.data);
-          
-          let billingData = billingResponse.data;
-          if (billingData && !Array.isArray(billingData)) {
-            billingData = [billingData];
-          } else if (billingData && Array.isArray(billingData.data)) {
-            billingData = billingData.data;
-          } else if (!billingData) {
-            billingData = [];
-          }
-          
-          setBillingAddresses(billingData);
-          if (billingData.length > 0) {
-            setBillingAddressId(String(billingData[0].id));
-          }
-        } catch (err) {
-          console.error('Error fetching billing addresses:', err);
-          toast.error(`Failed to fetch billing addresses: ${err.response?.data?.error || err.message}`);
-          setBillingAddresses([]);
-        }
-        
-        toast.success('Checkout data loaded successfully');
       } catch (err) {
-        const errorMessage = err.message || 'Unknown error';
-        setError(`Failed to load checkout data: ${errorMessage}`);
-        toast.error(`Failed to load checkout data: ${errorMessage}`);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching shipping addresses:', err);
+        toast.error(`Failed to fetch shipping addresses: ${err.response?.data?.error || err.message}`);
+        setShippingAddresses([]);
+      }
+      
+      try {
+        const billingResponse = await axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Billing addresses response:', billingResponse.data);
+        
+        let billingData = billingResponse.data;
+        if (billingData && !Array.isArray(billingData)) {
+          billingData = [billingData];
+        } else if (billingData && Array.isArray(billingData.data)) {
+          billingData = billingData.data;
+        } else if (!billingData) {
+          billingData = [];
+        }
+        
+        setBillingAddresses(billingData);
+        if (billingData.length > 0) {
+          setBillingAddressId(String(billingData[0].id));
+        }
+      } catch (err) {
+        console.error('Error fetching billing addresses:', err);
+        toast.error(`Failed to fetch billing addresses: ${err.response?.data?.error || err.message}`);
+        setBillingAddresses([]);
+      }
+      
+      toast.success('Checkout data loaded successfully');
+    } catch (err) {
+      const errorMessage = err.message || 'Unknown error';
+      setError(`Failed to load checkout data: ${errorMessage}`);
+      toast.error(`Failed to load checkout data: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    const fetchCartAndAddressesAsync = async () => {
+      if (user && !authLoading && !contextLoading && !showGuestForm) {
+        await fetchCartAndAddresses();
       }
     };
     
-    if (user && !authLoading && !contextLoading) {
-      fetchCartAndAddresses();
-    }
-  }, [user, authLoading, contextLoading, navigate]);
+    fetchCartAndAddressesAsync();
+  }, [user, authLoading, contextLoading, showGuestForm]);
   
   // Update billing address when shipping address changes if option is 'same'
   useEffect(() => {
@@ -727,10 +863,10 @@ const handleApplyCoupon = async (e) => {
       }
     };
     
-    if (user && !authLoading && !contextLoading) {
+    if (user && !authLoading && !contextLoading && !showGuestForm) {
       checkPendingOrder();
     }
-  }, [user, authLoading, contextLoading, navigate]);
+  }, [user, authLoading, contextLoading, navigate, showGuestForm]);
   
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
@@ -779,7 +915,6 @@ const handleApplyCoupon = async (e) => {
     if (!isAuthenticated()) {
       setError('Please log in to process your order.');
       toast.error('Please log in to process your order.');
-      navigate('/login', { state: { from: '/checkout' } });
       return;
     }
   
@@ -804,7 +939,7 @@ const handleApplyCoupon = async (e) => {
       
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = user?.first_order ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
+      const baseFirstOrderDiscount = (user?.first_order && !isGuestConversion) ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
       const baseCouponDiscount = couponDiscount;
       const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
@@ -866,7 +1001,7 @@ const handleApplyCoupon = async (e) => {
       }
   
       // Update user's first_order status if applicable
-      if (user.first_order) {
+      if (user?.first_order && !isGuestConversion) {
         try {
           console.log('Updating first_order status for user:', getUserId());
           
@@ -1035,10 +1170,185 @@ const handleApplyCoupon = async (e) => {
     );
   }
   
+  // Show guest form if user is not authenticated
   if (!isAuthenticated() && !authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600 py-8 font-Jost">Please log in to proceed with checkout.</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 font-Manrope">Create Account to Continue</h2>
+            <p className="text-gray-600 mt-2 font-Jost">Please create an account to proceed with checkout</p>
+          </div>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-sm text-red-700 font-Jost">{error}</span>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
+              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+              <span className="text-sm text-green-700 font-Jost">{success}</span>
+            </div>
+          )}
+          
+          <form onSubmit={handleGuestRegistration} className="space-y-4">
+            <div>
+              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-Jost">
+                First Name
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="first_name"
+                  name="first_name"
+                  type="text"
+                  required
+                  value={guestForm.first_name}
+                  onChange={(e) => setGuestForm({...guestForm, first_name: e.target.value})}
+                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                  placeholder="John"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 font-Jost">
+                Last Name
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="last_name"
+                  name="last_name"
+                  type="text"
+                  required
+                  value={guestForm.last_name}
+                  onChange={(e) => setGuestForm({...guestForm, last_name: e.target.value})}
+                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Jost">
+                Email Address
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={guestForm.email}
+                  onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
+                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                  placeholder="john@example.com"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-Jost">
+                Password
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={guestForm.password}
+                  onChange={(e) => setGuestForm({...guestForm, password: e.target.value})}
+                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 font-Jost">
+                Phone Number
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phone_number"
+                  name="phone_number"
+                  type="tel"
+                  required
+                  value={guestForm.phone_number}
+                  onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+                  className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                  placeholder="08012345678"
+                />
+              </div>
+            </div>
+            
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isCreatingAccount}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope disabled:opacity-50"
+              >
+                {isCreatingAccount ? (
+                  <>
+                    <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account & Continue'
+                )}
+              </button>
+            </div>
+          </form>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500 font-Jost">Already have an account?</span>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <Link
+                to="/login"
+                state={{ from: '/checkout' }}
+                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <Link
+              to="/cart"
+              className="text-sm font-medium text-gray-600 hover:text-gray-500 font-Jost inline-flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to Cart
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1109,6 +1419,7 @@ const handleApplyCoupon = async (e) => {
             <p className="text-sm text-yellow-700">
               User ID: {user?.id}<br />
               First Order (DB): {user?.first_order?.toString()}<br />
+              Is Guest Conversion: {isGuestConversion?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
@@ -1710,7 +2021,7 @@ const handleApplyCoupon = async (e) => {
                     </span>
                   </div>
                   
-                  {user?.first_order && displayFirstOrderDiscount > 0 && (
+                  {displayFirstOrderDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-Jost">
                       <span>First Order Discount (5%)</span>
                       <span>
@@ -1786,7 +2097,7 @@ const handleApplyCoupon = async (e) => {
                   </div>
                 )}
                 
-                {user?.first_order && displayFirstOrderDiscount > 0 && (
+                {displayFirstOrderDiscount > 0 && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700 font-Jost">
                       🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
@@ -1800,6 +2111,14 @@ const handleApplyCoupon = async (e) => {
                       🎁 <strong>Coupon Applied!</strong> You saved {appliedCoupon.type === 'percentage' 
                         ? `${appliedCoupon.value}%` 
                         : `₦${appliedCoupon.amount.toFixed(2)}`} with coupon code {appliedCoupon.code}.
+                    </p>
+                  </div>
+                )}
+                
+                {isGuestConversion && (
+                  <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-xs text-yellow-700 font-Jost">
+                      <strong>Note:</strong> As a guest who created an account during checkout, you don't qualify for the first-order discount. This discount is only available to completely new customers.
                     </p>
                   </div>
                 )}
