@@ -213,12 +213,19 @@ export const getCart = async (req, res) => {
   const country = req.headers['x-user-country'] || 'Nigeria';
   
   try {
-    // Step 1: Get the cart for the user
+    if (req.isGuest) {
+      // Handle guest cart logic here (e.g., return empty or localStorage-based cart)
+      // For simplicity, return an empty cart structure for guests to build upon
+      const guestCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
+      console.log('Guest cart payload:', JSON.stringify(guestCart, null, 2));
+      return res.status(200).json(guestCart);
+    }
+    
+    // Proceed with authenticated user logic (existing code)
     const [cart] = await sql`
       SELECT id, total FROM cart WHERE user_id = ${userId} ORDER BY updated_at DESC LIMIT 1
     `;
     
-    // Step 2: If no cart exists, return an empty cart
     if (!cart) {
       const emptyCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
       console.log('Get cart payload:', JSON.stringify(emptyCart, null, 2));

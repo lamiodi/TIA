@@ -21,7 +21,7 @@ import newsletterRoutes from './routes/newsletterRoutes.js';
 import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
 import { cleanupOldOrders } from './utils/cleanupOrders.js';
-
+import cleanupJob from './utils/cleanup.js'; 
 
 EventEmitter.defaultMaxListeners = 40;
 
@@ -89,6 +89,7 @@ app.use('/api/reviews', reviewRouter);
 app.use('/api/admin', adminRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/email', emailRoutes);
+
 
 // Global error handler
 app.use((err, req, res, next) => {

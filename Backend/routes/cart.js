@@ -9,6 +9,7 @@ import {
   clearCartPost
 } from '../controllers/cartController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -28,5 +29,8 @@ router.delete('/:id', authenticateToken, removeFromCart);
 // Clear cart for a user (requires login)
 router.delete('/clear/:userId', authenticateToken, clearCart);
 router.post('/clear/:userId', authenticateToken, clearCartPost); // POST fallback
+// Optional authentication middleware
+
+router.get('/api/cart/:userId', optionalAuth, getCart); // Use optionalAuth for routes that support guests
 
 export default router;
