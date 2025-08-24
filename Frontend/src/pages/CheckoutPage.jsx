@@ -513,87 +513,127 @@ const CheckoutPage = memo(() => {
   }, []);
 
   
-    useEffect(() => {
-      const fetchCartAndAddresses = async () => {
-        if (state.isGuest) {
-          const localCart = localStorage.getItem('cart');
-          console.log('CheckoutPage: Guest cart from localStorage:', localCart); // Debug log
-          if (localCart) {
-            try {
-              const cartData = JSON.parse(localCart);
-              console.log('CheckoutPage: Parsed guest cart:', cartData); // Debug log
-              if (!cartData?.items?.length || !Array.isArray(cartData.items) || !cartData.cartId) {
-                setState(prev => ({ ...prev, error: 'Your cart is empty or invalid. Please add items to proceed.' }));
-                toast.error('Your cart is empty or invalid. Please add items to proceed.');
-                navigate('/cart');
-                return;
-              }
-              // Validate item structure
-              const isValid = cartData.items.every(item => 
-                item.id && 
-                item.quantity > 0 && 
-                item.item && 
-                item.item.price >= 0 && 
-                item.item.stock_quantity >= item.quantity
-              );
-              if (!isValid) {
-                setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
-                toast.error('Invalid cart items. Please review your cart.');
-                navigate('/cart');
-                return;
-              }
-              setState(prev => ({ ...prev, cart: cartData }));
-            } catch (err) {
-              console.error('CheckoutPage: Error parsing localStorage cart:', err);
-              setState(prev => ({ ...prev, error: 'Invalid cart data. Please add items to your cart again.' }));
-              toast.error('Invalid cart data. Please add items to your cart again.');
+  useEffect(() => {
+    const fetchCartAndAddresses = async () => {
+      if (state.isGuest) {
+        const localCart = localStorage.getItem('cart');
+        console.log('CheckoutPage: Guest cart from localStorage:', localCart);
+        if (localCart) {
+          try {
+            const cartData = JSON.parse(localCart);
+            console.log('CheckoutPage: Parsed guest cart:', JSON.stringify(cartData, null, 2));
+  
+            // Validate cart structure
+            if (!cartData.cartId || typeof cartData.cartId !== 'string') {
+              console.error('CheckoutPage: Validation failed - missing or invalid cartId:', cartData.cartId);
+              setState(prev => ({ ...prev, error: 'Invalid cart: Missing or invalid cart ID.' }));
+              toast.error('Invalid cart: Missing or invalid cart ID.');
               navigate('/cart');
+              return;
             }
-          } else {
-            setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
-            toast.error('Your cart is empty. Please add items to proceed.');
+            if (!cartData.items || !Array.isArray(cartData.items) || cartData.items.length === 0) {
+              console.error('CheckoutPage: Validation failed - invalid or empty items array:', cartData.items);
+              setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+              toast.error('Your cart is empty. Please add items to proceed.');
+              navigate('/cart');
+              return;
+            }
+            const isValid = cartData.items.every((item, index) => {
+              const valid =
+                item.id &&
+                typeof item.quantity === 'number' && item.quantity > 0 &&
+                item.item &&
+                typeof item.item.price === 'number' && item.item.price >= 0 &&
+                typeof item.item.stock_quantity === 'number' && item.item.stock_quantity >= item.quantity &&
+                typeof item.item.is_product === 'boolean' &&
+                item.item.name &&
+                (item.item.is_product
+                  ? (item.variant_id && item.size_id)
+                  : (item.bundle_id && Array.isArray(item.item.items)));
+              if (!valid) {
+                console.error(`CheckoutPage: Invalid item at index ${index}:`, JSON.stringify(item, null, 2));
+              }
+              return valid;
+            });
+            if (!isValid) {
+              console.error('CheckoutPage: Validation failed - invalid item properties');
+              setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
+              toast.error('Invalid cart items. Please review your cart.');
+              navigate('/cart');
+              return;
+            }
+            // Ensure totals are present
+            if (typeof cartData.subtotal !== 'number' || typeof cartData.tax !== 'number' || typeof cartData.total !== 'number') {
+              console.error('CheckoutPage: Validation failed - invalid totals:', { subtotal: cartData.subtotal, tax: cartData.tax, total: cartData.total });
+              setState(prev => ({ ...prev, error: 'Invalid cart totals. Please review your cart.' }));
+              toast.error('Invalid cart totals. Please review your cart.');
+              navigate('/cart');
+              return;
+            }
+            setState(prev => ({ ...prev, cart: cartData }));
+            console.log('CheckoutPage: Guest cart set successfully:', JSON.stringify(cartData, null, 2));
+          } catch (err) {
+            console.error('CheckoutPage: Error parsing localStorage cart:', err);
+            setState(prev => ({ ...prev, error: 'Invalid cart data. Please add items to your cart again.' }));
+            toast.error('Invalid cart data. Please add items to your cart again.');
             navigate('/cart');
           }
+        } else {
+          console.error('CheckoutPage: No cart in localStorage');
+          setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+          toast.error('Your cart is empty. Please add items to proceed.');
+          navigate('/cart');
+        }
+        return;
+      }
+  
+      // Authenticated user logic
+      setState(prev => ({ ...prev, loading: true }));
+      try {
+        const userId = getUserId();
+        const token = getToken();
+        if (!userId || !token) {
+          console.error('CheckoutPage: No valid userId or token for authenticated user');
+          setState(prev => ({ ...prev, isGuest: true }));
+          toast.info('No valid session found. Continuing as guest.');
           return;
         }
-    
-        // Authenticated user logic
-        setState(prev => ({ ...prev, loading: true }));
-        try {
-          const userId = getUserId();
-          const token = getToken();
-          if (!userId || !token) {
-            setState(prev => ({ ...prev, isGuest: true }));
-            toast.info('No valid session found. Continuing as guest.');
-            return;
+        const authAxios = axios.create({
+          baseURL: API_BASE_URL,
+          headers: { Authorization: `Bearer ${token}`, 'X-User-Country': country },
+        });
+        const cartResponse = await retryApiCall(() => authAxios.get(`/cart/${userId}`));
+        const cartData = cartResponse.data?.data || cartResponse.data;
+        console.log('CheckoutPage: Authenticated cart data:', JSON.stringify(cartData, null, 2));
+        if (!cartData?.cartId || !cartData?.items?.length || !Array.isArray(cartData.items)) {
+          console.error('CheckoutPage: Authenticated cart invalid:', cartData);
+          setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+          toast.error('Your cart is empty. Please add items to proceed.');
+          navigate('/cart');
+          return;
+        }
+        // Validate item structure
+        const isValid = cartData.items.every((item, index) => {
+          const valid =
+            item.id &&
+            typeof item.quantity === 'number' && item.quantity > 0 &&
+            item.item &&
+            typeof item.item.price === 'number' && item.item.price >= 0 &&
+            typeof item.item.stock_quantity === 'number' && item.item.stock_quantity >= item.quantity;
+          if (!valid) {
+            console.error(`CheckoutPage: Invalid authenticated item at index ${index}:`, JSON.stringify(item, null, 2));
           }
-          const authAxios = axios.create({
-            baseURL: API_BASE_URL,
-            headers: { Authorization: `Bearer ${token}`, 'X-User-Country': country },
-          });
-          const cartResponse = await retryApiCall(() => authAxios.get(`/cart/${userId}`));
-          const cartData = cartResponse.data?.data || cartResponse.data;
-          if (!cartData?.cartId || !cartData?.items?.length || !Array.isArray(cartData.items)) {
-            setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
-            toast.error('Your cart is empty. Please add items to proceed.');
-            navigate('/cart');
-            return;
-          }
-          // Validate item structure
-          const isValid = cartData.items.every(item => 
-            item.id && 
-            item.quantity > 0 && 
-            item.item && 
-            item.item.price >= 0 && 
-            item.item.stock_quantity >= item.quantity
-          );
-          if (!isValid) {
-            setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
-            toast.error('Invalid cart items. Please review your cart.');
-            navigate('/cart');
-            return;
-          }
-          setState(prev => ({ ...prev, cart: cartData }));
+          return valid;
+        });
+        if (!isValid) {
+          console.error('CheckoutPage: Authenticated cart validation failed - invalid item properties');
+          setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
+          toast.error('Invalid cart items. Please review your cart.');
+          navigate('/cart');
+          return;
+        }
+        setState(prev => ({ ...prev, cart: cartData }));
+  
         const shippingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
@@ -610,7 +650,7 @@ const CheckoutPage = memo(() => {
           shippingAddresses: shippingData,
           shippingAddressId: shippingData.length > 0 ? String(shippingData[0].id) : null
         }));
-        
+  
         const billingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
@@ -627,7 +667,7 @@ const CheckoutPage = memo(() => {
           billingAddresses: billingData,
           billingAddressId: billingData.length > 0 ? String(billingData[0].id) : null
         }));
-        
+  
         toast.success('Checkout data loaded successfully');
       } catch (err) {
         console.error('CheckoutPage: Fetch error:', err);
@@ -650,7 +690,6 @@ const CheckoutPage = memo(() => {
       fetchCartAndAddresses();
     }
   }, [user, authLoading, contextLoading, navigate, getUserId, getToken, retryApiCall, state.isGuest, country]);
-
   useEffect(() => {
     if (state.billingAddressOption === 'same' && state.shippingAddressId) {
       const selectedShippingAddress = state.shippingAddresses.find(addr => addr.id.toString() === state.shippingAddressId);
