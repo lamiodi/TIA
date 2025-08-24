@@ -110,64 +110,81 @@ const ProductDetails = () => {
     return !!token; // Just check if token exists
   };
   
-  // Load guest cart from localStorage
-  const loadGuestCart = () => {
-    try {
-      const guestCart = localStorage.getItem('guestCart');
-      if (guestCart) {
-        return JSON.parse(guestCart);
-      }
-    } catch (err) {
-      console.error('Error loading guest cart:', err);
+  // In ProductDetails.js, update loadGuestCart (line 100)
+const loadGuestCart = () => {
+  try {
+    const guestCart = localStorage.getItem('cart'); // Changed from 'guestCart' to 'cart'
+    if (guestCart) {
+      return JSON.parse(guestCart);
     }
-    return { items: [] };
-  };
+  } catch (err) {
+    console.error('Error loading guest cart:', err);
+  }
+  return { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] }; // Ensure full cart structure
+};
+
+// Update saveGuestCart (line 110)
+const saveGuestCart = (cart) => {
+  try {
+    localStorage.setItem('cart', JSON.stringify(cart)); // Changed from 'guestCart' to 'cart'
+  } catch (err) {
+    console.error('Error saving guest cart:', err);
+  }
+};
   
-  // Save guest cart to localStorage
-  const saveGuestCart = (cart) => {
-    try {
-      localStorage.setItem('guestCart', JSON.stringify(cart));
-    } catch (err) {
-      console.error('Error saving guest cart:', err);
+  // In ProductDetails.js, update addToGuestCart (line 120)
+const addToGuestCart = (item) => {
+  const guestCart = loadGuestCart() || { cartId: `guest_${Date.now()}`, subtotal: 0, tax: 0, total: 0, items: [] };
+
+  // Validate stock quantity
+  if (item.product_type === 'single') {
+    if (item.item.stock_quantity < item.quantity) {
+      toastError(`Cannot add to cart. Only ${item.item.stock_quantity} items available.`);
+      return;
     }
-  };
-  
-  // Add item to guest cart
-  const addToGuestCart = (item) => {
-    const guestCart = loadGuestCart();
-    
-    // Check if item already exists in cart
-    const existingItemIndex = guestCart.items.findIndex(cartItem => {
-      if (item.product_type === 'single') {
-        return cartItem.variant_id === item.variant_id && 
-               cartItem.size_id === item.size_id;
-      } else {
-        return cartItem.bundle_id === item.bundle_id;
-      }
-    });
-    
-    if (existingItemIndex >= 0) {
-      // Update quantity if item exists
-      guestCart.items[existingItemIndex].quantity += item.quantity;
+  } else if (item.product_type === 'bundle') {
+    const minStock = Math.min(...item.item.items.map(bi => bi.stock_quantity || 0));
+    if (minStock < item.quantity) {
+      toastError(`Cannot add to cart. Only ${minStock} items available for some bundle items.`);
+      return;
+    }
+  }
+
+  // Check if item already exists in cart
+  const existingItemIndex = guestCart.items.findIndex(cartItem => {
+    if (item.product_type === 'single') {
+      return cartItem.variant_id === item.variant_id && cartItem.size_id === item.size_id;
     } else {
-      // Add new item with unique ID
-      guestCart.items.push({
-        id: Date.now(), // Temporary ID
-        ...item
-      });
+      // Compare bundle items for uniqueness
+      const newItems = item.items.sort((a, b) => a.variant_id - b.variant_id);
+      const existingItems = (cartItem.items || []).sort((a, b) => a.variant_id - b.variant_id);
+      return cartItem.bundle_id === item.bundle_id && JSON.stringify(newItems) === JSON.stringify(existingItems);
     }
-    
-    // Recalculate totals
-    guestCart.subtotal = guestCart.items.reduce(
-      (sum, cartItem) => sum + cartItem.quantity * cartItem.price,
-      0
-    );
-    guestCart.tax = country === 'Nigeria' ? 0 : guestCart.subtotal * 0.05;
-    guestCart.total = guestCart.subtotal + guestCart.tax;
-    
-    saveGuestCart(guestCart);
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
+  });
+
+  if (existingItemIndex >= 0) {
+    // Update quantity if item exists
+    guestCart.items[existingItemIndex].quantity += item.quantity;
+  } else {
+    // Add new item with unique ID
+    guestCart.items.push({
+      id: `guest_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique ID
+      ...item
+    });
+  }
+
+  // Recalculate totals
+  guestCart.subtotal = guestCart.items.reduce(
+    (sum, cartItem) => sum + cartItem.quantity * cartItem.item.price,
+    0
+  );
+  guestCart.tax = country === 'Nigeria' ? 0 : guestCart.subtotal * 0.05;
+  guestCart.total = guestCart.subtotal + guestCart.tax;
+
+  saveGuestCart(guestCart);
+  toastSuccess(`${item.product_type === 'single' ? 'Product' : 'Bundle'} added to cart`);
+  window.dispatchEvent(new Event('cartUpdated'));
+};
   
   useEffect(() => {
     // Check if user is guest

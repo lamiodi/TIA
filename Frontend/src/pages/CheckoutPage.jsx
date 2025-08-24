@@ -512,47 +512,88 @@ const CheckoutPage = memo(() => {
     return () => document.body.removeChild(script);
   }, []);
 
-  useEffect(() => {
-    const fetchCartAndAddresses = async () => {
-      if (state.isGuest) {
-        const localCart = localStorage.getItem('cart');
-        if (localCart) {
-          try {
-            const cartData = JSON.parse(localCart);
-            setState(prev => ({ ...prev, cart: cartData }));
-          } catch (err) {
-            setState(prev => ({ ...prev, error: 'Failed to load cart data' }));
-            toast.error('Failed to load cart data');
+  
+    useEffect(() => {
+      const fetchCartAndAddresses = async () => {
+        if (state.isGuest) {
+          const localCart = localStorage.getItem('cart');
+          console.log('CheckoutPage: Guest cart from localStorage:', localCart); // Debug log
+          if (localCart) {
+            try {
+              const cartData = JSON.parse(localCart);
+              console.log('CheckoutPage: Parsed guest cart:', cartData); // Debug log
+              if (!cartData?.items?.length || !Array.isArray(cartData.items) || !cartData.cartId) {
+                setState(prev => ({ ...prev, error: 'Your cart is empty or invalid. Please add items to proceed.' }));
+                toast.error('Your cart is empty or invalid. Please add items to proceed.');
+                navigate('/cart');
+                return;
+              }
+              // Validate item structure
+              const isValid = cartData.items.every(item => 
+                item.id && 
+                item.quantity > 0 && 
+                item.item && 
+                item.item.price >= 0 && 
+                item.item.stock_quantity >= item.quantity
+              );
+              if (!isValid) {
+                setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
+                toast.error('Invalid cart items. Please review your cart.');
+                navigate('/cart');
+                return;
+              }
+              setState(prev => ({ ...prev, cart: cartData }));
+            } catch (err) {
+              console.error('CheckoutPage: Error parsing localStorage cart:', err);
+              setState(prev => ({ ...prev, error: 'Invalid cart data. Please add items to your cart again.' }));
+              toast.error('Invalid cart data. Please add items to your cart again.');
+              navigate('/cart');
+            }
+          } else {
+            setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+            toast.error('Your cart is empty. Please add items to proceed.');
+            navigate('/cart');
           }
-        } else {
-          setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
-          toast.error('Your cart is empty. Please add items to proceed.');
-          navigate('/cart');
           return;
         }
-        return;
-      }
-
-      setState(prev => ({ ...prev, loading: true }));
-      try {
-        const userId = getUserId();
-        const token = getToken();
-        if (!userId || !token) {
-          setState(prev => ({ ...prev, isGuest: true }));
-          return;
-        }
-        const cartResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }));
-        const cartData = cartResponse.data?.data || cartResponse.data;
-        if (!cartData.cartId || !cartData.items?.length) {
-          setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
-          toast.error('Your cart is empty. Please add items to proceed.');
-          navigate('/cart');
-          return;
-        }
-        setState(prev => ({ ...prev, cart: cartData }));
-        
+    
+        // Authenticated user logic
+        setState(prev => ({ ...prev, loading: true }));
+        try {
+          const userId = getUserId();
+          const token = getToken();
+          if (!userId || !token) {
+            setState(prev => ({ ...prev, isGuest: true }));
+            toast.info('No valid session found. Continuing as guest.');
+            return;
+          }
+          const authAxios = axios.create({
+            baseURL: API_BASE_URL,
+            headers: { Authorization: `Bearer ${token}`, 'X-User-Country': country },
+          });
+          const cartResponse = await retryApiCall(() => authAxios.get(`/cart/${userId}`));
+          const cartData = cartResponse.data?.data || cartResponse.data;
+          if (!cartData?.cartId || !cartData?.items?.length || !Array.isArray(cartData.items)) {
+            setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+            toast.error('Your cart is empty. Please add items to proceed.');
+            navigate('/cart');
+            return;
+          }
+          // Validate item structure
+          const isValid = cartData.items.every(item => 
+            item.id && 
+            item.quantity > 0 && 
+            item.item && 
+            item.item.price >= 0 && 
+            item.item.stock_quantity >= item.quantity
+          );
+          if (!isValid) {
+            setState(prev => ({ ...prev, error: 'Invalid cart items. Please review your cart.' }));
+            toast.error('Invalid cart items. Please review your cart.');
+            navigate('/cart');
+            return;
+          }
+          setState(prev => ({ ...prev, cart: cartData }));
         const shippingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
@@ -589,18 +630,26 @@ const CheckoutPage = memo(() => {
         
         toast.success('Checkout data loaded successfully');
       } catch (err) {
-        const errorMessage = err.message || 'Unknown error';
-        setState(prev => ({ ...prev, error: `Failed to load checkout data: ${errorMessage}`, isGuest: true }));
-        toast.error(`Failed to load checkout data: ${errorMessage}`);
+        console.error('CheckoutPage: Fetch error:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
+        if (err.response?.status === 401) {
+          setState(prev => ({ ...prev, isGuest: true }));
+          toast.error('Session expired. Please log in or continue as guest.');
+          navigate('/login', { state: { from: '/checkout' } });
+        } else {
+          setState(prev => ({ ...prev, error: `Failed to load checkout data: ${errorMessage}`, isGuest: true }));
+          toast.error(`Failed to load checkout data: ${errorMessage}`);
+          navigate('/cart');
+        }
       } finally {
         setState(prev => ({ ...prev, loading: false }));
       }
     };
-    
+  
     if (!authLoading && !contextLoading) {
       fetchCartAndAddresses();
     }
-  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, retryApiCall, state.isGuest]);
+  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, retryApiCall, state.isGuest, country]);
 
   useEffect(() => {
     if (state.billingAddressOption === 'same' && state.shippingAddressId) {
