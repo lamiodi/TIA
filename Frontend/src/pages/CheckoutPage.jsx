@@ -56,12 +56,23 @@ const CheckoutPage = memo(() => {
     couponError: '',
     couponSuccess: '',
     userDataRefreshed: false,
-    isGuest: !authUser,
+    isGuest: !user?.token && !localStorage.getItem('token'),
     guestData: {
       email: '',
       first_name: '',
       last_name: '',
-      phone_number: ''
+      phone_number: '',
+      shipping_address: {
+        title: '',
+        address_line_1: '',
+        address_line_2: '',
+        landmark: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        country: 'Nigeria',
+        phone_number: ''
+      }
     }
   });
 
@@ -177,7 +188,6 @@ const CheckoutPage = memo(() => {
     }
   }, [user, isAuthenticated, state.userDataRefreshed, refreshUserData]);
 
-  // Updated to exclude guests from first-order discount
   useEffect(() => {
     const currentSubtotal = state.cart.subtotal;
     if (user?.first_order && !state.isGuest && currentSubtotal > 0) {
@@ -505,7 +515,6 @@ const CheckoutPage = memo(() => {
   useEffect(() => {
     const fetchCartAndAddresses = async () => {
       if (state.isGuest) {
-        // For guests, load cart from localStorage
         const localCart = localStorage.getItem('cart');
         if (localCart) {
           try {
@@ -524,17 +533,14 @@ const CheckoutPage = memo(() => {
         return;
       }
 
-      if (!isAuthenticated()) {
-        setState(prev => ({ ...prev, error: 'Please log in to proceed with checkout.' }));
-        toast.error('Please log in to proceed with checkout.');
-        navigate('/login', { state: { from: '/checkout' } });
-        return;
-      }
-      
       setState(prev => ({ ...prev, loading: true }));
       try {
         const userId = getUserId();
         const token = getToken();
+        if (!userId || !token) {
+          setState(prev => ({ ...prev, isGuest: true }));
+          return;
+        }
         const cartResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
@@ -584,7 +590,7 @@ const CheckoutPage = memo(() => {
         toast.success('Checkout data loaded successfully');
       } catch (err) {
         const errorMessage = err.message || 'Unknown error';
-        setState(prev => ({ ...prev, error: `Failed to load checkout data: ${errorMessage}` }));
+        setState(prev => ({ ...prev, error: `Failed to load checkout data: ${errorMessage}`, isGuest: true }));
         toast.error(`Failed to load checkout data: ${errorMessage}`);
       } finally {
         setState(prev => ({ ...prev, loading: false }));
@@ -594,7 +600,7 @@ const CheckoutPage = memo(() => {
     if (!authLoading && !contextLoading) {
       fetchCartAndAddresses();
     }
-  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, isAuthenticated, retryApiCall, state.isGuest]);
+  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, retryApiCall, state.isGuest]);
 
   useEffect(() => {
     if (state.billingAddressOption === 'same' && state.shippingAddressId) {
@@ -672,14 +678,12 @@ const CheckoutPage = memo(() => {
 
   const handlePayment = useCallback(async () => {
     if (state.isGuest) {
-      // Validate guest form data
-      if (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name) {
-        setState(prev => ({ ...prev, error: 'Please provide all required guest information.' }));
-        toast.error('Please provide all required guest information.');
+      if (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name || !state.guestData.shipping_address.address_line_1 || !state.guestData.shipping_address.city || !state.guestData.shipping_address.state || !state.guestData.shipping_address.zip_code) {
+        setState(prev => ({ ...prev, error: 'Please provide all required guest information, including shipping address.' }));
+        toast.error('Please provide all required guest information, including shipping address.');
         return;
       }
       
-      // Create temporary user backend-side
       try {
         const guestResponse = await axios.post(`${API_BASE_URL}/api/auth/guest-register`, {
           ...state.guestData,
@@ -688,73 +692,38 @@ const CheckoutPage = memo(() => {
         
         const { userData, token } = guestResponse.data;
         
-        // Log them in
         await login(userData, token);
         
-        // Update state to reflect authenticated status
-        setState(prev => ({ 
-          ...prev, 
+        setState(prev => ({
+          ...prev,
           isGuest: false,
-          user: userData
+          user: userData,
+          shippingAddresses: userData.shipping_address_id ? [{ id: userData.shipping_address_id, ...state.guestData.shipping_address }] : [],
+          billingAddresses: userData.billing_address_id ? [{
+            id: userData.billing_address_id,
+            full_name: `${userData.first_name} ${userData.last_name}`,
+            email: userData.email,
+            phone_number: state.guestData.shipping_address.phone_number,
+            ...state.guestData.shipping_address
+          }] : [],
+          shippingAddressId: userData.shipping_address_id ? String(userData.shipping_address_id) : null,
+          billingAddressId: userData.billing_address_id ? String(userData.billing_address_id) : null
         }));
         
-        // Refresh user data
-        await refreshUserData();
-        
-        // Now we need to load the addresses for the new user
         try {
           const userId = userData.id;
-          const newToken = token;
-          
-          // Load shipping addresses
-          const shippingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${newToken}` }
-          }));
-          let shippingData = shippingResponse.data;
-          if (shippingData && !Array.isArray(shippingData)) {
-            shippingData = [shippingData];
-          } else if (shippingData && Array.isArray(shippingData.data)) {
-            shippingData = shippingData.data;
-          } else if (!shippingData) {
-            shippingData = [];
-          }
-          
-          // Load billing addresses
-          const billingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${newToken}` }
-          }));
-          let billingData = billingResponse.data;
-          if (billingData && !Array.isArray(billingData)) {
-            billingData = [billingData];
-          } else if (billingData && Array.isArray(billingData.data)) {
-            billingData = billingData.data;
-          } else if (!billingData) {
-            billingData = [];
-          }
-          
-          // Update state with addresses
-          setState(prev => ({
-            ...prev,
-            shippingAddresses: shippingData,
-            shippingAddressId: shippingData.length > 0 ? String(shippingData[0].id) : null,
-            billingAddresses: billingData,
-            billingAddressId: billingData.length > 0 ? String(billingData[0].id) : null
-          }));
-          
-          // Load cart for the new user
           const cartResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
-            headers: { Authorization: `Bearer ${newToken}` }
+            headers: { Authorization: `Bearer ${token}` }
           }));
           const cartData = cartResponse.data?.data || cartResponse.data;
           setState(prev => ({ ...prev, cart: cartData }));
           
+          toast.success('Guest account created successfully');
         } catch (err) {
-          console.error('Error loading user data after guest registration:', err);
-          toast.error('Account created but failed to load user data. Please try again.');
+          console.error('Error loading cart after guest registration:', err);
+          toast.error('Account created but failed to load cart data. Please try again.');
           return;
         }
-        
-        // Continue with the rest of the handlePayment logic
       } catch (err) {
         const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
         setState(prev => ({ ...prev, error: `Failed to create guest account: ${errorMessage}` }));
@@ -763,7 +732,6 @@ const CheckoutPage = memo(() => {
       }
     }
     
-    // Existing order creation logic...
     if (!state.shippingAddressId) {
       setState(prev => ({ ...prev, error: 'Please select a shipping address.' }));
       toast.error('Please select a shipping address.');
@@ -980,8 +948,14 @@ const CheckoutPage = memo(() => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-lg shadow-md max-w-md">
-          <div className="text-red-600 py-4 font-Jost mb-4">Please log in to proceed with checkout.</div>
+          <div className="text-red-600 py-4 font-Jost mb-4">Please log in or continue as a guest to proceed with checkout.</div>
           <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setState(prev => ({ ...prev, isGuest: true }))}
+              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-Jost"
+            >
+              Checkout as Guest
+            </button>
             <Link
               to="/login"
               state={{ from: '/checkout' }}
@@ -989,12 +963,6 @@ const CheckoutPage = memo(() => {
             >
               Log In
             </Link>
-            <button
-              onClick={() => setState(prev => ({ ...prev, isGuest: true }))}
-              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-Jost"
-            >
-              Checkout as Guest
-            </button>
           </div>
         </div>
       </div>
@@ -1130,7 +1098,33 @@ const CheckoutPage = memo(() => {
                   className="w-full p-2 border border-gray-300 rounded-md font-Jost"
                 />
               </div>
+              <div className="md:col-span-2">
+                <h4 className="text-lg font-semibold text-Primarycolor mb-2 font-Manrope">Shipping Address</h4>
+                <ShippingAddressForm
+                  address={{ state: state.guestData.shipping_address, setState: (newAddress) => setState(prev => ({
+                    ...prev,
+                    guestData: { ...prev.guestData, shipping_address: newAddress }
+                  }))}}
+                  onSubmit={(data) => setState(prev => ({
+                    ...prev,
+                    guestData: { ...prev.guestData, shipping_address: data }
+                  }))}
+                  onCancel={() => setState(prev => ({
+                    ...prev,
+                    guestData: { ...prev.guestData, shipping_address: shippingFormInitial }
+                  }))}
+                  formErrors={state.formErrors}
+                  setFormErrors={(errors) => setState(prev => ({ ...prev, formErrors: errors }))}
+                  actionLoading={state.loading}
+                />
+              </div>
             </div>
+            <button
+              onClick={() => setState(prev => ({ ...prev, isGuest: false }))}
+              className="mt-4 text-blue-600 hover:text-blue-800 text-sm font-Jost"
+            >
+              Log In Instead
+            </button>
           </div>
         )}
         
@@ -1643,228 +1637,229 @@ const CheckoutPage = memo(() => {
                   </div>
                 ) : (
                   <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={state.couponCode}
-                      onChange={(e) => setState(prev => ({ ...prev, couponCode: e.target.value.toUpperCase() }))}
-                      placeholder="Enter coupon code"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
-                      disabled={state.couponLoading}
-                      aria-label="Coupon code"
-                    />
-                    <button
-                      type="submit"
-                      disabled={state.couponLoading || !state.couponCode.trim()}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-Jost"
-                      aria-label="Apply coupon code"
-                    >
-                      {state.couponLoading ? 'Applying...' : 'Apply'}
-                    </button>
-                  </form>
-                )}
-                {state.couponError && (
-                  <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {state.couponError}
-                  </div>
-                )}
-                {state.couponSuccess && !state.appliedCoupon && (
-                  <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    {state.couponSuccess}
-                  </div>
-                )}
-              </div>
-              
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
-                <div className="space-y-2">
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      state.paymentMethod === 'card' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                  <input
+                    type="text"
+                    value={state.couponCode}
+                    onChange={(e) => setState(prev => ({ ...prev, couponCode: e.target.value.toUpperCase() }))}
+                    placeholder="Enter coupon code"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
+                    disabled={state.couponLoading}
+                    aria-label="Coupon code"
+                  />
+                  <button
+                    type="submit"
+                    disabled={state.couponLoading || !state.couponCode.trim()}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-Jost"
+                    aria-label="Apply coupon code"
                   >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={state.paymentMethod === 'card'}
-                      onChange={() => setState(prev => ({ ...prev, paymentMethod: 'card' }))}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                      aria-label="Pay with card"
-                    />
-                    <span className="text-sm text-Accent font-Jost">Card Payment</span>
-                  </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      state.paymentMethod === 'bank' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bank"
-                      checked={state.paymentMethod === 'bank'}
-                      onChange={() => setState(prev => ({ ...prev, paymentMethod: 'bank' }))}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                      aria-label="Pay with bank transfer"
-                    />
-                    <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
-                  </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      state.paymentMethod === 'bitcoin' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bitcoin"
-                      checked={state.paymentMethod === 'bitcoin'}
-                      onChange={() => setState(prev => ({ ...prev, paymentMethod: 'bitcoin' }))}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                      aria-label="Pay with Bitcoin/Crypto"
-                    />
-                    <div className="flex items-center">
-                      <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
-                      <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
-                    </div>
-                  </label>
+                    {state.couponLoading ? 'Applying...' : 'Apply'}
+                  </button>
+                </form>
+              )}
+              {state.couponError && (
+                <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {state.couponError}
                 </div>
+              )}
+              {state.couponSuccess && !state.appliedCoupon && (
+                <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {state.couponSuccess}
+                </div>
+              )}
+            </div>
+            
+            <div className="mb-6">
+              <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
+              <div className="space-y-2">
+                <label
+                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                    state.paymentMethod === 'card' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="card"
+                    checked={state.paymentMethod === 'card'}
+                    onChange={() => setState(prev => ({ ...prev, paymentMethod: 'card' }))}
+                    className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                    aria-label="Pay with card"
+                  />
+                  <span className="text-sm text-Accent font-Jost">Card Payment</span>
+                </label>
+                <label
+                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                    state.paymentMethod === 'bank' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="bank"
+                    checked={state.paymentMethod === 'bank'}
+                    onChange={() => setState(prev => ({ ...prev, paymentMethod: 'bank' }))}
+                    className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                    aria-label="Pay with bank transfer"
+                  />
+                  <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
+                </label>
+                <label
+                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                    state.paymentMethod === 'bitcoin' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="bitcoin"
+                    checked={state.paymentMethod === 'bitcoin'}
+                    onChange={() => setState(prev => ({ ...prev, paymentMethod: 'bitcoin' }))}
+                    className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                    aria-label="Pay with Bitcoin/Crypto"
+                  />
+                  <div className="flex items-center">
+                    <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
+                    <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
+                  </div>
+                </label>
               </div>
-              
-              <div className="border-t border-gray-200 pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
-                    <span>Subtotal</span>
+            </div>
+            
+            <div className="border-t border-gray-200 pt-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-Accent font-Jost">
+                  <span>Subtotal</span>
+                  <span>
+                    {displaySubtotal.toLocaleString('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN',
+                      minimumFractionDigits: 2
+                    })}
+                  </span>
+                </div>
+                {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 font-Jost">
+                    <span>First Order Discount (5%)</span>
                     <span>
-                      {displaySubtotal.toLocaleString('en-NG', {
+                      -{displayFirstOrderDiscount.toLocaleString('en-NG', {
                         style: 'currency',
                         currency: 'NGN',
                         minimumFractionDigits: 2
                       })}
                     </span>
                   </div>
-                  {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>First Order Discount (5%)</span>
-                      <span>
-                        -{displayFirstOrderDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  {displayCouponDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>Coupon Discount</span>
-                      <span>
-                        -{displayCouponDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
-                    <span>Shipping</span>
+                )}
+                {displayCouponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 font-Jost">
+                    <span>Coupon Discount</span>
                     <span>
-                      {isNigeria ? (
-                        (state.shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2
-                        })
-                      ) : (
-                        'TBD'
-                      )}
-                    </span>
-                  </div>
-                  {!isNigeria && (
-                    <div className="flex justify-between text-sm text-Accent font-Jost">
-                      <span>Tax (5%)</span>
-                      <span>
-                        {displayTax.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2
-                        })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
-                    <span>Total</span>
-                    <span>
-                      {displayTotal.toLocaleString('en-NG', {
+                      -{displayCouponDiscount.toLocaleString('en-NG', {
                         style: 'currency',
                         currency: 'NGN',
                         minimumFractionDigits: 2
                       })}
                     </span>
                   </div>
+                )}
+                <div className="flex justify-between text-sm text-Accent font-Jost">
+                  <span>Shipping</span>
+                  <span>
+                    {isNigeria ? (
+                      (state.shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2
+                      })
+                    ) : (
+                      'TBD'
+                    )}
+                  </span>
                 </div>
                 {!isNigeria && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-700 font-Jost">
-                      <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
-                    </p>
-                  </div>
-                )}
-                {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
-                    </p>
-                  </div>
-                )}
-                {state.appliedCoupon && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎁 <strong>Coupon Applied!</strong> You saved {state.appliedCoupon.type === 'percentage'
-                        ? `${state.appliedCoupon.value}%`
-                        : `₦${state.appliedCoupon.amount.toFixed(2)}`} with coupon code {state.appliedCoupon.code}.
-                    </p>
-                  </div>
-                )}
-                <button
-                  onClick={handlePayment}
-                  className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={state.loading || !state.shippingAddressId || !state.billingAddressId || (isNigeria && !state.shippingMethod) || (state.isGuest && (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name))}
-                  aria-label="Place order"
-                >
-                  {state.loading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
-                      Processing...
-                    </div>
-                  ) : (
-                    'Place Order'
-                  )}
-                </button>
-                {state.paymentMethod === 'bitcoin' && (
-                  <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <Bitcoin className="h-4 w-4 text-orange-600" />
-                      <p className="text-xs text-orange-800 font-Jost">
-                        Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
-                      </p>
-                    </div>
+                  <div className="flex justify-between text-sm text-Accent font-Jost">
+                    <span>Tax (5%)</span>
+                    <span>
+                      {displayTax.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2
+                      })}
+                    </span>
                   </div>
                 )}
               </div>
+              <div className="border-t border-gray-200 mt-3 pt-3">
+                <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
+                  <span>Total</span>
+                  <span>
+                    {displayTotal.toLocaleString('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN',
+                      minimumFractionDigits: 2
+                    })}
+                  </span>
+                </div>
+              </div>
+              {!isNigeria && (
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-700 font-Jost">
+                    <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
+                  </p>
+                </div>
+              )}
+              {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-700 font-Jost">
+                    🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
+                  </p>
+                </div>
+              )}
+              {state.appliedCoupon && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-700 font-Jost">
+                    🎁 <strong>Coupon Applied!</strong> You saved {state.appliedCoupon.type === 'percentage'
+                      ? `${state.appliedCoupon.value}%`
+                      : `₦${state.appliedCoupon.amount.toFixed(2)}`} with coupon code {state.appliedCoupon.code}.
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={handlePayment}
+                className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
+                disabled={state.loading || !state.shippingAddressId || !state.billingAddressId || (isNigeria && !state.shippingMethod) || (state.isGuest && (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name || !state.guestData.shipping_address.address_line_1 || !state.guestData.shipping_address.city || !state.guestData.shipping_address.state || !state.guestData.shipping_address.zip_code))}
+                aria-label="Place order"
+              >
+                {state.loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                    Processing...
+                  </div>
+                ) : (
+                  'Place Order'
+                )}
+              </button>
+              {state.paymentMethod === 'bitcoin' && (
+                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Bitcoin className="h-4 w-4 text-orange-600" />
+                    <p className="text-xs text-orange-800 font-Jost">
+                      Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-      <WhatsAppChatWidget />
-      <Footer />
     </div>
-  );
+    <WhatsAppChatWidget />
+    <Footer />
+  </div>
+);
 });
 
 export default CheckoutPage;
+                    
