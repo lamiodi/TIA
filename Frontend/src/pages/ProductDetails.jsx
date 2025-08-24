@@ -139,16 +139,23 @@ const addToGuestCart = (item, quantity, variantId, sizeId, bundleItems = []) => 
     let guestCart = localStorage.getItem('cart');
     guestCart = guestCart ? JSON.parse(guestCart) : { cartId: `guest_${Date.now()}`, subtotal: 0, tax: 0, total: 0, items: [] };
 
+    // Validate input
+    if (!item || typeof quantity !== 'number' || quantity < 1) {
+      console.error('Invalid input for addToGuestCart:', { item, quantity, variantId, sizeId });
+      toastError('Invalid item or quantity. Please try again.');
+      return;
+    }
+
     // Validate stock
     if (item.is_product) {
-      if (item.stock_quantity < quantity) {
-        toast.error(`Cannot add to cart. Only ${item.stock_quantity} items available.`);
+      if (typeof item.stock_quantity !== 'number' || item.stock_quantity < quantity) {
+        toastError(`Cannot add to cart. Only ${item.stock_quantity || 0} items available.`);
         return;
       }
     } else {
       const minStock = Math.min(...bundleItems.map(bi => bi.stock_quantity || 0));
-      if (minStock < quantity) {
-        toast.error(`Cannot add to cart. Only ${minStock} items available for some bundle items.`);
+      if (typeof minStock !== 'number' || minStock < quantity) {
+        toastError(`Cannot add to cart. Only ${minStock || 0} items available for some bundle items.`);
         return;
       }
     }
@@ -173,39 +180,53 @@ const addToGuestCart = (item, quantity, variantId, sizeId, bundleItems = []) => 
         quantity,
         item: {
           id: item.id,
-          name: item.name,
-          image: item.image,
-          price: item.price,
-          stock_quantity: item.stock_quantity,
+          name: item.name || 'Unnamed Item',
+          image: item.image || 'https://via.placeholder.com/500',
+          price: parseFloat(item.price) || 0,
+          stock_quantity: item.stock_quantity || 0,
           is_product: item.is_product
         }
       };
       if (item.is_product) {
+        if (!variantId || !sizeId) {
+          console.error('Missing variantId or sizeId for single product:', { variantId, sizeId });
+          toastError('Please select a color and size.');
+          return;
+        }
         cartItem.variant_id = variantId;
         cartItem.size_id = sizeId;
       } else {
+        if (!item.id || !bundleItems.length) {
+          console.error('Missing bundle_id or bundleItems:', { bundleId: item.id, bundleItems });
+          toastError('Invalid bundle configuration.');
+          return;
+        }
         cartItem.bundle_id = item.id;
         cartItem.item.items = bundleItems.map(bi => ({
           variant_id: bi.variant_id,
           size_id: bi.size_id,
-          stock_quantity: bi.stock_quantity
+          stock_quantity: bi.stock_quantity || 0
         }));
       }
       guestCart.items.push(cartItem);
     }
 
     // Calculate totals
-    guestCart.subtotal = guestCart.items.reduce((sum, cartItem) => sum + cartItem.quantity * cartItem.item.price, 0);
+    guestCart.subtotal = guestCart.items.reduce((sum, cartItem) => {
+      const itemPrice = parseFloat(cartItem.item.price) || 0;
+      return sum + cartItem.quantity * itemPrice;
+    }, 0);
     guestCart.tax = country === 'Nigeria' ? 0 : guestCart.subtotal * 0.05;
     guestCart.total = guestCart.subtotal + guestCart.tax;
 
     // Save to localStorage
     localStorage.setItem('cart', JSON.stringify(guestCart));
-    toast.success(`${item.is_product ? 'Product' : 'Bundle'} added to cart`);
+    console.log('Guest cart saved:', JSON.stringify(guestCart, null, 2));
+    toastSuccess(`${item.is_product ? 'Product' : 'Bundle'} added to cart`);
     window.dispatchEvent(new Event('cartUpdated'));
   } catch (err) {
     console.error('Error adding to guest cart:', err);
-    toast.error('Failed to add item to cart. Please try again.');
+    toastError('Failed to add item to cart. Please try again.');
   }
 };
   
