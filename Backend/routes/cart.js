@@ -32,5 +32,6 @@ router.post('/clear/:userId', authenticateToken, clearCartPost); // POST fallbac
 // Optional authentication middleware
 
 router.get('/api/cart/:userId', optionalAuth, getCart); // Use optionalAuth for routes that support guests
+router.post('/sync/:userId', authenticateToken, syncCart);
 
 export default router;

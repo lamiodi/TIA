@@ -1,6 +1,74 @@
 // cartController.js
 import sql from '../db/index.js';
 
+
+
+// In cartController.js
+export const syncCart = async (req, res) => {
+  const { userId } = req.params;
+  const { items } = req.body;
+  const country = req.headers['x-user-country'] || 'Nigeria';
+
+  try {
+    await sql.begin(async (sql) => {
+      // Get or create cart
+      let [cart] = await sql`
+        SELECT id FROM cart WHERE user_id = ${userId} ORDER BY updated_at DESC LIMIT 1
+      `;
+      if (!cart) {
+        [cart] = await sql`
+          INSERT INTO cart (user_id, total) VALUES (${userId}, 0) RETURNING id
+        `;
+      }
+      const cartId = cart.id;
+
+      // Clear existing cart items
+      await sql`
+        DELETE FROM cart_bundle_items 
+        WHERE cart_item_id IN (SELECT id FROM cart_items WHERE cart_id = ${cartId})
+      `;
+      await sql`
+        DELETE FROM cart_items WHERE cart_id = ${cartId}
+      `;
+
+      // Add items to cart
+      for (const item of items) {
+        if (item.item.is_product) {
+          const { base_price, color_name, size_name } = await validateSingleProduct(sql, item.variant_id, item.size_id, item.quantity);
+          await sql`
+            INSERT INTO cart_items (cart_id, variant_id, size_id, quantity, is_bundle, price, color_name, size_name)
+            VALUES (${cartId}, ${item.variant_id}, ${item.size_id}, ${item.quantity}, ${false}, ${base_price}, ${color_name}, ${size_name})
+          `;
+        } else {
+          const { bundle_price, bundle_type } = await validateBundle(sql, item.bundle_id, item.item.items, item.quantity);
+          const [insertCartItem] = await sql`
+            INSERT INTO cart_items (cart_id, bundle_id, quantity, is_bundle, price)
+            VALUES (${cartId}, ${item.bundle_id}, ${item.quantity}, ${true}, ${bundle_type === '5-in-1' ? bundle_price * 1.5 : bundle_price})
+            RETURNING id
+          `;
+          const cartItemId = insertCartItem.id;
+          for (const bundleItem of item.item.items) {
+            await sql`
+              INSERT INTO cart_bundle_items (cart_item_id, variant_id, size_id)
+              VALUES (${cartItemId}, ${bundleItem.variant_id}, ${bundleItem.size_id})
+            `;
+          }
+        }
+      }
+
+      // Update cart totals
+      const { subtotal, tax, total } = await updateCartTotal(sql, cartId, country);
+      const cartItems = await fetchCartItems(sql, cartId);
+
+      const payload = { cartId, subtotal, tax, total, items: cartItems };
+      console.log('Sync cart payload:', JSON.stringify(payload, null, 2));
+      res.status(200).json(payload);
+    });
+  } catch (err) {
+    console.error('Sync cart error:', err.message, err.stack);
+    res.status(500).json({ error: 'Failed to sync cart' });
+  }
+};
 // Helper function to validate single product
 const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
   const [variant] = await sql`
@@ -207,45 +275,34 @@ const updateCartTotal = async (sql, cartId, country) => {
   return { subtotal, tax, total };
 };
 
-// Get cart
 export const getCart = async (req, res) => {
   const { userId } = req.params;
   const country = req.headers['x-user-country'] || 'Nigeria';
-  
+
   try {
     if (req.isGuest) {
-      // Handle guest cart logic here (e.g., return empty or localStorage-based cart)
-      // For simplicity, return an empty cart structure for guests to build upon
-      const guestCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
+      const guestCart = { cartId: `guest_${Date.now()}`, subtotal: 0, tax: 0, total: 0, items: [] };
       console.log('Guest cart payload:', JSON.stringify(guestCart, null, 2));
       return res.status(200).json(guestCart);
     }
-    
-    // Proceed with authenticated user logic (existing code)
-    const [cart] = await sql`
+
+    let [cart] = await sql`
       SELECT id, total FROM cart WHERE user_id = ${userId} ORDER BY updated_at DESC LIMIT 1
     `;
-    
     if (!cart) {
-      const emptyCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
-      console.log('Get cart payload:', JSON.stringify(emptyCart, null, 2));
-      return res.status(200).json(emptyCart);
+      [cart] = await sql`
+        INSERT INTO cart (user_id, total) VALUES (${userId}, 0) RETURNING id, total
+      `;
     }
-    
     const cartId = cart.id;
-    
-    // Step 3: Fetch all cart items
+
     const cartItems = await fetchCartItems(sql, cartId);
-    
-    // Step 4: Calculate cart totals
     const { subtotal, tax, total } = calculateCartTotals(cartItems, country);
-    
-    // Step 5: Update cart total in case of discrepancies
+
     await sql`
       UPDATE cart SET total = ${total} WHERE id = ${cartId}
     `;
-    
-    // Step 6: Return the cart payload
+
     const payload = { cartId, subtotal, tax, total, items: cartItems };
     console.log('Get cart payload:', JSON.stringify(payload, null, 2));
     res.status(200).json(payload);
