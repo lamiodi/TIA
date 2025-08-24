@@ -271,3 +271,128 @@ export const updateUserFirstOrder = async (req, res) => {
     });
   }
 };
+
+export const createTemporaryUser = async (req, res) => {
+  const { email, first_name, last_name, phone_number } = req.body;
+  
+  try {
+    // Generate a temporary password (random string)
+    const tempPassword = Math.random().toString(36).slice(-8);
+    
+    // Create the user with first_order = false
+    const [user] = await sql`
+      INSERT INTO users (
+        first_name, last_name, email, password, phone_number, first_order
+      ) VALUES (
+        ${first_name}, ${last_name}, ${email}, 
+        ${bcrypt.hashSync(tempPassword, 10)}, ${phone_number}, false
+      )
+      RETURNING id, first_name, last_name, email, phone_number
+    `;
+    
+    // Generate a temporary token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, isTemporary: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    // Create a cart for the temporary user
+    await sql`INSERT INTO cart (user_id, total) VALUES (${user.id}, 0)`;
+    
+    console.log(`✅ Created temporary user ${user.id} with email ${email}`);
+    
+    res.status(201).json({
+      user,
+      token,
+      isTemporary: true,
+      message: 'Temporary account created. Please complete your profile to continue.'
+    });
+  } catch (err) {
+    console.error('❌ Error creating temporary user:', err.message);
+    
+    // Handle duplicate email
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    
+    res.status(500).json({ error: 'Failed to create temporary user' });
+  }
+};
+
+export const completeProfile = async (req, res) => {
+  const { password } = req.body;
+  const userId = req.user.id;
+  
+  try {
+    // Check if user exists
+    const [user] = await sql`
+      SELECT id, email FROM users WHERE id = ${userId} AND deleted_at IS NULL
+    `;
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Update user with new password
+    await sql`
+      UPDATE users 
+      SET password = ${bcrypt.hashSync(password, 10)}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+    
+    // Generate a new non-temporary token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, isAdmin: user.is_admin },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+    
+    console.log(`✅ Completed profile for user ${userId}`);
+    
+    res.status(200).json({
+      message: 'Profile completed successfully',
+      token,
+      user: { 
+        id: user.id, 
+        email: user.email,
+        isTemporary: false
+      }
+    });
+  } catch (err) {
+    console.error('❌ Error completing profile:', err.message);
+    res.status(500).json({ error: 'Failed to complete profile' });
+  }
+};
+
+export const checkTemporaryUser = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return next();
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (decoded.isTemporary) {
+      // For API routes, return a JSON response instead of redirecting
+      if (req.path.startsWith('/api/')) {
+        return res.status(403).json({ 
+          error: 'Temporary user must complete profile first',
+          requiresProfileCompletion: true,
+          redirectPath: '/complete-profile'
+        });
+      }
+      
+      // For web routes, redirect to profile completion page
+      if (!req.path.includes('/complete-profile')) {
+        return res.redirect('/complete-profile');
+      }
+    }
+  } catch (err) {
+    // Invalid token, continue
+  }
+  
+  next();
+};

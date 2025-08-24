@@ -21,6 +21,10 @@ import newsletterRoutes from './routes/newsletterRoutes.js';
 import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
 import { cleanupOldOrders } from './utils/cleanupOrders.js';
+import { checkTemporaryUser } from './controllers/authController.js';
+
+// Add this to your app setup
+app.use(checkTemporaryUser);
 
 
 EventEmitter.defaultMaxListeners = 40;

@@ -1,7 +1,20 @@
-//authroutes
+// authroutes
 import express from 'express';
-import { loginUser, adminLogin, signupUser, requestPasswordReset, resetPassword, getMe, updateProfile, updateUserFirstOrder } from '../controllers/authController.js';
+import { 
+  loginUser, 
+  adminLogin, 
+  signupUser, 
+  requestPasswordReset, 
+  resetPassword, 
+  getMe, 
+  updateProfile, 
+  updateUserFirstOrder,
+  createTemporaryUser,
+  completeProfile 
+} from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { checkTemporaryUser } from '../controllers/authController.js';
+
 const router = express.Router();
 
 router.post('/login', loginUser);
@@ -15,5 +28,9 @@ router.get('/verify', authenticateToken, (req, res) => {
   res.json({ valid: true, user: req.user });
 });
 router.patch('/users/:id', authenticateToken, updateUserFirstOrder);
+
+// New routes for temporary user functionality
+router.post('/temporary-user', createTemporaryUser);
+router.post('/complete-profile', authenticateToken, completeProfile);
 
 export default router;
