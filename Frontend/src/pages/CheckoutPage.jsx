@@ -20,20 +20,17 @@ const MAX_API_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
 const CheckoutPage = memo(() => {
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, login } = useAuth();
   const { user: hookUser, refreshUser, refreshCount } = useUserManager();
   const user = hookUser || authUser;
   const navigate = useNavigate();
-
   const currencyContext = useContext(CurrencyContext) || {
     currency: 'NGN',
     exchangeRate: 1,
     country: 'Nigeria',
     contextLoading: false
   };
-
   const { currency, exchangeRate, country, contextLoading } = currencyContext;
-
   const [state, setState] = useState({
     cart: { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] },
     shippingAddresses: [],
@@ -137,6 +134,7 @@ const CheckoutPage = memo(() => {
   }, []);
 
   const getToken = useCallback(() => user?.token || localStorage.getItem('token'), [user]);
+
   const getUserId = useCallback(() => {
     if (state.isGuest) return null;
     const token = getToken();
@@ -179,9 +177,10 @@ const CheckoutPage = memo(() => {
     }
   }, [user, isAuthenticated, state.userDataRefreshed, refreshUserData]);
 
+  // Updated to exclude guests from first-order discount
   useEffect(() => {
     const currentSubtotal = state.cart.subtotal;
-    if ((user?.first_order || state.isGuest) && currentSubtotal > 0) {
+    if (user?.first_order && !state.isGuest && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setState(prev => ({ ...prev, firstOrderDiscount: discountAmount }));
     } else {
@@ -199,9 +198,7 @@ const CheckoutPage = memo(() => {
       setState(prev => ({ ...prev, couponError: 'Invalid coupon code format' }));
       return;
     }
-
     setState(prev => ({ ...prev, couponLoading: true, couponError: '', couponSuccess: '' }));
-
     try {
       const token = getToken();
       const response = await retryApiCall(() => axios.post(
@@ -209,14 +206,12 @@ const CheckoutPage = memo(() => {
         { code: state.couponCode },
         token ? { headers: { Authorization: `Bearer ${token}` } } : {}
       ));
-
       if (response.data.valid) {
         const discount = response.data.discount;
         let discountAmount = discount.type === 'percentage'
           ? (state.cart.subtotal * discount.value) / 100
           : discount.value;
         discountAmount = Math.min(discountAmount, state.cart.subtotal);
-
         setState(prev => ({
           ...prev,
           appliedCoupon: {
@@ -263,7 +258,6 @@ const CheckoutPage = memo(() => {
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-
     setState(prev => ({ ...prev, loading: true }));
     try {
       const userId = getUserId();
@@ -274,7 +268,6 @@ const CheckoutPage = memo(() => {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       ));
-
       const created = response.data?.data || response.data;
       setState(prev => ({
         ...prev,
@@ -285,7 +278,6 @@ const CheckoutPage = memo(() => {
         success: 'Shipping address added successfully.'
       }));
       toast.success('Shipping address added');
-
       if (state.billingAddressOption === 'same') {
         const billingAddress = {
           full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
@@ -298,13 +290,11 @@ const CheckoutPage = memo(() => {
           zip_code: data.zip_code,
           country: data.country
         };
-
         const matchingBillingAddress = state.billingAddresses.find(addr =>
           addr.address_line_1 === billingAddress.address_line_1 &&
           addr.city === billingAddress.city &&
           addr.state === billingAddress.state
         );
-
         if (matchingBillingAddress) {
           setState(prev => ({ ...prev, billingAddressId: String(matchingBillingAddress.id) }));
         } else {
@@ -314,7 +304,6 @@ const CheckoutPage = memo(() => {
               { user_id: userId, ...billingAddress },
               { headers: { Authorization: `Bearer ${token}` } }
             ));
-
             const newBillingAddress = billingResponse.data?.data || billingResponse.data;
             setState(prev => ({
               ...prev,
@@ -341,7 +330,6 @@ const CheckoutPage = memo(() => {
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-
     setState(prev => ({ ...prev, loading: true }));
     try {
       const userId = getUserId();
@@ -352,7 +340,6 @@ const CheckoutPage = memo(() => {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       ));
-
       const created = response.data?.data || response.data;
       setState(prev => ({
         ...prev,
@@ -378,14 +365,12 @@ const CheckoutPage = memo(() => {
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-
     setState(prev => ({ ...prev, loading: true }));
     try {
       const token = getToken();
       await retryApiCall(() => axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`, {
         headers: { Authorization: `Bearer ${token}` }
       }));
-
       if (type === 'addresses') {
         const remaining = state.shippingAddresses.filter(addr => String(addr.id) !== String(addressId));
         setState(prev => ({
@@ -395,7 +380,6 @@ const CheckoutPage = memo(() => {
             ? remaining.length ? String(remaining[0].id) : null
             : prev.shippingAddressId
         }));
-
         if (state.billingAddressOption === 'same' && remaining.length > 0) {
           const newShippingAddress = remaining[0];
           const matchingBillingAddress = state.billingAddresses.find(addr =>
@@ -403,7 +387,6 @@ const CheckoutPage = memo(() => {
             addr.city === newShippingAddress.city &&
             addr.state === newShippingAddress.state
           );
-
           if (matchingBillingAddress) {
             setState(prev => ({ ...prev, billingAddressId: String(matchingBillingAddress.id) }));
           } else {
@@ -418,14 +401,12 @@ const CheckoutPage = memo(() => {
               zip_code: newShippingAddress.zip_code,
               country: newShippingAddress.country
             };
-
             try {
               const billingResponse = await retryApiCall(() => axios.post(
                 `${API_BASE_URL}/api/billing-addresses`,
                 { user_id: getUserId(), ...billingAddress },
                 { headers: { Authorization: `Bearer ${token}` } }
               ));
-
               const newBillingAddress = billingResponse.data?.data || billingResponse.data;
               setState(prev => ({
                 ...prev,
@@ -447,7 +428,6 @@ const CheckoutPage = memo(() => {
             : prev.billingAddressId
         }));
       }
-
       setState(prev => ({ ...prev, success: `Successfully deleted ${type === 'addresses' ? 'shipping' : 'billing'} address.` }));
       toast.success(`Deleted ${type === 'addresses' ? 'shipping' : 'billing'} address`);
     } catch (err) {
@@ -465,7 +445,6 @@ const CheckoutPage = memo(() => {
       toast.error('Please select a shipping address first');
       return;
     }
-
     const billingAddress = {
       full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
       email: user?.email || '',
@@ -477,13 +456,11 @@ const CheckoutPage = memo(() => {
       zip_code: selectedShippingAddress.zip_code,
       country: selectedShippingAddress.country
     };
-
     const matchingBillingAddress = state.billingAddresses.find(addr =>
       addr.address_line_1 === billingAddress.address_line_1 &&
       addr.city === billingAddress.city &&
       addr.state === billingAddress.state
     );
-
     if (matchingBillingAddress) {
       setState(prev => ({ ...prev, billingAddressId: String(matchingBillingAddress.id) }));
       toast.success('Billing address updated to match shipping address');
@@ -498,7 +475,6 @@ const CheckoutPage = memo(() => {
             { user_id: userId, ...billingAddress },
             { headers: { Authorization: `Bearer ${token}` } }
           ));
-
           const newBillingAddress = response.data?.data || response.data;
           setState(prev => ({
             ...prev,
@@ -528,22 +504,40 @@ const CheckoutPage = memo(() => {
 
   useEffect(() => {
     const fetchCartAndAddresses = async () => {
+      if (state.isGuest) {
+        // For guests, load cart from localStorage
+        const localCart = localStorage.getItem('cart');
+        if (localCart) {
+          try {
+            const cartData = JSON.parse(localCart);
+            setState(prev => ({ ...prev, cart: cartData }));
+          } catch (err) {
+            setState(prev => ({ ...prev, error: 'Failed to load cart data' }));
+            toast.error('Failed to load cart data');
+          }
+        } else {
+          setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
+          toast.error('Your cart is empty. Please add items to proceed.');
+          navigate('/cart');
+          return;
+        }
+        return;
+      }
+
       if (!isAuthenticated()) {
         setState(prev => ({ ...prev, error: 'Please log in to proceed with checkout.' }));
         toast.error('Please log in to proceed with checkout.');
         navigate('/login', { state: { from: '/checkout' } });
         return;
       }
-
+      
       setState(prev => ({ ...prev, loading: true }));
       try {
         const userId = getUserId();
         const token = getToken();
-
         const cartResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
-
         const cartData = cartResponse.data?.data || cartResponse.data;
         if (!cartData.cartId || !cartData.items?.length) {
           setState(prev => ({ ...prev, error: 'Your cart is empty. Please add items to proceed.' }));
@@ -551,13 +545,11 @@ const CheckoutPage = memo(() => {
           navigate('/cart');
           return;
         }
-
         setState(prev => ({ ...prev, cart: cartData }));
-
+        
         const shippingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
-
         let shippingData = shippingResponse.data;
         if (shippingData && !Array.isArray(shippingData)) {
           shippingData = [shippingData];
@@ -566,17 +558,15 @@ const CheckoutPage = memo(() => {
         } else if (!shippingData) {
           shippingData = [];
         }
-
         setState(prev => ({
           ...prev,
           shippingAddresses: shippingData,
           shippingAddressId: shippingData.length > 0 ? String(shippingData[0].id) : null
         }));
-
+        
         const billingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }));
-
         let billingData = billingResponse.data;
         if (billingData && !Array.isArray(billingData)) {
           billingData = [billingData];
@@ -585,13 +575,12 @@ const CheckoutPage = memo(() => {
         } else if (!billingData) {
           billingData = [];
         }
-
         setState(prev => ({
           ...prev,
           billingAddresses: billingData,
           billingAddressId: billingData.length > 0 ? String(billingData[0].id) : null
         }));
-
+        
         toast.success('Checkout data loaded successfully');
       } catch (err) {
         const errorMessage = err.message || 'Unknown error';
@@ -601,11 +590,11 @@ const CheckoutPage = memo(() => {
         setState(prev => ({ ...prev, loading: false }));
       }
     };
-
-    if (user && !authLoading && !contextLoading) {
+    
+    if (!authLoading && !contextLoading) {
       fetchCartAndAddresses();
     }
-  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, isAuthenticated, retryApiCall]);
+  }, [user, authLoading, contextLoading, navigate, getUserId, getToken, isAuthenticated, retryApiCall, state.isGuest]);
 
   useEffect(() => {
     if (state.billingAddressOption === 'same' && state.shippingAddressId) {
@@ -627,7 +616,6 @@ const CheckoutPage = memo(() => {
     const selectedShippingAddress = state.shippingAddresses.find(addr => addr.id.toString() === state.shippingAddressId);
     const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
     const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-
     if (isNigeria && !state.shippingMethod) {
       setState(prev => ({ ...prev, shippingMethod: shippingOptions[0] }));
     } else if (!isNigeria && state.shippingMethod) {
@@ -644,7 +632,6 @@ const CheckoutPage = memo(() => {
           const response = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/orders/${pendingOrderId}`, {
             headers: { Authorization: `Bearer ${token}` }
           }));
-
           if (response.data.payment_status === 'pending') {
             toast.info('You have a pending order. Please complete the payment.');
             navigate(`/orders/${pendingOrderId}`);
@@ -657,7 +644,7 @@ const CheckoutPage = memo(() => {
         }
       }
     };
-
+    
     if (user && !authLoading && !contextLoading) {
       checkPendingOrder();
     }
@@ -667,7 +654,7 @@ const CheckoutPage = memo(() => {
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
   const selectedBillingAddress = state.billingAddresses.find(addr => addr.id.toString() === state.billingAddressId);
-
+  
   const subtotal = Number(state.cart?.subtotal) || 0;
   const tax = isNigeria ? 0 : Number((subtotal * 0.05).toFixed(2));
   const shippingCost = isNigeria ? state.shippingMethod?.total_cost || 0 : 0;
@@ -675,7 +662,7 @@ const CheckoutPage = memo(() => {
   const finalDiscount = Math.min(totalDiscount, subtotal);
   const discountedSubtotal = Number((subtotal - finalDiscount).toFixed(2));
   const total = Number((discountedSubtotal + tax + shippingCost).toFixed(2));
-
+  
   const displaySubtotal = subtotal;
   const displayFirstOrderDiscount = state.firstOrderDiscount;
   const displayCouponDiscount = state.couponDiscount;
@@ -684,48 +671,141 @@ const CheckoutPage = memo(() => {
   const displayTotal = total;
 
   const handlePayment = useCallback(async () => {
+    if (state.isGuest) {
+      // Validate guest form data
+      if (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name) {
+        setState(prev => ({ ...prev, error: 'Please provide all required guest information.' }));
+        toast.error('Please provide all required guest information.');
+        return;
+      }
+      
+      // Create temporary user backend-side
+      try {
+        const guestResponse = await axios.post(`${API_BASE_URL}/api/auth/guest-register`, {
+          ...state.guestData,
+          items: state.cart.items
+        });
+        
+        const { userData, token } = guestResponse.data;
+        
+        // Log them in
+        await login(userData, token);
+        
+        // Update state to reflect authenticated status
+        setState(prev => ({ 
+          ...prev, 
+          isGuest: false,
+          user: userData
+        }));
+        
+        // Refresh user data
+        await refreshUserData();
+        
+        // Now we need to load the addresses for the new user
+        try {
+          const userId = userData.id;
+          const newToken = token;
+          
+          // Load shipping addresses
+          const shippingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
+            headers: { Authorization: `Bearer ${newToken}` }
+          }));
+          let shippingData = shippingResponse.data;
+          if (shippingData && !Array.isArray(shippingData)) {
+            shippingData = [shippingData];
+          } else if (shippingData && Array.isArray(shippingData.data)) {
+            shippingData = shippingData.data;
+          } else if (!shippingData) {
+            shippingData = [];
+          }
+          
+          // Load billing addresses
+          const billingResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
+            headers: { Authorization: `Bearer ${newToken}` }
+          }));
+          let billingData = billingResponse.data;
+          if (billingData && !Array.isArray(billingData)) {
+            billingData = [billingData];
+          } else if (billingData && Array.isArray(billingData.data)) {
+            billingData = billingData.data;
+          } else if (!billingData) {
+            billingData = [];
+          }
+          
+          // Update state with addresses
+          setState(prev => ({
+            ...prev,
+            shippingAddresses: shippingData,
+            shippingAddressId: shippingData.length > 0 ? String(shippingData[0].id) : null,
+            billingAddresses: billingData,
+            billingAddressId: billingData.length > 0 ? String(billingData[0].id) : null
+          }));
+          
+          // Load cart for the new user
+          const cartResponse = await retryApiCall(() => axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
+            headers: { Authorization: `Bearer ${newToken}` }
+          }));
+          const cartData = cartResponse.data?.data || cartResponse.data;
+          setState(prev => ({ ...prev, cart: cartData }));
+          
+        } catch (err) {
+          console.error('Error loading user data after guest registration:', err);
+          toast.error('Account created but failed to load user data. Please try again.');
+          return;
+        }
+        
+        // Continue with the rest of the handlePayment logic
+      } catch (err) {
+        const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+        setState(prev => ({ ...prev, error: `Failed to create guest account: ${errorMessage}` }));
+        toast.error(`Failed to create guest account: ${errorMessage}`);
+        return;
+      }
+    }
+    
+    // Existing order creation logic...
     if (!state.shippingAddressId) {
       setState(prev => ({ ...prev, error: 'Please select a shipping address.' }));
       toast.error('Please select a shipping address.');
       return;
     }
-
+    
     if (!state.billingAddressId) {
       setState(prev => ({ ...prev, error: 'Please select a billing address.' }));
       toast.error('Please select a billing address.');
       return;
     }
-
+    
     if (isNigeria && !state.shippingMethod) {
       setState(prev => ({ ...prev, error: 'Please select a shipping method.' }));
       toast.error('Please select a shipping method.');
       return;
     }
-
+    
     if (!isAuthenticated()) {
       setState(prev => ({ ...prev, error: 'Please log in to process your order.' }));
       toast.error('Please log in to process your order.');
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
-
+    
     if (!state.cart?.items?.length) {
       setState(prev => ({ ...prev, error: 'Cart is empty.' }));
       toast.error('Cart is empty.');
       return;
     }
-
+    
     setState(prev => ({ ...prev, loading: true }));
     try {
       const selectedShippingAddress = state.shippingAddresses.find(addr => addr.id.toString() === state.shippingAddressId);
       if (!selectedShippingAddress) {
         throw new Error('Selected shipping address not found');
       }
-
+      
       const orderCurrency = 'NGN';
       const userId = getUserId();
       const token = getToken();
-
+      
       const orderData = {
         user_id: userId,
         address_id: parseInt(state.shippingAddressId),
@@ -763,16 +843,16 @@ const CheckoutPage = memo(() => {
         converted_total: total,
         tax
       };
-
+      
       const orderResponse = await retryApiCall(() => axios.post(`${API_BASE_URL}/api/orders`, orderData, {
         headers: { Authorization: `Bearer ${token}` }
       }));
-
+      
       const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
       if (!orderId) {
         throw new Error('Order ID not found in response');
       }
-
+      
       if (user.first_order) {
         try {
           await retryApiCall(() => axios.patch(
@@ -787,7 +867,7 @@ const CheckoutPage = memo(() => {
           }
         }
       }
-
+      
       const paymentData = {
         order_id: orderId,
         reference: orderData.reference,
@@ -796,21 +876,21 @@ const CheckoutPage = memo(() => {
         currency: orderCurrency,
         callback_url: `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`
       };
-
+      
       const paymentResponse = await retryApiCall(() => axios.post(
         `${API_BASE_URL}/api/paystack/initialize`,
         paymentData,
         { headers: { Authorization: `Bearer ${token}` } }
       ));
-
+      
       const paymentInfo = paymentResponse.data.data || paymentResponse.data;
       const { access_code: accessCode, authorization_url: authorizationUrl } = paymentInfo;
-
+      
       if (accessCode) {
         toast.success('Order placed successfully. Opening payment popup...');
         localStorage.setItem('lastOrderReference', orderData.reference);
         localStorage.setItem('pendingOrderId', orderId);
-
+        
         const paystack = new PaystackPop();
         paystack.newTransaction({
           key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
@@ -829,8 +909,7 @@ const CheckoutPage = memo(() => {
                 `${API_BASE_URL}/api/paystack/verify`,
                 { reference: orderData.reference },
                 { headers: { Authorization: `Bearer ${token}` } }
-              }));
-
+              ));
               if (paymentResponse.data.order?.payment_status === 'completed') {
                 toast.success('Payment was successful!');
                 navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
@@ -859,7 +938,7 @@ const CheckoutPage = memo(() => {
     } finally {
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [state, isAuthenticated, getUserId, getToken, navigate, retryApiCall, user, selectedBillingAddress, billingForm.email, refreshUserData]);
+  }, [state, isAuthenticated, getUserId, getToken, navigate, retryApiCall, user, selectedBillingAddress, billingForm.email, refreshUserData, login]);
 
   const handleWhatsAppPayment = useCallback(() => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
@@ -879,7 +958,6 @@ const CheckoutPage = memo(() => {
       currency: 'NGN',
       minimumFractionDigits: 2
     })}\n- Currency: NGN\n- Order Reference: order_${getUserId()}_${Date.now()}\n\nI have attached a screenshot of my checkout for your reference.`;
-
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${WHATSAPP_NUMBER.replace(/[^0-9]/g, '')}?text=${encodedMessage}`, '_blank');
     toast.success('Opening WhatsApp to complete your Bitcoin payment...');
@@ -898,10 +976,27 @@ const CheckoutPage = memo(() => {
     );
   }
 
-  if (!isAuthenticated() && !authLoading) {
+  if (!isAuthenticated() && !state.isGuest && !authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600 py-8 font-Jost">Please log in to proceed with checkout.</div>
+        <div className="text-center p-8 bg-white rounded-lg shadow-md max-w-md">
+          <div className="text-red-600 py-4 font-Jost mb-4">Please log in to proceed with checkout.</div>
+          <div className="flex flex-col gap-3">
+            <Link
+              to="/login"
+              state={{ from: '/checkout' }}
+              className="bg-Primarycolor text-Secondarycolor py-2 px-4 rounded-md hover:bg-gray-800 transition-colors font-Jost text-center"
+            >
+              Log In
+            </Link>
+            <button
+              onClick={() => setState(prev => ({ ...prev, isGuest: true }))}
+              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-Jost"
+            >
+              Checkout as Guest
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -933,7 +1028,6 @@ const CheckoutPage = memo(() => {
         </div>
       );
     }
-
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-Accent py-8 font-Jost">
@@ -962,8 +1056,84 @@ const CheckoutPage = memo(() => {
         <Link to="/cart" className="inline-flex items-center text-Accent hover:text-Primarycolor mb-6 font-Jost">
           <ArrowLeft className="h-5 w-5 mr-1" /> Back to Cart
         </Link>
+        
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
-
+        
+        {!isAuthenticated() && state.isGuest && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-blue-800 font-Jost">Checking out as a guest</h3>
+                <p className="text-sm text-blue-700 font-Jost">Fill in your details below to complete your purchase.</p>
+              </div>
+              <button
+                onClick={() => setState(prev => ({ ...prev, isGuest: false }))}
+                className="text-blue-600 hover:text-blue-800 text-sm font-Jost"
+              >
+                Log In Instead
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {state.isGuest && (
+          <div className="p-6 bg-white rounded-lg shadow-md mb-8">
+            <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Guest Checkout</h3>
+            <p className="text-sm text-Accent mb-4 font-Jost">Provide your details to complete the purchase. We'll create a temporary account for you.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="guest_first_name" className="block text-sm font-medium text-Accent mb-1 font-Jost">First Name</label>
+                <input
+                  id="guest_first_name"
+                  name="first_name"
+                  value={state.guestData.first_name}
+                  onChange={(e) => setState(prev => ({ ...prev, guestData: { ...prev.guestData, [e.target.name]: e.target.value } }))}
+                  placeholder="First Name"
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                />
+              </div>
+              <div>
+                <label htmlFor="guest_last_name" className="block text-sm font-medium text-Accent mb-1 font-Jost">Last Name</label>
+                <input
+                  id="guest_last_name"
+                  name="last_name"
+                  value={state.guestData.last_name}
+                  onChange={(e) => setState(prev => ({ ...prev, guestData: { ...prev.guestData, [e.target.name]: e.target.value } }))}
+                  placeholder="Last Name"
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                />
+              </div>
+              <div>
+                <label htmlFor="guest_email" className="block text-sm font-medium text-Accent mb-1 font-Jost">Email</label>
+                <input
+                  id="guest_email"
+                  name="email"
+                  type="email"
+                  value={state.guestData.email}
+                  onChange={(e) => setState(prev => ({ ...prev, guestData: { ...prev.guestData, [e.target.name]: e.target.value } }))}
+                  placeholder="Email"
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                />
+              </div>
+              <div>
+                <label htmlFor="guest_phone" className="block text-sm font-medium text-Accent mb-1 font-Jost">Phone Number</label>
+                <input
+                  id="guest_phone"
+                  name="phone_number"
+                  value={state.guestData.phone_number}
+                  onChange={(e) => setState(prev => ({ ...prev, guestData: { ...prev.guestData, [e.target.name]: e.target.value } }))}
+                  placeholder="Phone Number"
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
@@ -972,7 +1142,8 @@ const CheckoutPage = memo(() => {
               First Order (DB): {user?.first_order?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{state.cart.subtotal.toFixed(2)}<br />
-              User Data Refreshed: {state.userDataRefreshed?.toString()}
+              User Data Refreshed: {state.userDataRefreshed?.toString()}<br />
+              Is Guest: {state.isGuest?.toString()}
             </p>
             <button
               onClick={refreshUserData}
@@ -982,21 +1153,21 @@ const CheckoutPage = memo(() => {
             </button>
           </div>
         )}
-
+        
         {state.error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
             <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
             <span className="text-sm text-red-700 font-Jost">{state.error}</span>
           </div>
         )}
-
+        
         {state.success && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
             <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
             <span className="text-sm text-green-600 font-Jost">{state.success}</span>
           </div>
         )}
-
+        
         {state.showBitcoinInstructions && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -1012,14 +1183,12 @@ const CheckoutPage = memo(() => {
                   ✕
                 </button>
               </div>
-
               <div className="space-y-4">
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <p className="text-sm text-orange-800 font-Jost">
                     To complete your purchase with Bitcoin, please follow these steps:
                   </p>
                 </div>
-
                 <ol className="list-decimal pl-5 space-y-2 text-sm text-Accent font-Jost">
                   <li>Take a screenshot of your checkout page showing the order total and items</li>
                   <li>Click the button below to open WhatsApp</li>
@@ -1027,13 +1196,11 @@ const CheckoutPage = memo(() => {
                   <li>Our team will provide you with Bitcoin payment instructions</li>
                   <li>Once payment is confirmed, we'll process your order immediately</li>
                 </ol>
-
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
                   <p className="text-sm text-blue-800 font-Jost">
                     <strong>Note:</strong> Your order will be reserved for 2 hours to allow time for Bitcoin payment completion.
                   </p>
                 </div>
-
                 <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <button
                     onClick={handleWhatsAppPayment}
@@ -1053,12 +1220,11 @@ const CheckoutPage = memo(() => {
             </div>
           </div>
         )}
-
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
-
               {state.shippingAddresses.length > 0 ? (
                 <div>
                   <div className="mb-4">
@@ -1077,7 +1243,6 @@ const CheckoutPage = memo(() => {
                       ))}
                     </select>
                   </div>
-
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={() => setState(prev => ({ ...prev, showShippingForm: true }))}
@@ -1119,10 +1284,9 @@ const CheckoutPage = memo(() => {
                 </div>
               )}
             </div>
-
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
-
               <div className="mb-6">
                 <div className="flex items-center space-x-6">
                   <label className="flex items-center cursor-pointer">
@@ -1151,7 +1315,6 @@ const CheckoutPage = memo(() => {
                   </label>
                 </div>
               </div>
-
               {state.billingAddressOption === 'same' ? (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div className="flex items-start">
@@ -1198,7 +1361,6 @@ const CheckoutPage = memo(() => {
                           ))}
                         </select>
                       </div>
-
                       <div className="flex gap-2 mt-4">
                         <button
                           onClick={() => setState(prev => ({ ...prev, showBillingForm: true }))}
@@ -1242,7 +1404,7 @@ const CheckoutPage = memo(() => {
                 </>
               )}
             </div>
-
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
               <textarea
@@ -1255,7 +1417,7 @@ const CheckoutPage = memo(() => {
               />
               <p className="text-sm text-Accent font-Jost">Characters left: {500 - state.orderNote.length}/500</p>
             </div>
-
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
                 <Truck className="h-5 w-5 inline mr-2" />
@@ -1285,7 +1447,6 @@ const CheckoutPage = memo(() => {
                             className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
                             aria-label={`Select ${option.method} shipping`}
                           />
-
                           <div className="flex-1">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                               <div className="flex items-center gap-3">
@@ -1361,7 +1522,7 @@ const CheckoutPage = memo(() => {
               )}
             </div>
           </div>
-
+          
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
@@ -1370,7 +1531,6 @@ const CheckoutPage = memo(() => {
                   const item = cartItem.item || {};
                   const price = Number(item.price || 0);
                   const itemTotal = Number((price * (cartItem.quantity || 1)).toFixed(2));
-
                   return (
                     <div key={cartItem.id || index} className="group">
                       <div className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
@@ -1452,13 +1612,12 @@ const CheckoutPage = memo(() => {
                   );
                 })}
               </div>
-
+              
               <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <div className="flex items-center mb-3">
                   <Gift className="h-5 w-5 text-green-600 mr-2" />
                   <h3 className="font-medium text-gray-900 font-Jost">Have a coupon code?</h3>
                 </div>
-
                 {state.appliedCoupon ? (
                   <div className="bg-green-50 rounded-lg p-3 mb-3 border border-green-200">
                     <div className="flex justify-between items-start">
@@ -1503,14 +1662,12 @@ const CheckoutPage = memo(() => {
                     </button>
                   </form>
                 )}
-
                 {state.couponError && (
                   <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
                     <AlertCircle className="h-4 w-4 mr-1" />
                     {state.couponError}
                   </div>
                 )}
-
                 {state.couponSuccess && !state.appliedCoupon && (
                   <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
                     <CheckCircle className="h-4 w-4 mr-1" />
@@ -1518,7 +1675,7 @@ const CheckoutPage = memo(() => {
                   </div>
                 )}
               </div>
-
+              
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
                 <div className="space-y-2">
@@ -1575,7 +1732,7 @@ const CheckoutPage = memo(() => {
                   </label>
                 </div>
               </div>
-
+              
               <div className="border-t border-gray-200 pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-Accent font-Jost">
@@ -1588,8 +1745,7 @@ const CheckoutPage = memo(() => {
                       })}
                     </span>
                   </div>
-
-                  {user?.first_order && displayFirstOrderDiscount > 0 && (
+                  {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-Jost">
                       <span>First Order Discount (5%)</span>
                       <span>
@@ -1601,7 +1757,6 @@ const CheckoutPage = memo(() => {
                       </span>
                     </div>
                   )}
-
                   {displayCouponDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-Jost">
                       <span>Coupon Discount</span>
@@ -1614,7 +1769,6 @@ const CheckoutPage = memo(() => {
                       </span>
                     </div>
                   )}
-
                   <div className="flex justify-between text-sm text-Accent font-Jost">
                     <span>Shipping</span>
                     <span>
@@ -1629,7 +1783,6 @@ const CheckoutPage = memo(() => {
                       )}
                     </span>
                   </div>
-
                   {!isNigeria && (
                     <div className="flex justify-between text-sm text-Accent font-Jost">
                       <span>Tax (5%)</span>
@@ -1643,7 +1796,6 @@ const CheckoutPage = memo(() => {
                     </div>
                   )}
                 </div>
-
                 <div className="border-t border-gray-200 mt-3 pt-3">
                   <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
                     <span>Total</span>
@@ -1656,7 +1808,6 @@ const CheckoutPage = memo(() => {
                     </span>
                   </div>
                 </div>
-
                 {!isNigeria && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                     <p className="text-xs text-blue-700 font-Jost">
@@ -1664,15 +1815,13 @@ const CheckoutPage = memo(() => {
                     </p>
                   </div>
                 )}
-
-                {user?.first_order && displayFirstOrderDiscount > 0 && (
+                {user?.first_order && !state.isGuest && displayFirstOrderDiscount > 0 && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700 font-Jost">
                       🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
                     </p>
                   </div>
                 )}
-
                 {state.appliedCoupon && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700 font-Jost">
@@ -1682,11 +1831,10 @@ const CheckoutPage = memo(() => {
                     </p>
                   </div>
                 )}
-
                 <button
                   onClick={handlePayment}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={state.loading || !state.shippingAddressId || !state.billingAddressId || (isNigeria && !state.shippingMethod)}
+                  disabled={state.loading || !state.shippingAddressId || !state.billingAddressId || (isNigeria && !state.shippingMethod) || (state.isGuest && (!state.guestData.email || !state.guestData.phone_number || !state.guestData.first_name || !state.guestData.last_name))}
                   aria-label="Place order"
                 >
                   {state.loading ? (
@@ -1698,7 +1846,6 @@ const CheckoutPage = memo(() => {
                     'Place Order'
                   )}
                 </button>
-
                 {state.paymentMethod === 'bitcoin' && (
                   <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
                     <div className="flex items-center gap-2">
@@ -1718,6 +1865,6 @@ const CheckoutPage = memo(() => {
       <Footer />
     </div>
   );
-};
+});
 
 export default CheckoutPage;

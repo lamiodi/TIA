@@ -1,8 +1,11 @@
+// Updated React AuthContext code supporting guest users
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isGuest, setIsGuest] = useState(true); // New state for guest mode
   const [loading, setLoading] = useState(true);
 
   // Helper function to decode JWT token
@@ -47,6 +50,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setUser(null);
+            setIsGuest(true); // Treat as guest if expired
             setLoading(false);
             return;
           }
@@ -58,6 +62,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('user');
             localStorage.removeItem('token');
             setUser(null);
+            setIsGuest(true);
             setLoading(false);
             return;
           }
@@ -82,6 +87,7 @@ export const AuthProvider = ({ children }) => {
             else {
               throw new Error('Invalid user object: missing both id and userId');
             }
+            setIsGuest(false); // Authenticated user
           } else {
             throw new Error('Invalid user object: missing user data');
           }
@@ -89,7 +95,11 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
           setUser(null);
+          setIsGuest(true);
         }
+      } else {
+        setUser(null);
+        setIsGuest(true); // No token, guest mode
       }
       setLoading(false);
     };
@@ -112,6 +122,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', tokenData);
       localStorage.setItem('user', JSON.stringify(userToSave));
       setUser(userToSave);
+      setIsGuest(false); // Switch to authenticated mode
       return { user: userToSave, token: tokenData };
     } catch (error) {
       throw error;
@@ -122,10 +133,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setIsGuest(true); // Switch back to guest mode
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isGuest, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
