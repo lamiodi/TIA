@@ -63,13 +63,12 @@ const CheckoutPage = () => {
   const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
   
-  // Guest user form state
-  const [showGuestForm, setShowGuestForm] = useState(false);
+  // Guest user form state - now part of the main checkout form
   const [guestForm, setGuestForm] = useState({
     first_name: '',
     last_name: '',
     email: '',
-    phone_number: ''  // Remove password field
+    phone_number: ''
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [isGuestConversion, setIsGuestConversion] = useState(false); // Track if this is a guest conversion
@@ -155,6 +154,61 @@ const CheckoutPage = () => {
     }
   };
   
+  // Create temporary user for guest checkout
+  const createTemporaryUser = async () => {
+    try {
+      // Validate form data
+      if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
+        setError('Please fill in all required fields');
+        return false;
+      }
+      
+      // Create temporary user
+      const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
+        first_name: guestForm.first_name,
+        last_name: guestForm.last_name,
+        email: guestForm.email,
+        phone_number: guestForm.phone_number
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const { token, user, isTemporary } = response.data;
+      
+      // Store the token and user data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('isTemporaryUser', isTemporary ? 'true' : 'false');
+      
+      // Update auth context
+      if (login) {
+        login({ token, user });
+      }
+      
+      // Set guest conversion flag
+      setIsGuestConversion(true);
+      
+      return true;
+    } catch (error) {
+      console.error('Guest registration error:', error);
+      let errorMessage = 'Failed to create account';
+      
+      if (error.response) {
+        errorMessage = error.response.data.error || errorMessage;
+      } else if (error.request) {
+        errorMessage = 'No response from server. Please try again.';
+      } else {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return false;
+    }
+  };
+  
   // Transfer guest cart to user account
   const transferGuestCart = async () => {
     const guestCart = localStorage.getItem('guestCart');
@@ -190,90 +244,6 @@ const CheckoutPage = () => {
       }
     }
   };
-  
-  // Handle guest user registration and login
-  // In your checkout page component
-
-  // In your CheckoutPage.jsx, update the handleGuestRegistration function:
-const handleGuestRegistration = async (e) => {
-  e.preventDefault();
-  setIsCreatingAccount(true);
-  setError('');
-  
-  try {
-    // Validate form data
-    if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
-      setError('Please fill in all required fields');
-      setIsCreatingAccount(false);
-      return;
-    }
-    
-    // Check if guest has items in cart
-    const guestHasItems = hasGuestCartItems();
-    
-    // Create temporary user
-    const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
-      first_name: guestForm.first_name,
-      last_name: guestForm.last_name,
-      email: guestForm.email,
-      phone_number: guestForm.phone_number
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const { token, user, isTemporary } = response.data;
-    
-    // Store the token and user data
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('isTemporaryUser', isTemporary ? 'true' : 'false');
-    
-    // Update auth context
-    if (login) {
-      login({ token, user });
-    }
-    
-    // Transfer guest cart if exists
-    await transferGuestCart();
-    
-    // Refresh user data
-    await refreshUser();
-    setUserDataRefreshed(true);
-    
-    // Show success message
-    setSuccess('Account created successfully! Proceeding with checkout.');
-    toast.success('Account created successfully!');
-    
-    // Hide guest form and proceed with checkout
-    setShowGuestForm(false);
-    
-    // Fetch cart and addresses
-    await fetchCartAndAddresses();
-    
-  } catch (error) {
-    console.error('Guest registration error:', error);
-    let errorMessage = 'Failed to create account';
-    
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      errorMessage = error.response.data.error || errorMessage;
-    } else if (error.request) {
-      // The request was made but no response was received
-      errorMessage = 'No response from server. Please try again.';
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      errorMessage = error.message;
-    }
-    
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setIsCreatingAccount(false);
-  }
-};
   
   // Replace your refreshUserData function with this
   const refreshUserData = async () => {
@@ -338,62 +308,62 @@ const handleGuestRegistration = async (e) => {
         hasItems: currentSubtotal > 0
       });
     }
-  }, [user?.first_order, isGuestConversion, cart.subtotal, userDataRefreshed, refreshCount]); // Added isGuestConversion
+  }, [user?.first_order, isGuestConversion, cart.subtotal, userDataRefreshed, refreshCount]);
   
- // Apply coupon code
-const handleApplyCoupon = async (e) => {
-  e.preventDefault();
-  
-  if (!couponCode.trim()) {
-    setCouponError('Please enter a coupon code');
-    return;
-  }
-  
-  setCouponLoading(true);
-  setCouponError('');
-  setCouponSuccess('');
-  
-  try {
-    const token = getToken();
-    const response = await axios.post(
-      `${API_BASE_URL}/api/admin/discounts/validate`, // Updated to use /api/admin/discounts/validate
-      { code: couponCode },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  // Apply coupon code
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
     
-    if (response.data.valid) {
-      const discount = response.data.discount;
-      
-      // Calculate discount amount
-      let discountAmount = 0;
-      if (discount.type === 'percentage') {
-        discountAmount = (cart.subtotal * discount.value) / 100;
-      } else if (discount.type === 'fixed') {
-        discountAmount = discount.value;
-      }
-      
-      // Ensure discount doesn't exceed subtotal
-      discountAmount = Math.min(discountAmount, cart.subtotal);
-      
-      setAppliedCoupon({
-        code: discount.code,
-        type: discount.type,
-        value: discount.value,
-        amount: discountAmount
-      });
-      
-      setCouponDiscount(discountAmount);
-      setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
-    } else {
-      setCouponError(response.data.message || 'Invalid coupon code');
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
     }
-  } catch (err) {
-    console.error('Error validating coupon:', err);
-    setCouponError(err.response?.data?.message || 'Failed to validate coupon');
-  } finally {
-    setCouponLoading(false);
-  }
-};
+    
+    setCouponLoading(true);
+    setCouponError('');
+    setCouponSuccess('');
+    
+    try {
+      const token = getToken();
+      const response = await axios.post(
+        `${API_BASE_URL}/api/admin/discounts/validate`,
+        { code: couponCode },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.valid) {
+        const discount = response.data.discount;
+        
+        // Calculate discount amount
+        let discountAmount = 0;
+        if (discount.type === 'percentage') {
+          discountAmount = (cart.subtotal * discount.value) / 100;
+        } else if (discount.type === 'fixed') {
+          discountAmount = discount.value;
+        }
+        
+        // Ensure discount doesn't exceed subtotal
+        discountAmount = Math.min(discountAmount, cart.subtotal);
+        
+        setAppliedCoupon({
+          code: discount.code,
+          type: discount.type,
+          value: discount.value,
+          amount: discountAmount
+        });
+        
+        setCouponDiscount(discountAmount);
+        setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
+      } else {
+        setCouponError(response.data.message || 'Invalid coupon code');
+      }
+    } catch (err) {
+      console.error('Error validating coupon:', err);
+      setCouponError(err.response?.data?.message || 'Failed to validate coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
   
   // Remove coupon
   const handleRemoveCoupon = () => {
@@ -647,7 +617,6 @@ const handleApplyCoupon = async (e) => {
     }
   };
   
-  
   // Copy shipping address to billing address
   const copyShippingToBilling = () => {
     const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
@@ -811,13 +780,13 @@ const handleApplyCoupon = async (e) => {
   
   useEffect(() => {
     const fetchCartAndAddressesAsync = async () => {
-      if (user && !authLoading && !contextLoading && !showGuestForm) {
+      if (user && !authLoading && !contextLoading) {
         await fetchCartAndAddresses();
       }
     };
     
     fetchCartAndAddressesAsync();
-  }, [user, authLoading, contextLoading, showGuestForm]);
+  }, [user, authLoading, contextLoading]);
   
   // Update billing address when shipping address changes if option is 'same'
   useEffect(() => {
@@ -887,10 +856,10 @@ const handleApplyCoupon = async (e) => {
       }
     };
     
-    if (user && !authLoading && !contextLoading && !showGuestForm) {
+    if (user && !authLoading && !contextLoading) {
       checkPendingOrder();
     }
-  }, [user, authLoading, contextLoading, navigate, showGuestForm]);
+  }, [user, authLoading, contextLoading, navigate]);
   
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
@@ -918,6 +887,29 @@ const handleApplyCoupon = async (e) => {
   const displayTotal = total;
   
   const handlePayment = async () => {
+    // If user is not authenticated, create temporary account first
+    if (!isAuthenticated()) {
+      setIsCreatingAccount(true);
+      
+      // Create temporary user
+      const userCreated = await createTemporaryUser();
+      
+      if (!userCreated) {
+        setIsCreatingAccount(false);
+        return;
+      }
+      
+      // Transfer guest cart
+      await transferGuestCart();
+      
+      // Refresh user data
+      await refreshUserData();
+      setUserDataRefreshed(true);
+      
+      setIsCreatingAccount(false);
+    }
+    
+    // Validate all required fields
     if (!shippingAddressId) {
       setError('Please select a shipping address.');
       toast.error('Please select a shipping address.');
@@ -933,12 +925,6 @@ const handleApplyCoupon = async (e) => {
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method.');
       toast.error('Please select a shipping method.');
-      return;
-    }
-  
-    if (!isAuthenticated()) {
-      setError('Please log in to process your order.');
-      toast.error('Please log in to process your order.');
       return;
     }
   
@@ -1194,170 +1180,6 @@ const handleApplyCoupon = async (e) => {
     );
   }
   
-  // Show guest form if user is not authenticated
-  if (!isAuthenticated() && !authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 font-Manrope">Create Account to Continue</h2>
-            <p className="text-gray-600 mt-2 font-Jost">Please create an account to proceed with checkout</p>
-          </div>
-          
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-sm text-red-700 font-Jost">{error}</span>
-            </div>
-          )}
-          
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-sm text-green-700 font-Jost">{success}</span>
-            </div>
-          )}
-          
-          // In CheckoutPage.jsx, update the guest registration form to remove the password field:
-
-<form onSubmit={handleGuestRegistration} className="space-y-4">
-  <div>
-    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-Jost">
-      First Name
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <User className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        id="first_name"
-        name="first_name"
-        type="text"
-        required
-        value={guestForm.first_name}
-        onChange={(e) => setGuestForm({...guestForm, first_name: e.target.value})}
-        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-        placeholder="John"
-      />
-    </div>
-  </div>
-  
-  <div>
-    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 font-Jost">
-      Last Name
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <User className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        id="last_name"
-        name="last_name"
-        type="text"
-        required
-        value={guestForm.last_name}
-        onChange={(e) => setGuestForm({...guestForm, last_name: e.target.value})}
-        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-        placeholder="Doe"
-      />
-    </div>
-  </div>
-  
-  <div>
-    <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Jost">
-      Email Address
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Mail className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        required
-        value={guestForm.email}
-        onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
-        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-        placeholder="john@example.com"
-      />
-    </div>
-  </div>
-  
-  <div>
-    <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 font-Jost">
-      Phone Number
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Phone className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        id="phone_number"
-        name="phone_number"
-        type="tel"
-        required
-        value={guestForm.phone_number}
-        onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
-        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
-        placeholder="08012345678"
-      />
-    </div>
-  </div>
-  
-  <div className="pt-2">
-    <button
-      type="submit"
-      disabled={isCreatingAccount}
-      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope disabled:opacity-50"
-    >
-      {isCreatingAccount ? (
-        <>
-          <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
-          Creating Account...
-        </>
-      ) : (
-        'Create Account & Continue'
-      )}
-    </button>
-  </div>
-</form>
-          
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500 font-Jost">Already have an account?</span>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <Link
-                to="/login"
-                state={{ from: '/checkout' }}
-                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 font-Manrope"
-              >
-                Sign In
-              </Link>
-            </div>
-          </div>
-          
-          <div className="mt-6 text-center">
-            <Link
-              to="/cart"
-              className="text-sm font-medium text-gray-600 hover:text-gray-500 font-Jost inline-flex items-center"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Cart
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1511,6 +1333,105 @@ const handleApplyCoupon = async (e) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
+            {/* Guest Information Section - Only show if user is not authenticated */}
+            {!isAuthenticated() && (
+              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Your Information</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 font-Jost">
+                      First Name
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="first_name"
+                        name="first_name"
+                        type="text"
+                        required
+                        value={guestForm.first_name}
+                        onChange={(e) => setGuestForm({...guestForm, first_name: e.target.value})}
+                        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                        placeholder="John"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 font-Jost">
+                      Last Name
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="last_name"
+                        name="last_name"
+                        type="text"
+                        required
+                        value={guestForm.last_name}
+                        onChange={(e) => setGuestForm({...guestForm, last_name: e.target.value})}
+                        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Jost">
+                      Email Address
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={guestForm.email}
+                        onChange={(e) => setGuestForm({...guestForm, email: e.target.value})}
+                        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 font-Jost">
+                      Phone Number
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Phone className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        id="phone_number"
+                        name="phone_number"
+                        type="tel"
+                        required
+                        value={guestForm.phone_number}
+                        onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+                        className="pl-10 block w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 font-Jost"
+                        placeholder="08012345678"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <p className="text-sm text-blue-700 font-Jost">
+                      <strong>Note:</strong> An account will be created automatically with the information you provide. You'll receive order updates via email.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
               
