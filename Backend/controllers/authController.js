@@ -287,7 +287,7 @@ export const updateUserFirstOrder = async (req, res) => {
 // In authController.js, update createTemporaryUser function:
 
 // Update the createTemporaryUser function
-const createTemporaryUser = async () => {
+export const createTemporaryUser = async () => {
   try {
     if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
       throw new Error('Please provide all required personal information: first name, last name, email, and phone number.');
