@@ -22,15 +22,7 @@ import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
 import { cleanupOldOrders } from './utils/cleanupOrders.js';
 
-import { createTemporaryUser } from './controllers/authController.js';
-
-
-// Add this to your app setup
-
-
-
 EventEmitter.defaultMaxListeners = 40;
-
 dotenv.config();
 
 // Initialize Cloudinary
@@ -42,7 +34,7 @@ cloudinary.config({
 
 const app = express();
 
-
+// CORS configuration
 const allowedOrigins = [
   'https://www.thetiabrand.org', // Production frontend
   'http://localhost:5173',        // Local Vite development
@@ -68,14 +60,25 @@ app.use(cors({
   methods: ['GET','POST','PUT','DELETE','OPTIONS']
 }));
 
-
-// ... existing code ...
-
-
-
+// Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static files
 app.use('/uploads', express.static('Uploads'));
+
+// Health check endpoints - Place these before other routes
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).send('TIA Backend is running 🚀');
+});
 
 // Route mounting
 app.use('/api/products', productRoutes);
@@ -96,7 +99,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/email', emailRoutes);
 
-// Global error handler
+// Global error handler - Should be the last middleware
 app.use((err, req, res, next) => {
   console.error(`[${new Date().toISOString()}] Error in ${req.method} ${req.url}:`, err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
@@ -104,15 +107,6 @@ app.use((err, req, res, next) => {
 
 // Start cron job
 cleanupOldOrders(); // Optional: Run on startup
-
-app.use(createTemporaryUser);
-
-
-app.get('/healthz', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-// Health check
-app.get('/', (req, res) => res.send('TIA Backend is running 🚀'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
