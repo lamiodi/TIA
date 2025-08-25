@@ -754,6 +754,7 @@ const CheckoutPage = () => {
         }
       } else {
         // Load guest cart if not authenticated
+        setIsGuest(true);
         loadGuestCart();
       }
     };
@@ -1118,29 +1119,6 @@ const CheckoutPage = () => {
         <div className="flex flex-col items-center justify-center text-Accent">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <p className="mt-2 text-sm font-Jost">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Updated authentication check to allow guest checkout
-  if (!isAuthenticated() && !isGuest) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-Accent py-8 font-Jost max-w-md mx-auto px-4">
-          <h2 className="text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Checkout</h2>
-          <p className="mb-6">Please log in or continue as guest to proceed with checkout.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/login" className="inline-block bg-Primarycolor text-Secondarycolor px-6 py-3 rounded-md font-Jost font-medium">
-              Log In
-            </Link>
-            <button 
-              onClick={() => setIsGuest(true)}
-              className="inline-block bg-gray-200 text-Primarycolor px-6 py-3 rounded-md font-Jost font-medium"
-            >
-              Continue as Guest
-            </button>
-          </div>
         </div>
       </div>
     );
