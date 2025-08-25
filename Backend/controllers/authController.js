@@ -287,50 +287,70 @@ export const updateUserFirstOrder = async (req, res) => {
 // In authController.js, update createTemporaryUser function:
 
 export const createTemporaryUser = async (req, res) => {
-  const { email, first_name, last_name, phone_number } = req.body;
-  
   try {
-    // Generate a temporary password (random string) - system generated, not provided by user
-    const tempPassword = Math.random().toString(36).slice(-8);
-    
-    // Create the user with first_order = false
-    const [user] = await sql`
-      INSERT INTO users (
-        first_name, last_name, email, password, phone_number, first_order
-      ) VALUES (
-        ${first_name}, ${last_name}, ${email}, 
-        ${bcrypt.hashSync(tempPassword, 10)}, ${phone_number}, false
-      )
-      RETURNING id, first_name, last_name, email, phone_number
+    // Check if req.body exists
+    if (!req.body) {
+      return res.status(400).json({ error: 'Request body is missing' });
+    }
+
+    const { first_name, last_name, email, phone_number } = req.body;
+
+    // Validate required fields
+    if (!first_name || !last_name || !email || !phone_number) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['first_name', 'last_name', 'email', 'phone_number'],
+        received: req.body
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if email already exists
+    const [existingUser] = await sql`
+      SELECT id FROM users 
+      WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
     `;
     
-    // Generate a temporary token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, isTemporary: true },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    // Create a cart for the temporary user
-    await sql`INSERT INTO cart (user_id, total) VALUES (${user.id}, 0)`;
-    
-    console.log(`✅ Created temporary user ${user.id} with email ${email}`);
-    
-    res.status(201).json({
-      user,
-      token,
-      isTemporary: true,
-      message: 'Temporary account created successfully.'
-    });
-  } catch (err) {
-    console.error('❌ Error creating temporary user:', err.message);
-    
-    // Handle duplicate email
-    if (err.code === '23505') {
-      return res.status(400).json({ error: 'Email already exists' });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Email is already registered' });
     }
-    
-    res.status(500).json({ error: 'Failed to create temporary user' });
+
+    // Create temporary user with first_order = false
+    const [user] = await sql`
+      INSERT INTO users
+      (first_name, last_name, username, email, phone_number, created_at, updated_at, is_admin, first_order)
+      VALUES (${first_name}, ${last_name}, ${null}, LOWER(${email}), ${phone_number}, NOW(), NOW(), ${false}, ${false})
+      RETURNING id, email, username, is_admin, first_order
+    `;
+
+    // Create cart for the user
+    await sql`INSERT INTO cart (user_id, total) VALUES (${user.id}, 0)`;
+
+    // Generate JWT token with temporary flag
+    const token = generateToken({ ...user, isTemporary: true });
+
+    res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.is_admin ? 'admin' : 'user',
+        first_order: user.first_order,
+        isTemporary: true
+      },
+    });
+  } catch (error) {
+    console.error('Error creating temporary user:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 };
 
