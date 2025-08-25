@@ -4,11 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import Pic1 from '../assets/images/Signuppic1.JPG';
-import Pic2 from '../assets/images/Signuppic2.JPG';
-import Pic3 from '../assets/images/Signuppic3.JPG';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
+
+// Optimized Cloudinary image URLs
+const Pic1 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112982/Signuppic1_q4l24v.jpg";
+const Pic2 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112985/Signuppic2_q1rzbx.jpg";
+const Pic3 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112986/Signuppic3_esibk8.jpg";
+
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -153,10 +156,13 @@ const SignupPage = () => {
                 }`}
               >
                 <img 
-                  src={image.src}
-                  alt={image.title}
-                  className="w-full h-full object-cover"
-                />
+  src={image.src}
+  alt={image.title}
+  loading="lazy"
+  decoding="async"
+  className="w-full h-full object-cover"
+/>
+
                 {/* Content overlay */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 bg-opacity-10">
                   <div className="max-w-md">

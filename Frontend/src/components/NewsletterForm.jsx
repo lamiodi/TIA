@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Newsletterimage from '../assets/images/Newsletterimage.png';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -12,6 +11,8 @@ const NewsletterForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, success, error
   const [message, setMessage] = useState('');
+
+  const Newsletterimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756114935/Newsletterimage_uxjkup.webp";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

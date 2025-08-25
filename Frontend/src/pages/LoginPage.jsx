@@ -4,9 +4,7 @@ import {
   Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import Pic1 from '../assets/images/Loginpic1.JPG';
-import Pic2 from '../assets/images/Loginpic2.JPG';
-import Pic3 from '../assets/images/Loginpic3.JPG';
+
 import axios from 'axios';
 
 // Create API instance with environment variable support
@@ -18,6 +16,11 @@ const api = axios.create({
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
+
+const Pic1 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112981/Loginpic1_lki5se.jpg";
+const Pic2 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112982/Loginpic2_fnjeoy.jpg";
+const Pic3 = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/v1756112987/Loginpic3_ed9xrt.jpg";
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -399,7 +402,14 @@ const Login = () => {
                   : 'opacity-0 transform translate-x-full'
               }`}
             >
-              <img src={image.src} alt={image.title} className="w-full h-full object-cover" />
+              <img 
+  src={image.src} 
+  alt={image.title} 
+  loading="lazy"
+  decoding="async"
+  className="w-full h-full object-cover" 
+/>
+
               {/* Content overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 z-0">
                 <div className="max-w-md">
