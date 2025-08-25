@@ -286,46 +286,140 @@ export const updateUserFirstOrder = async (req, res) => {
 };
 // In authController.js, update createTemporaryUser function:
 
-export const createTemporaryUser = async (req, res) => {
-  const { first_name, last_name, email, phone_number } = req.body;
-
-  if (!first_name || !last_name || !email || !phone_number) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-
+// Update the createTemporaryUser function
+const createTemporaryUser = async () => {
   try {
-    // Check for existing email (prevent duplicates)
-    const [existingUser] = await sql`
-      SELECT id FROM users WHERE email = ${email}
-    `;
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email already in use. Please log in or use another email.' });
+    if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
+      throw new Error('Please provide all required personal information: first name, last name, email, and phone number.');
     }
-
-    // Generate random password (temp users don't need to know it)
-    const randomPassword = crypto.randomBytes(16).toString('hex');
-    const hashedPassword = await bcrypt.hash(randomPassword, 10);
-
-    // Insert user with is_temporary flag (add column to users table if needed: ALTER TABLE users ADD COLUMN is_temporary BOOLEAN DEFAULT false;)
-    const [newUser] = await sql`
-      INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary)
-      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, true)
-      RETURNING id, first_name, last_name, email, phone_number
-    `;
-
-    // Generate JWT
-    const token = jwt.sign({ id: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({
-      token,
-      user: newUser,
-      isTemporary: true
+    
+    console.log('Creating temporary user with data:', guestForm);
+    
+    const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
+      first_name: guestForm.first_name,
+      last_name: guestForm.last_name,
+      email: guestForm.email,
+      phone_number: guestForm.phone_number,
     });
+    
+    console.log('Temporary user creation response:', response.data);
+    
+    const { token, user: userData, isTemporary } = response.data;
+    if (!token || !userData?.id) {
+      throw new Error('Invalid response from temporary user creation');
+    }
+    
+    // Verify that first_order is false for temporary users
+    if (userData.first_order) {
+      console.warn('Warning: Temporary user has first_order set to true');
+    }
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('isTemporaryUser', 'true');
+    
+    // Update the AuthContext
+    login({ token, user: userData, isTemporary });
+    setIsGuestConversion(true);
+    setIsTemporaryUser(true);
+    setGuestReadyForAddresses(true);
+    
+    // Refresh user data to ensure all states are updated
+    await refreshUserData();
+    
+    return true;
   } catch (err) {
     console.error('Error creating temporary user:', err);
-    res.status(500).json({ error: 'Failed to create temporary account' });
+    
+    // Handle specific error messages from the backend
+    let errorMessage = 'Failed to create temporary user account';
+    
+    if (err.response) {
+      console.error('Error response:', err.response);
+      
+      if (err.response.status === 400) {
+        errorMessage = err.response.data.error || 'Invalid input data. Please check your information.';
+      } else if (err.response.status === 409) {
+        errorMessage = err.response.data.error || 'Email already in use. Please use another email or log in.';
+      } else if (err.response.status === 500) {
+        errorMessage = err.response.data.error || 'Server error. Please try again later.';
+        if (err.response.data.details) {
+          console.error('Server error details:', err.response.data.details);
+        }
+      }
+    } else if (err.request) {
+      errorMessage = 'Network error. Please check your connection.';
+    } else {
+      errorMessage = err.message || 'Failed to create temporary user account';
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+    return false;
   }
 };
+
+// Update the refreshUserData function
+const refreshUserData = async () => {
+  try {
+    console.log('Refreshing user data...');
+    
+    // Use the refreshUser function from our custom hook
+    const updatedUser = await refreshUser();
+    
+    if (updatedUser) {
+      console.log('User data refreshed successfully');
+      console.log('Updated user data:', updatedUser);
+      
+      // Check if user is temporary
+      const isTemp = localStorage.getItem('isTemporaryUser') === 'true' || updatedUser.is_temporary;
+      setIsTemporaryUser(isTemp);
+      
+      // Log the first_order status
+      console.log('User first_order status:', updatedUser.first_order);
+      console.log('Is temporary user:', isTemp);
+      
+      setUserDataRefreshed(true);
+      return updatedUser;
+    } else {
+      console.warn('Failed to refresh user data');
+      return null;
+    }
+  } catch (err) {
+    console.error('Failed to refresh user data:', err);
+    return null;
+  }
+};
+
+// Update the useEffect that calculates the first order discount
+useEffect(() => {
+  const currentSubtotal = cart.subtotal; // Always in NGN
+  console.log('Calculating first order discount:', {
+    userFirstOrder: user?.first_order,
+    isTemporaryUser,
+    currentSubtotal,
+    userDataRefreshed,
+    refreshCount
+  });
+  
+  // Only apply first order discount if:
+  // 1. User has first_order flag set to true
+  // 2. User is NOT a temporary user
+  // 3. Cart subtotal is greater than 0
+  if (user?.first_order && !isTemporaryUser && currentSubtotal > 0) {
+    const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
+    setFirstOrderDiscount(discountAmount);
+    console.log('Applied first order discount:', discountAmount);
+  } else {
+    setFirstOrderDiscount(0);
+    console.log('No first order discount applied', {
+      userFirstOrder: user?.first_order,
+      isTemporaryUser,
+      currentSubtotal
+    });
+  }
+}, [user?.first_order, isTemporaryUser, cart.subtotal, userDataRefreshed, refreshCount]);
+
 export const completeProfile = async (req, res) => {
   const { password } = req.body;
   const userId = req.user.id;
