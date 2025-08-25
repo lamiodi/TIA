@@ -284,7 +284,6 @@ export const updateUserFirstOrder = async (req, res) => {
     });
   }
 };
-// In authController.js, update createTemporaryUser function:
 
 // Update the createTemporaryUser function
 export const createTemporaryUser = async () => {
@@ -391,34 +390,6 @@ const refreshUserData = async () => {
   }
 };
 
-// Update the useEffect that calculates the first order discount
-useEffect(() => {
-  const currentSubtotal = cart.subtotal; // Always in NGN
-  console.log('Calculating first order discount:', {
-    userFirstOrder: user?.first_order,
-    isTemporaryUser,
-    currentSubtotal,
-    userDataRefreshed,
-    refreshCount
-  });
-  
-  // Only apply first order discount if:
-  // 1. User has first_order flag set to true
-  // 2. User is NOT a temporary user
-  // 3. Cart subtotal is greater than 0
-  if (user?.first_order && !isTemporaryUser && currentSubtotal > 0) {
-    const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
-    setFirstOrderDiscount(discountAmount);
-    console.log('Applied first order discount:', discountAmount);
-  } else {
-    setFirstOrderDiscount(0);
-    console.log('No first order discount applied', {
-      userFirstOrder: user?.first_order,
-      isTemporaryUser,
-      currentSubtotal
-    });
-  }
-}, [user?.first_order, isTemporaryUser, cart.subtotal, userDataRefreshed, refreshCount]);
 
 export const completeProfile = async (req, res) => {
   const { password } = req.body;
