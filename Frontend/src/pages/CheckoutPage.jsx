@@ -178,6 +178,27 @@ const CheckoutPage = () => {
     refreshUserDataOnMount();
   }, [user, userDataRefreshed]);
   
+  // Load guest cart from localStorage
+  const loadGuestCart = () => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+        setCart(parsedCart);
+        setIsGuest(true);
+        console.log('Checkout: Loaded guest cart from localStorage', parsedCart);
+      } else {
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+        setIsGuest(true);
+        console.log('Checkout: No guest cart found in localStorage');
+      }
+    } catch (err) {
+      console.error('Checkout: Error loading guest cart:', err);
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+      setIsGuest(true);
+    }
+  };
+  
   // Create temporary user for guest checkout
   const createTemporaryUser = async () => {
     try {
@@ -247,6 +268,8 @@ const CheckoutPage = () => {
   // Fetch cart and addresses
   const fetchCartAndAddresses = async () => {
     if (!isAuthenticated()) {
+      // Load guest cart if not authenticated
+      loadGuestCart();
       return;
     }
     
@@ -729,6 +752,9 @@ const CheckoutPage = () => {
         } finally {
           setLoading(false);
         }
+      } else {
+        // Load guest cart if not authenticated
+        loadGuestCart();
       }
     };
     
