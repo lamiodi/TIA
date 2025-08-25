@@ -178,22 +178,37 @@ const CheckoutPage = () => {
     refreshUserDataOnMount();
   }, [user, userDataRefreshed]);
   
-  // Load guest cart from localStorage
+  // Load guest cart from localStorage - UPDATED WITH BETTER ERROR HANDLING
   const loadGuestCart = () => {
     try {
       const guestCart = localStorage.getItem('guestCart');
+      console.log('Raw guestCart from localStorage:', guestCart);
+      
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
+        console.log('Parsed guestCart:', parsedCart);
+        
+        // Validate cart structure
+        if (!parsedCart.items || !Array.isArray(parsedCart.items)) {
+          console.error('Invalid guest cart structure: missing or invalid items array', parsedCart);
+          setError('Invalid cart data. Please try adding items again.');
+          setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+          setIsGuest(true);
+          return;
+        }
+        
         setCart(parsedCart);
         setIsGuest(true);
         console.log('Checkout: Loaded guest cart from localStorage', parsedCart);
       } else {
+        console.log('Checkout: No guest cart found in localStorage');
+        setError('No items in your cart. Please add items to proceed.');
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
         setIsGuest(true);
-        console.log('Checkout: No guest cart found in localStorage');
       }
     } catch (err) {
       console.error('Checkout: Error loading guest cart:', err);
+      setError('Failed to load cart. Please try adding items again.');
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
       setIsGuest(true);
     }
@@ -265,7 +280,7 @@ const CheckoutPage = () => {
     }
   };
   
-  // Fetch cart and addresses
+  // Fetch cart and addresses - UPDATED TO HANDLE GUEST CART PROPERLY
   const fetchCartAndAddresses = async () => {
     if (!isAuthenticated()) {
       // Load guest cart if not authenticated
@@ -738,30 +753,31 @@ const CheckoutPage = () => {
     return () => document.body.removeChild(script);
   }, []);
   
+  // Updated useEffect for initial data loading
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (isAuthenticated()) {
-        setLoading(true);
-        try {
+      if (authLoading || contextLoading) return;
+      
+      setLoading(true);
+      try {
+        if (isAuthenticated()) {
           await fetchCartAndAddresses();
           toast.success('Checkout data loaded successfully');
-        } catch (err) {
-          const errorMessage = err.message || 'Unknown error';
-          setError(`Failed to load checkout data: ${errorMessage}`);
-          toast.error(`Failed to load checkout data: ${errorMessage}`);
-        } finally {
-          setLoading(false);
+        } else {
+          // Always load guest cart for unauthenticated users
+          setIsGuest(true);
+          loadGuestCart();
         }
-      } else {
-        // Load guest cart if not authenticated
-        setIsGuest(true);
-        loadGuestCart();
+      } catch (err) {
+        const errorMessage = err.message || 'Unknown error';
+        setError(`Failed to load checkout data: ${errorMessage}`);
+        toast.error(`Failed to load checkout data: ${errorMessage}`);
+      } finally {
+        setLoading(false);
       }
     };
     
-    if (user && !authLoading && !contextLoading) {
-      fetchInitialData();
-    }
+    fetchInitialData();
   }, [user, authLoading, contextLoading]);
   
   // Update billing address when shipping address changes if option is 'same'
@@ -838,19 +854,16 @@ const CheckoutPage = () => {
       toast.error('Please select a shipping address.');
       return;
     }
-
     if (!billingAddressId) {
       setError('Please select a billing address.');
       toast.error('Please select a billing address.');
       return;
     }
-
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method.');
       toast.error('Please select a shipping method.');
       return;
     }
-
     // If not authenticated, create temporary user
     if (!isAuthenticated()) {
       if (!isGuest) {
@@ -871,13 +884,11 @@ const CheckoutPage = () => {
       await refreshUserData();
       await fetchCartAndAddresses();
     }
-
     if (!cart?.items?.length) {
       setError('Cart is empty.');
       toast.error('Cart is empty.');
       return;
     }
-
     setLoading(true);
     try {
       const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
@@ -886,7 +897,6 @@ const CheckoutPage = () => {
       }
       const addressCountry = selectedShippingAddress.country;
       const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
       const userId = getUserId();
       const token = getToken();
@@ -939,21 +949,16 @@ const CheckoutPage = () => {
         converted_total: baseTotal,
         tax: baseTax,
       };
-
       console.log('Order payload:', orderData);
-
       const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       console.log('Order response:', orderResponse.data);
-
       const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
       if (!orderId) {
         console.error('Order ID not found in response:', orderResponse.data);
         throw new Error('Order ID not found in response');
       }
-
       // Update user's first_order status if applicable
       if (user.first_order) {
         try {
@@ -987,10 +992,8 @@ const CheckoutPage = () => {
           }
         }
       }
-
       const paymentCurrency = 'NGN';
       const paymentAmount = baseTotal;
-
       const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
       
       const paymentData = {
@@ -1001,15 +1004,12 @@ const CheckoutPage = () => {
         currency: paymentCurrency,
         callback_url: callbackUrl,
       };
-
       console.log('Payment payload:', paymentData);
-
       const paymentResponse = await axios.post(
         `${API_BASE_URL}/api/paystack/initialize`,
         paymentData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       console.log('Payment response:', paymentResponse.data);
       
       let paymentInfo = paymentResponse.data;
@@ -1135,8 +1135,8 @@ const CheckoutPage = () => {
     );
   }
   
-  // Updated empty cart handling - removed pending order check
-  if (!cart?.items?.length) {
+  // Updated empty cart handling with better validation
+  if (!cart?.items || !Array.isArray(cart.items) || cart.items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-Accent py-8 font-Jost">
