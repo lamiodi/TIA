@@ -194,61 +194,86 @@ const CheckoutPage = () => {
   // Handle guest user registration and login
   // In your checkout page component
 
-  const handleGuestRegistration = async (e) => {
-    e.preventDefault();
-    setIsCreatingAccount(true);
-    setError('');
-    
-    try {
-      // Check if guest has items in cart
-      const guestHasItems = hasGuestCartItems();
-      
-      // Create temporary user instead of regular user
-      const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
-        first_name: guestForm.first_name,
-        last_name: guestForm.last_name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number
-      });
-      
-      const { token, user, isTemporary } = response.data;
-      
-      // Store the token and user data
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('isTemporaryUser', isTemporary ? 'true' : 'false');
-      
-      // Update auth context
-      if (login) {
-        login({ token, user });
-      }
-      
-      // Transfer guest cart if exists
-      await transferGuestCart();
-      
-      // Refresh user data
-      await refreshUser();
-      setUserDataRefreshed(true);
-      
-      // Show success message
-      setSuccess('Account created successfully! Proceeding with checkout.');
-      toast.success('Account created successfully!');
-      
-      // Hide guest form and proceed with checkout
-      setShowGuestForm(false);
-      
-      // Fetch cart and addresses
-      await fetchCartAndAddresses();
-      
-    } catch (error) {
-      console.error('Guest registration error:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to create account';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
+  // In your CheckoutPage.jsx, update the handleGuestRegistration function:
+const handleGuestRegistration = async (e) => {
+  e.preventDefault();
+  setIsCreatingAccount(true);
+  setError('');
+  
+  try {
+    // Validate form data
+    if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
+      setError('Please fill in all required fields');
       setIsCreatingAccount(false);
+      return;
     }
-  };
+    
+    // Check if guest has items in cart
+    const guestHasItems = hasGuestCartItems();
+    
+    // Create temporary user
+    const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
+      first_name: guestForm.first_name,
+      last_name: guestForm.last_name,
+      email: guestForm.email,
+      phone_number: guestForm.phone_number
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const { token, user, isTemporary } = response.data;
+    
+    // Store the token and user data
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('isTemporaryUser', isTemporary ? 'true' : 'false');
+    
+    // Update auth context
+    if (login) {
+      login({ token, user });
+    }
+    
+    // Transfer guest cart if exists
+    await transferGuestCart();
+    
+    // Refresh user data
+    await refreshUser();
+    setUserDataRefreshed(true);
+    
+    // Show success message
+    setSuccess('Account created successfully! Proceeding with checkout.');
+    toast.success('Account created successfully!');
+    
+    // Hide guest form and proceed with checkout
+    setShowGuestForm(false);
+    
+    // Fetch cart and addresses
+    await fetchCartAndAddresses();
+    
+  } catch (error) {
+    console.error('Guest registration error:', error);
+    let errorMessage = 'Failed to create account';
+    
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      errorMessage = error.response.data.error || errorMessage;
+    } else if (error.request) {
+      // The request was made but no response was received
+      errorMessage = 'No response from server. Please try again.';
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      errorMessage = error.message;
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setIsCreatingAccount(false);
+  }
+};
   
   // Replace your refreshUserData function with this
   const refreshUserData = async () => {
