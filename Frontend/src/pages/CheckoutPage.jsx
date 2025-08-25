@@ -780,36 +780,6 @@ const CheckoutPage = () => {
     }
   }, [shippingAddresses, shippingAddressId, country]);
   
-  // Add this useEffect to check for pending orders
-  useEffect(() => {
-    const checkPendingOrder = async () => {
-      const pendingOrderId = localStorage.getItem('pendingOrderId');
-      if (pendingOrderId) {
-        try {
-          const token = getToken();
-          const response = await axios.get(`${API_BASE_URL}/api/orders/${pendingOrderId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          const order = response.data;
-          if (order.payment_status === 'pending') {
-            toast.info('You have a pending order. Please complete the payment.');
-            navigate(`/orders/${pendingOrderId}`);
-            return;
-          }
-        } catch (err) {
-          console.error('Error checking pending order:', err);
-        } finally {
-          localStorage.removeItem('pendingOrderId');
-        }
-      }
-    };
-    
-    if (user && !authLoading && !contextLoading) {
-      checkPendingOrder();
-    }
-  }, [user, authLoading, contextLoading, navigate]);
-  
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
@@ -1161,24 +1131,8 @@ const CheckoutPage = () => {
     );
   }
   
-  // Updated empty cart handling to check for pending orders
+  // Updated empty cart handling - removed pending order check
   if (!cart?.items?.length) {
-    // Check if there's a pending order
-    const pendingOrderId = localStorage.getItem('pendingOrderId');
-    if (pendingOrderId) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center text-Accent py-8 font-Jost">
-            <p>Your order is pending payment.</p>
-            <Link to={`/orders/${pendingOrderId}`} className="mt-4 inline-flex items-center text-Accent hover:text-Primarycolor">
-              View Order
-            </Link>
-          </div>
-        </div>
-      );
-    }
-    
-    // Original empty cart message
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-Accent py-8 font-Jost">
