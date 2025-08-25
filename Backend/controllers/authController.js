@@ -97,24 +97,37 @@ export const getMe = async (req, res) => {
 
 export const signupUser = async (req, res) => {
   const { first_name, last_name, username, email, password, phone_number } = req.body;
-  if (!first_name || !last_name || !username || !email || !password) {
+  
+  // Remove username from required fields validation
+  if (!first_name || !last_name || !email || !password) {
     return res.status(400).json({ error: 'All required fields must be filled' });
   }
   
   try {
+    // Check if email already exists
     const [existing] = await sql`
       SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
     `;
     
     if (existing) return res.status(409).json({ error: 'Email is already registered' });
     
+    // Only check username uniqueness if provided
+    if (username) {
+      const [existingUsername] = await sql`
+        SELECT id FROM users WHERE username = ${username} AND deleted_at IS NULL
+      `;
+      
+      if (existingUsername) return res.status(409).json({ error: 'Username is already taken' });
+    }
+    
     const hashedPassword = await bcrypt.hash(password, 10);
     
     await sql.begin(async (sql) => {
+      // Insert with null username if not provided
       const [user] = await sql`
         INSERT INTO users
         (first_name, last_name, username, email, password, phone_number, created_at, updated_at, is_admin, first_order)
-        VALUES (${first_name}, ${last_name}, ${username}, LOWER(${email}), ${hashedPassword}, ${phone_number}, NOW(), NOW(), ${false}, ${true})
+        VALUES (${first_name}, ${last_name}, ${username || null}, LOWER(${email}), ${hashedPassword}, ${phone_number}, NOW(), NOW(), ${false}, ${true})
         RETURNING id, email, username, is_admin, first_order
       `;
       
@@ -271,12 +284,13 @@ export const updateUserFirstOrder = async (req, res) => {
     });
   }
 };
+// In authController.js, update createTemporaryUser function:
 
 export const createTemporaryUser = async (req, res) => {
   const { email, first_name, last_name, phone_number } = req.body;
   
   try {
-    // Generate a temporary password (random string)
+    // Generate a temporary password (random string) - system generated, not provided by user
     const tempPassword = Math.random().toString(36).slice(-8);
     
     // Create the user with first_order = false
@@ -306,7 +320,7 @@ export const createTemporaryUser = async (req, res) => {
       user,
       token,
       isTemporary: true,
-      message: 'Temporary account created. Please complete your profile to continue.'
+      message: 'Temporary account created successfully.'
     });
   } catch (err) {
     console.error('❌ Error creating temporary user:', err.message);
@@ -327,7 +341,7 @@ export const completeProfile = async (req, res) => {
   try {
     // Check if user exists
     const [user] = await sql`
-      SELECT id, email FROM users WHERE id = ${userId} AND deleted_at IS NULL
+      SELECT id, email, first_name, last_name FROM users WHERE id = ${userId} AND deleted_at IS NULL
     `;
     
     if (!user) {
@@ -343,7 +357,12 @@ export const completeProfile = async (req, res) => {
     
     // Generate a new non-temporary token
     const token = jwt.sign(
-      { id: user.id, email: user.email, isAdmin: user.is_admin },
+      { 
+        id: user.id, 
+        email: user.email, 
+        isAdmin: user.is_admin,
+        first_order: user.first_order
+      },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -356,6 +375,8 @@ export const completeProfile = async (req, res) => {
       user: { 
         id: user.id, 
         email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
         isTemporary: false
       }
     });
@@ -363,36 +384,4 @@ export const completeProfile = async (req, res) => {
     console.error('❌ Error completing profile:', err.message);
     res.status(500).json({ error: 'Failed to complete profile' });
   }
-};
-
-export const checkTemporaryUser = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return next();
-  }
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (decoded.isTemporary) {
-      // For API routes, return a JSON response instead of redirecting
-      if (req.path.startsWith('/api/')) {
-        return res.status(403).json({ 
-          error: 'Temporary user must complete profile first',
-          requiresProfileCompletion: true,
-          redirectPath: '/complete-profile'
-        });
-      }
-      
-      // For web routes, redirect to profile completion page
-      if (!req.path.includes('/complete-profile')) {
-        return res.redirect('/complete-profile');
-      }
-    }
-  } catch (err) {
-    // Invalid token, continue
-  }
-  
-  next();
 };

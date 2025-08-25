@@ -13,7 +13,7 @@ import {
   completeProfile 
 } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
-import { checkTemporaryUser } from '../controllers/authController.js';
+
 
 const router = express.Router();
 
