@@ -56,7 +56,7 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const { first_name, last_name, username, email, phone_number } = res.data;
-        setProfileForm({ first_name, last_name, username, email, phone_number: phone_number || '' });
+        setProfileForm({ first_name, last_name, username: username || '', email, phone_number: phone_number || '' });
       } catch (err) {
         console.error('Fetch profile error:', err);
         toast.error(err.response?.data?.error || 'Failed to fetch profile');
@@ -99,11 +99,14 @@ const ProfilePage = () => {
       setLoading(false);
       return;
     }
-    if (!usernameRegex.test(profileForm.username)) {
+    
+    // Only validate username if provided
+    if (profileForm.username && !usernameRegex.test(profileForm.username)) {
       setProfileError('Username must be 3-20 characters and contain only letters, numbers, or underscores');
       setLoading(false);
       return;
     }
+    
     if (!emailRegex.test(profileForm.email)) {
       setProfileError('Please enter a valid email address');
       setLoading(false);
@@ -264,7 +267,9 @@ const ProfilePage = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Username</label>
+                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                  Username <span className="text-gray-500 font-normal">(optional)</span>
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-gray-400" />
@@ -275,7 +280,6 @@ const ProfilePage = () => {
                     value={profileForm.username}
                     onChange={handleProfileChange}
                     className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-Primarycolor font-Jost"
-                    required
                   />
                 </div>
                 <p className="mt-1 text-xs text-Accent font-Jost">3-20 characters, letters, numbers, or underscores</p>

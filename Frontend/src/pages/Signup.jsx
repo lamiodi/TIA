@@ -57,7 +57,10 @@ const SignupPage = () => {
     const errors = {};
     if (name === 'first_name' && !value.trim()) errors.first_name = 'First name is required';
     if (name === 'last_name' && !value.trim()) errors.last_name = 'Last name is required';
-    if (name === 'username' && !value.trim()) errors.username = 'Username is required';
+    // Only validate username if provided
+    if (name === 'username' && value.trim() && !/^[a-zA-Z0-9_]{3,20}$/.test(value)) {
+      errors.username = 'Username must be 3-20 characters and contain only letters, numbers, or underscores';
+    }
     if (name === 'email') {
       if (!value.trim()) errors.email = 'Email is required';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = 'Enter a valid email address';
@@ -91,7 +94,8 @@ const SignupPage = () => {
     const allErrors = {
       ...validateField('first_name', formData.first_name),
       ...validateField('last_name', formData.last_name),
-      ...validateField('username', formData.username),
+      // Only validate username if provided
+      ...(formData.username.trim() ? validateField('username', formData.username) : {}),
       ...validateField('email', formData.email),
       ...validateField('password', formData.password),
     };
@@ -294,10 +298,10 @@ const SignupPage = () => {
                   </p>
                 )}
               </div>
-              {/* Username */}
+              {/* Username - Now Optional */}
               <div>
                 <label htmlFor="username" className="block text-sm font-semibold mb-2 font-Jost" style={{ color: '#1E1E1E' }}>
-                  Username
+                  Username <span className="text-gray-500 font-normal">(optional)</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#6E6E6E' }} />
@@ -326,6 +330,9 @@ const SignupPage = () => {
                     {formErrors.username}
                   </p>
                 )}
+                <p className="mt-1 text-xs text-gray-500 font-Jost">
+                  3-20 characters, letters, numbers, or underscores
+                </p>
               </div>
               {/* Email */}
               <div>
@@ -464,4 +471,3 @@ const SignupPage = () => {
 };
 
 export default SignupPage;
-
