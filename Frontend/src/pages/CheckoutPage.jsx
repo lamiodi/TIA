@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Truck, Clock, MapPin, Gift, X, Copy, User, Mail, Phone } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BillingAddressForm from '../components/BillingAddressForm';
@@ -18,38 +18,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r
 const WHATSAPP_NUMBER = '2348104117122';
 
 const CheckoutPage = () => {
-  // Get user data from both AuthContext and our custom hook
+  // User authentication and management
   const { user: authUser, loading: authLoading, login } = useAuth();
-  const { user: hookUser, refreshUser, refreshCount } = useUserManager();
-  
-  // Use the user from our custom hook, fall back to AuthContext if needed
+  const { user: hookUser, refreshUser } = useUserManager();
   const user = hookUser || authUser;
   
-  let currencyContext;
-  try {
-    currencyContext = useContext(CurrencyContext);
-  } catch (error) {
-    console.error('Error accessing CurrencyContext:', error);
-    currencyContext = { 
-      currency: 'NGN', 
-      exchangeRate: 1, 
-      country: 'Nigeria', 
-      contextLoading: false 
-    };
-  }
+  // Currency context with fallback
+  const currencyContext = useContext(CurrencyContext) || { 
+    currency: 'NGN', 
+    exchangeRate: 1, 
+    country: 'Nigeria', 
+    contextLoading: false 
+  };
   
-  const { 
-    currency = 'NGN', 
-    exchangeRate = 1, 
-    country = 'Nigeria', 
-    contextLoading = false 
-  } = currencyContext || {};
+  const { currency = 'NGN', exchangeRate = 1, country = 'Nigeria', contextLoading = false } = currencyContext;
   
   const navigate = useNavigate();
+  
+  // Core state
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
   const [shippingAddresses, setShippingAddresses] = useState([]);
   const [billingAddresses, setBillingAddresses] = useState([]);
-  // always keep IDs as strings to avoid number/string mismatch bugs
   const [shippingAddressId, setShippingAddressId] = useState(null);
   const [billingAddressId, setBillingAddressId] = useState(null);
   const [shippingMethod, setShippingMethod] = useState(null);
@@ -62,6 +51,27 @@ const CheckoutPage = () => {
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
+  const [billingAddressOption, setBillingAddressOption] = useState('same');
+  
+  // Discount state
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState(0);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  
+  // Guest checkout state
+  const [guestForm, setGuestForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: ''
+  });
+  const [guestUserCreated, setGuestUserCreated] = useState(false);
+  
+  // Form state
   const [shippingForm, setShippingForm] = useState({
     title: '',
     address_line_1: '',
@@ -73,6 +83,7 @@ const CheckoutPage = () => {
     country: 'Nigeria',
     phone_number: user?.phone_number || '',
   });
+  
   const [billingForm, setBillingForm] = useState({
     full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
     email: user?.email || '',
@@ -84,36 +95,8 @@ const CheckoutPage = () => {
     zip_code: '',
     country: 'Nigeria',
   });
-  
-  // New state for billing address option
-  const [billingAddressOption, setBillingAddressOption] = useState('same'); // 'same' or 'different'
-  
-  // Discount states
-  const [firstOrderDiscount, setFirstOrderDiscount] = useState(0);
-  const [couponDiscount, setCouponDiscount] = useState(0);
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
-  
-  // Add state to track if user data has been refreshed
-  const [userDataRefreshed, setUserDataRefreshed] = useState(false);
-  
-  // Guest checkout states
-  const [guestForm, setGuestForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone_number: ''
-  });
-  const [isGuest, setIsGuest] = useState(false);
-  const [isTemporaryUser, setIsTemporaryUser] = useState(false);
-  const [isGuestConversion, setIsGuestConversion] = useState(false);
-  
-  // Add state to track if guest is ready to add addresses
-  const [guestReadyForAddresses, setGuestReadyForAddresses] = useState(false);
-  
+
+  // Utility functions
   const decodeToken = (token) => {
     try {
       const base64Url = token.split('.')[1];
@@ -144,93 +127,39 @@ const CheckoutPage = () => {
     return !!getToken();
   };
   
-  // Replace your refreshUserData function with this
-  const refreshUserData = async () => {
-    try {
-      console.log('Refreshing user data...');
-      
-      // Use the refreshUser function from our custom hook
-      const updatedUser = await refreshUser();
-      
-      if (updatedUser) {
-        console.log('User data refreshed successfully');
-        
-        // Check if user is temporary
-        const isTemp = localStorage.getItem('isTemporaryUser') === 'true';
-        setIsTemporaryUser(isTemp);
-        
-        setUserDataRefreshed(true);
-        return updatedUser;
-      } else {
-        console.warn('Failed to refresh user data');
-        return null;
-      }
-    } catch (err) {
-      console.error('Failed to refresh user data:', err);
-      return null;
-    }
-  };
-  
-  // Force refresh user data on component mount
-  useEffect(() => {
-    const refreshUserDataOnMount = async () => {
-      if (user && isAuthenticated() && !userDataRefreshed) {
-        try {
-          await refreshUserData();
-          console.log('User data refreshed on component mount');
-        } catch (err) {
-          console.error('Failed to refresh user data on mount:', err);
-        }
-      }
-    };
-    refreshUserDataOnMount();
-  }, [user, userDataRefreshed]);
-  
-  // Load guest cart from localStorage - UPDATED WITH BETTER ERROR HANDLING
+  const isTemporaryUser = localStorage.getItem('isTemporaryUser') === 'true' || user?.is_temporary;
+  const isGuestCheckout = !isAuthenticated() && !guestUserCreated;
+
+  // Load guest cart from localStorage
   const loadGuestCart = () => {
     try {
       const guestCart = localStorage.getItem('guestCart');
-      console.log('Raw guestCart from localStorage:', guestCart);
-      
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
-        console.log('Parsed guestCart:', parsedCart);
-        
-        // Validate cart structure
         if (!parsedCart.items || !Array.isArray(parsedCart.items)) {
-          console.error('Invalid guest cart structure: missing or invalid items array', parsedCart);
           setError('Invalid cart data. Please try adding items again.');
           setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-          setIsGuest(true);
           return;
         }
-        
         setCart(parsedCart);
-        setIsGuest(true);
-        console.log('Checkout: Loaded guest cart from localStorage', parsedCart);
       } else {
-        console.log('Checkout: No guest cart found in localStorage');
         setError('No items in your cart. Please add items to proceed.');
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-        setIsGuest(true);
       }
     } catch (err) {
       console.error('Checkout: Error loading guest cart:', err);
       setError('Failed to load cart. Please try adding items again.');
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-      setIsGuest(true);
     }
   };
   
   // Create temporary user for guest checkout
   const createTemporaryUser = async () => {
+    if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
+      throw new Error('Please provide all required personal information: first name, last name, email, and phone number.');
+    }
+    
     try {
-      if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
-        throw new Error('Please provide all required personal information: first name, last name, email, and phone number.');
-      }
-      
-      console.log('Creating temporary user with data:', guestForm);
-      
       const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
         first_name: guestForm.first_name,
         last_name: guestForm.last_name,
@@ -238,9 +167,7 @@ const CheckoutPage = () => {
         phone_number: guestForm.phone_number,
       });
       
-      console.log('Temporary user creation response:', response.data);
-      
-      const { token, user: userData, isTemporary } = response.data;
+      const { token, user: userData } = response.data;
       if (!token || !userData?.id) {
         throw new Error('Invalid response from temporary user creation');
       }
@@ -249,34 +176,22 @@ const CheckoutPage = () => {
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('isTemporaryUser', 'true');
       
-      // Update the AuthContext
-      login({ token, user: userData, isTemporary });
-      setIsGuestConversion(true);
-      setIsTemporaryUser(true);
-      setGuestReadyForAddresses(true);
+      login({ token, user: userData, isTemporary: true });
+      setGuestUserCreated(true);
       
-      // Refresh user data to ensure all states are updated
-      await refreshUserData();
-      
+      await refreshUser();
       return true;
     } catch (err) {
       console.error('Error creating temporary user:', err);
-      
-      // Handle specific error messages from the backend
       let errorMessage = 'Failed to create temporary user account';
       
       if (err.response) {
-        console.error('Error response:', err.response);
-        
         if (err.response.status === 400) {
           errorMessage = err.response.data.error || 'Invalid input data. Please check your information.';
         } else if (err.response.status === 409) {
           errorMessage = err.response.data.error || 'Email already in use. Please use another email or log in.';
         } else if (err.response.status === 500) {
           errorMessage = err.response.data.error || 'Server error. Please try again later.';
-          if (err.response.data.details) {
-            console.error('Server error details:', err.response.data.details);
-          }
         }
       } else if (err.request) {
         errorMessage = 'Network error. Please check your connection.';
@@ -294,9 +209,7 @@ const CheckoutPage = () => {
   const transferGuestCart = async () => {
     try {
       const guestCart = localStorage.getItem('guestCart');
-      if (!guestCart) {
-        return;
-      }
+      if (!guestCart) return;
       
       const userId = getUserId();
       const token = getToken();
@@ -310,7 +223,6 @@ const CheckoutPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Remove guest cart from localStorage
       localStorage.removeItem('guestCart');
     } catch (err) {
       console.error('Error transferring guest cart:', err);
@@ -318,10 +230,9 @@ const CheckoutPage = () => {
     }
   };
   
-  // Fetch cart and addresses - UPDATED TO HANDLE GUEST CART PROPERLY
+  // Fetch cart and addresses
   const fetchCartAndAddresses = async () => {
     if (!isAuthenticated()) {
-      // Load guest cart if not authenticated
       loadGuestCart();
       return;
     }
@@ -390,31 +301,6 @@ const CheckoutPage = () => {
     }
   };
   
-  // Update the useEffect that calculates the first order discount
-  useEffect(() => {
-    const currentSubtotal = cart.subtotal; // Always in NGN
-    console.log('Calculating first order discount:', {
-      userFirstOrder: user?.first_order,
-      isTemporaryUser,
-      currentSubtotal,
-      userDataRefreshed,
-      refreshCount
-    });
-    
-    // Only apply first order discount if:
-    // 1. User has first_order flag set to true
-    // 2. User is NOT a temporary user
-    // 3. Cart subtotal is greater than 0
-    if (user?.first_order && !isTemporaryUser && currentSubtotal > 0) {
-      const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
-      setFirstOrderDiscount(discountAmount);
-      console.log('Applied first order discount:', discountAmount);
-    } else {
-      setFirstOrderDiscount(0);
-      console.log('No first order discount applied');
-    }
-  }, [user?.first_order, isTemporaryUser, cart.subtotal, userDataRefreshed, refreshCount]);
-  
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -431,23 +317,21 @@ const CheckoutPage = () => {
     try {
       const token = getToken();
       const response = await axios.post(
-        `${API_BASE_URL}/api/admin/discounts/validate`, // Updated to use /api/admin/discounts/validate
+        `${API_BASE_URL}/api/admin/discounts/validate`,
         { code: couponCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
       if (response.data.valid) {
         const discount = response.data.discount;
-        
-        // Calculate discount amount
         let discountAmount = 0;
+        
         if (discount.type === 'percentage') {
           discountAmount = (cart.subtotal * discount.value) / 100;
         } else if (discount.type === 'fixed') {
           discountAmount = discount.value;
         }
         
-        // Ensure discount doesn't exceed subtotal
         discountAmount = Math.min(discountAmount, cart.subtotal);
         
         setAppliedCoupon({
@@ -478,6 +362,7 @@ const CheckoutPage = () => {
     setCouponSuccess('');
   };
   
+  // Shipping options
   const shippingOptions = [
     { 
       id: 1, 
@@ -507,26 +392,16 @@ const CheckoutPage = () => {
   
   const getShippingIcon = (iconType) => {
     switch (iconType) {
-      case 'truck':
-        return <Truck className="h-5 w-5" />;
-      case 'package':
-        return <MapPin className="h-5 w-5" />;
-      case 'home':
-        return <MapPin className="h-5 w-5" />;
-      default:
-        return <Truck className="h-5 w-5" />;
+      case 'truck': return <Truck className="h-5 w-5" />;
+      case 'package': return <MapPin className="h-5 w-5" />;
+      case 'home': return <MapPin className="h-5 w-5" />;
+      default: return <Truck className="h-5 w-5" />;
     }
   };
   
   // Prepare guest user for address creation
   const prepareGuestForAddresses = async () => {
     if (!isAuthenticated()) {
-      if (!isGuest) {
-        setError('Please confirm you want to continue as guest.');
-        toast.error('Please confirm you want to continue as guest.');
-        return false;
-      }
-      
       if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
         setError('Please provide all required personal information: first name, last name, email, and phone number.');
         toast.error('Please provide all required personal information.');
@@ -535,19 +410,13 @@ const CheckoutPage = () => {
       
       setLoading(true);
       try {
-        console.log('Preparing guest for addresses...');
         const created = await createTemporaryUser();
-        if (!created) {
-          return false;
-        }
+        if (!created) return false;
         
-        // After creating temporary user, transfer guest cart and refresh data
         await transferGuestCart();
-        await refreshUserData();
+        await refreshUser();
         await fetchCartAndAddresses();
         
-        setGuestReadyForAddresses(true);
-        console.log('Guest is now ready for addresses');
         return true;
       } catch (err) {
         console.error('Error preparing guest for addresses:', err);
@@ -560,33 +429,24 @@ const CheckoutPage = () => {
       }
     }
     
-    setGuestReadyForAddresses(true);
     return true;
   };
   
+  // Handle shipping form submission
   const handleShippingSubmit = async (data) => {
     try {
       setLoading(true);
       
-      // Validate shipping form data
       if (!data.title || !data.address_line_1 || !data.city || !data.country) {
         throw new Error('Please provide title, address line 1, city, and country.');
       }
       
-      // If not authenticated, create temporary user
       if (!isAuthenticated()) {
-        if (!isGuest) {
-          throw new Error('Please confirm you want to continue as guest.');
-        }
-        
         const created = await createTemporaryUser();
-        if (!created) {
-          throw new Error('Failed to create temporary user account');
-        }
+        if (!created) throw new Error('Failed to create temporary user account');
         
-        // After creating temporary user, transfer guest cart and refresh data
         await transferGuestCart();
-        await refreshUserData();
+        await refreshUser();
         await fetchCartAndAddresses();
       }
       
@@ -612,7 +472,6 @@ const CheckoutPage = () => {
       setSuccess('Shipping address added successfully.');
       toast.success('Shipping address added');
       
-      // If billing address option is 'same', update billing address to match
       if (billingAddressOption === 'same') {
         await copyShippingToBilling(createdAddress);
       }
@@ -626,29 +485,21 @@ const CheckoutPage = () => {
     }
   };
   
+  // Handle billing form submission
   const handleBillingSubmit = async (data) => {
     try {
       setLoading(true);
       
-      // Validate billing form data
       if (!data.full_name || !data.email || !data.address_line_1 || !data.city || !data.country) {
         throw new Error('Please provide full name, email, address line 1, city, and country.');
       }
       
-      // If not authenticated, create temporary user
       if (!isAuthenticated()) {
-        if (!isGuest) {
-          throw new Error('Please confirm you want to continue as guest.');
-        }
-        
         const created = await createTemporaryUser();
-        if (!created) {
-          throw new Error('Failed to create temporary user account');
-        }
+        if (!created) throw new Error('Failed to create temporary user account');
         
-        // After creating temporary user, transfer guest cart and refresh data
         await transferGuestCart();
-        await refreshUserData();
+        await refreshUser();
         await fetchCartAndAddresses();
       }
       
@@ -683,9 +534,9 @@ const CheckoutPage = () => {
     }
   };
   
+  // Handle address deletion
   const handleDeleteAddress = async (type, addressId) => {
     if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
       toast.error('Please log in to delete address');
       navigate('/login', { state: { from: '/checkout' } });
       return;
@@ -695,25 +546,20 @@ const CheckoutPage = () => {
       setLoading(true);
       const token = getToken();
   
-      // 1. Delete address from backend
       await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
       if (type === 'addresses') {
-        // Remove from local state
         const remaining = shippingAddresses.filter(addr => String(addr.id) !== String(addressId));
         setShippingAddresses(remaining);
   
-        // If deleted address was selected, pick first remaining or null
         if (String(shippingAddressId) === String(addressId)) {
           const newShippingId = remaining.length ? String(remaining[0].id) : null;
           setShippingAddressId(newShippingId);
   
           if (billingAddressOption === 'same' && remaining.length > 0) {
             const newShippingAddress = remaining[0];
-  
-            // Check for matching billing address
             const matchingBillingAddress = billingAddresses.find(addr =>
               addr.address_line_1 === newShippingAddress.address_line_1 &&
               addr.city === newShippingAddress.city &&
@@ -723,7 +569,6 @@ const CheckoutPage = () => {
             if (matchingBillingAddress) {
               setBillingAddressId(String(matchingBillingAddress.id));
             } else {
-              // Create new billing address from shipping
               const billingAddress = {
                 full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
                 email: user?.email || '',
@@ -753,7 +598,6 @@ const CheckoutPage = () => {
           }
         }
       } else {
-        // Type = 'billing-addresses'
         const remaining = billingAddresses.filter(addr => String(addr.id) !== String(addressId));
         setBillingAddresses(remaining);
         if (String(billingAddressId) === String(addressId)) {
@@ -783,7 +627,6 @@ const CheckoutPage = () => {
       shippingAddress = selectedShippingAddress;
     }
     
-    // Create a billing address object from the shipping address
     const billingAddress = {
       full_name: guestForm.first_name && guestForm.last_name ? `${guestForm.first_name} ${guestForm.last_name}` : 
                  (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
@@ -797,7 +640,6 @@ const CheckoutPage = () => {
       country: shippingAddress.country,
     };
     
-    // Try to find if this billing address already exists
     const matchingBillingAddress = billingAddresses.find(addr => 
       addr.address_line_1 === billingAddress.address_line_1 &&
       addr.city === billingAddress.city &&
@@ -808,7 +650,6 @@ const CheckoutPage = () => {
       setBillingAddressId(String(matchingBillingAddress.id));
       toast.success('Billing address updated to match shipping address');
     } else {
-      // Create a new billing address
       try {
         setLoading(true);
         const userId = getUserId();
@@ -834,6 +675,7 @@ const CheckoutPage = () => {
     }
   };
   
+  // Load Paystack script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
@@ -842,7 +684,7 @@ const CheckoutPage = () => {
     return () => document.body.removeChild(script);
   }, []);
   
-  // Updated useEffect for initial data loading
+  // Initial data loading
   useEffect(() => {
     const fetchInitialData = async () => {
       if (authLoading || contextLoading) return;
@@ -853,8 +695,6 @@ const CheckoutPage = () => {
           await fetchCartAndAddresses();
           toast.success('Checkout data loaded successfully');
         } else {
-          // Always load guest cart for unauthenticated users
-          setIsGuest(true);
           loadGuestCart();
         }
       } catch (err) {
@@ -874,7 +714,6 @@ const CheckoutPage = () => {
     if (billingAddressOption === 'same' && shippingAddressId) {
       const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
       if (selectedShippingAddress) {
-        // Try to find a matching billing address
         const matchingBillingAddress = billingAddresses.find(addr => 
           addr.address_line_1 === selectedShippingAddress.address_line_1 &&
           addr.city === selectedShippingAddress.city &&
@@ -888,6 +727,7 @@ const CheckoutPage = () => {
     }
   }, [shippingAddressId, billingAddressOption, shippingAddresses, billingAddresses]);
   
+  // Set default addresses
   useEffect(() => {
     if (shippingAddresses.length > 0 && !shippingAddressId) {
       setShippingAddressId(String(shippingAddresses[0].id));
@@ -897,14 +737,14 @@ const CheckoutPage = () => {
     }
   }, [shippingAddresses, billingAddresses, shippingAddressId, billingAddressId]);
   
+  // Set default shipping method
   useEffect(() => {
     const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
     const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
     const isNigeria = addressCountry.toLowerCase() === 'nigeria';
     
     if (isNigeria && !shippingMethod) {
-      const defaultMethod = shippingOptions[0];
-      setShippingMethod(defaultMethod);
+      setShippingMethod(shippingOptions[0]);
     }
     
     if (!isNigeria && shippingMethod) {
@@ -912,19 +752,29 @@ const CheckoutPage = () => {
     }
   }, [shippingAddresses, shippingAddressId, country]);
   
+  // Calculate first order discount
+  useEffect(() => {
+    const currentSubtotal = cart.subtotal;
+    
+    if (user?.first_order && !isTemporaryUser && currentSubtotal > 0) {
+      const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
+      setFirstOrderDiscount(discountAmount);
+    } else {
+      setFirstOrderDiscount(0);
+    }
+  }, [user?.first_order, isTemporaryUser, cart.subtotal]);
+  
+  // Derived values
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
   const selectedBillingAddress = billingAddresses.find(addr => addr.id.toString() === billingAddressId);
   
-  // Always use NGN for calculations
+  // Calculations
   const subtotal = Number(cart?.subtotal) || 0;
   const tax = isNigeria ? 0 : Number((subtotal * 0.05).toFixed(2));
   const shippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
-  
-  // Calculate total discount (first order + coupon)
   const totalDiscount = Number((firstOrderDiscount + couponDiscount).toFixed(2));
-  // Ensure total discount doesn't exceed subtotal
   const finalDiscount = Math.min(totalDiscount, subtotal);
   const discountedSubtotal = Number((subtotal - finalDiscount).toFixed(2));
   const total = Number((discountedSubtotal + tax + shippingCost).toFixed(2));
@@ -937,6 +787,7 @@ const CheckoutPage = () => {
   const displayTax = tax;
   const displayTotal = total;
   
+  // Handle payment
   const handlePayment = async () => {
     if (!shippingAddressId) {
       setError('Please select a shipping address.');
@@ -953,7 +804,7 @@ const CheckoutPage = () => {
       toast.error('Please select a shipping method.');
       return;
     }
-    // If not authenticated, create temporary user now
+    
     if (!isAuthenticated()) {
       const created = await createTemporaryUser();
       if (!created) {
@@ -962,32 +813,31 @@ const CheckoutPage = () => {
         return;
       }
       
-      // After creating temporary user, refresh cart and addresses
       await transferGuestCart();
-      await refreshUserData();
+      await refreshUser();
       await fetchCartAndAddresses();
     }
+    
     if (!cart?.items?.length) {
       setError('Cart is empty.');
       toast.error('Cart is empty.');
       return;
     }
+    
     setLoading(true);
     try {
       const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
       if (!selectedShippingAddress) {
         throw new Error('Selected shipping address not found');
       }
+      
       const addressCountry = selectedShippingAddress.country;
       const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-      const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
+      const orderCurrency = 'NGN';
       const userId = getUserId();
       const token = getToken();
       
-      // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      
-      // Only apply first order discount if user is not temporary
       const baseFirstOrderDiscount = (user?.first_order && !isTemporaryUser) 
         ? Number((baseSubtotal * 0.05).toFixed(2)) 
         : 0;
@@ -1032,54 +882,43 @@ const CheckoutPage = () => {
           };
         }),
         note: orderNote,
-        exchange_rate: 1, // No conversion needed
+        exchange_rate: 1,
         base_currency_total: baseTotal,
         converted_total: baseTotal,
         tax: baseTax,
       };
-      console.log('Order payload:', orderData);
+      
       const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Order response:', orderResponse.data);
+      
       const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
       if (!orderId) {
-        console.error('Order ID not found in response:', orderResponse.data);
         throw new Error('Order ID not found in response');
       }
+      
       // Update user's first_order status if applicable
       if (user.first_order && !isTemporaryUser) {
         try {
-          console.log('Updating first_order status for user:', getUserId());
-          
-          const response = await axios({
+          await axios({
             method: 'PATCH',
             url: `${API_BASE_URL}/api/auth/users/${getUserId()}`, 
             data: { first_order: false },
             headers: { Authorization: `Bearer ${getToken()}` }
           });
           
-          console.log('Update response:', response.data);
-          
-          if (response.data && response.data.success) {
-            // Refresh user data from server using our custom hook
-            const updatedUser = await refreshUserData();
-            
-            if (updatedUser && !updatedUser.first_order) {
-              console.log('User data refreshed, first_order is now false');
-            } else {
-              console.warn('User data refresh failed or first_order is still true');
-            }
+          const updatedUser = await refreshUser();
+          if (updatedUser && !updatedUser.first_order) {
+            console.log('User data refreshed, first_order is now false');
           }
         } catch (err) {
           console.error('Failed to update first_order status:', err);
-          
-          // Only show error toast if it's a server error
           if (err.response) {
             toast.error('We had trouble updating your account. Please contact support if you see this discount again.');
           }
         }
       }
+      
       const paymentCurrency = 'NGN';
       const paymentAmount = baseTotal;
       const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
@@ -1088,17 +927,16 @@ const CheckoutPage = () => {
         order_id: orderId,
         reference: orderData.reference,
         email: selectedBillingAddress?.email || billingForm.email || user.email || guestForm.email,
-        amount: Math.round(paymentAmount * 100), // Convert to kobo
+        amount: Math.round(paymentAmount * 100),
         currency: paymentCurrency,
         callback_url: callbackUrl,
       };
-      console.log('Payment payload:', paymentData);
+      
       const paymentResponse = await axios.post(
         `${API_BASE_URL}/api/paystack/initialize`,
         paymentData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log('Payment response:', paymentResponse.data);
       
       let paymentInfo = paymentResponse.data;
       if (paymentResponse.data.data) {
@@ -1111,7 +949,7 @@ const CheckoutPage = () => {
       if (accessCode) {
         toast.success('Order placed successfully. Opening payment popup...');
         localStorage.setItem('lastOrderReference', orderData.reference);
-        localStorage.setItem('pendingOrderId', orderId); // Store the order ID
+        localStorage.setItem('pendingOrderId', orderId);
         
         const paystack = new PaystackPop();
         paystack.newTransaction({
@@ -1122,11 +960,9 @@ const CheckoutPage = () => {
           reference: paymentData.reference,
           callback: (response) => {
             toast.success('Payment successful!');
-            // Use navigate instead of window.location.href
             navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
           },
           onClose: () => {
-            // Check if payment was completed by verifying with backend
             const checkPaymentStatus = async () => {
               try {
                 const token = getToken();
@@ -1159,12 +995,12 @@ const CheckoutPage = () => {
         localStorage.setItem('pendingOrderId', orderId);
         window.location.href = authorizationUrl;
       } else {
-        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
         throw new Error('Failed to get payment information');
       }
     } catch (err) {
       console.error('Payment processing error:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      
       if (err.response?.data?.code === 'unsupported_currency') {
         setError('Payments in USD are not supported at this time. Please select a shipping address in Nigeria or contact support.');
         toast.error('Payments in USD are not supported. Please select a Nigeria address or contact support.');
@@ -1177,6 +1013,7 @@ const CheckoutPage = () => {
     }
   };
   
+  // Handle WhatsApp payment
   const handleWhatsAppPayment = () => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
       style: 'currency',
@@ -1201,6 +1038,7 @@ const CheckoutPage = () => {
     toast.success('Opening WhatsApp to complete your Bitcoin payment...');
   };
   
+  // Loading states
   if (authLoading || contextLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1212,7 +1050,7 @@ const CheckoutPage = () => {
     );
   }
   
-  if (loading && !isGuestConversion) {
+  if (loading && !guestUserCreated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-Accent">
@@ -1223,7 +1061,7 @@ const CheckoutPage = () => {
     );
   }
   
-  // Updated empty cart handling with better validation
+  // Empty cart handling
   if (!cart?.items || !Array.isArray(cart.items) || cart.items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1256,9 +1094,12 @@ const CheckoutPage = () => {
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
         
         {/* Guest Information Form */}
-        {!isAuthenticated() && isGuest && !isGuestConversion && (
+        {isGuestCheckout && (
           <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-8">
-            <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Your Information</h3>
+            <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
+              <User className="h-5 w-5 mr-2" />
+              Your Information
+            </h3>
             <p className="text-sm text-gray-600 mb-4 font-Jost">
               Please provide your details to continue with guest checkout. An account will be created automatically, and order updates will be sent via email.
             </p>
@@ -1288,7 +1129,10 @@ const CheckoutPage = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-Jost">Email Address *</label>
+                <label className="block text-sm font-medium text-gray-700 font-Jost flex items-center">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Email Address *
+                </label>
                 <input
                   type="email"
                   required
@@ -1302,7 +1146,10 @@ const CheckoutPage = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-Jost">Phone Number *</label>
+                <label className="block text-sm font-medium text-gray-700 font-Jost flex items-center">
+                  <Phone className="h-4 w-4 mr-1" />
+                  Phone Number *
+                </label>
                 <input
                   type="tel"
                   required
@@ -1318,24 +1165,11 @@ const CheckoutPage = () => {
             
             {error && <p className="text-sm text-red-600 mt-2 font-Jost">{error}</p>}
             
-            <div className="mt-4 flex items-center">
-              <input
-                id="guest-checkbox"
-                type="checkbox"
-                checked={isGuest}
-                onChange={(e) => setIsGuest(e.target.checked)}
-                className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor border-gray-300 rounded"
-              />
-              <label htmlFor="guest-checkbox" className="ml-2 block text-sm text-gray-700 font-Jost">
-                Continue as guest
-              </label>
-            </div>
-            
             <div className="mt-6">
               <button
                 onClick={prepareGuestForAddresses}
-                disabled={!isGuest || !guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number}
-                className={`w-full bg-Primarycolor text-Secondarycolor py-3 px-4 rounded-lg font-Manrope font-medium ${!isGuest || !guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number}
+                className={`w-full bg-Primarycolor text-Secondarycolor py-3 px-4 rounded-lg font-Manrope font-medium ${!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Continue to Shipping
               </button>
@@ -1344,27 +1178,6 @@ const CheckoutPage = () => {
                 By clicking "Continue to Shipping", you agree to create a temporary account for this order.
               </div>
             </div>
-          </div>
-        )}
-        
-        {/* Debug Panel - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
-            <p className="text-sm text-yellow-700">
-              User ID: {user?.id}<br />
-              First Order (DB): {user?.first_order?.toString()}<br />
-              Is Temporary User: {isTemporaryUser?.toString()}<br />
-              First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
-              Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
-              User Data Refreshed: {userDataRefreshed?.toString()}
-            </p>
-            <button 
-              onClick={refreshUserData}
-              className="mt-2 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
-            >
-              Refresh User Data
-            </button>
           </div>
         )}
         
@@ -1440,9 +1253,14 @@ const CheckoutPage = () => {
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Forms */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Shipping Address */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
+                <Truck className="h-5 w-5 mr-2" />
+                Shipping Address
+              </h3>
               
               {shippingAddresses.length > 0 ? (
                 <div>
@@ -1480,7 +1298,7 @@ const CheckoutPage = () => {
                 </div>
               ) : (
                 <div>
-                  {isAuthenticated() || guestReadyForAddresses ? (
+                  {isAuthenticated() || guestUserCreated ? (
                     <>
                       <button
                         onClick={() => setShowShippingForm(!showShippingForm)}
@@ -1510,10 +1328,13 @@ const CheckoutPage = () => {
               )}
             </div>
             
+            {/* Billing Address */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
+                <Copy className="h-5 w-5 mr-2" />
+                Billing Address
+              </h3>
               
-              {/* Billing Address Option Selector */}
               <div className="mb-6">
                 <div className="flex items-center space-x-6">
                   <label className="flex items-center cursor-pointer">
@@ -1604,7 +1425,7 @@ const CheckoutPage = () => {
                     </div>
                   ) : (
                     <div>
-                      {isAuthenticated() || guestReadyForAddresses ? (
+                      {isAuthenticated() || guestUserCreated ? (
                         <>
                           <button
                             onClick={() => setShowBillingForm(!showBillingForm)}
@@ -1636,8 +1457,12 @@ const CheckoutPage = () => {
               )}
             </div>
             
+            {/* Order Note */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
+              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">
+                <Clock className="h-5 w-5 inline mr-2" />
+                Order Note (optional)
+              </h3>
               <textarea
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
@@ -1648,6 +1473,7 @@ const CheckoutPage = () => {
               <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
             </div>
             
+            {/* Shipping Method */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
                 <Truck className="h-5 w-5 inline mr-2" />
@@ -1753,9 +1579,12 @@ const CheckoutPage = () => {
             </div>
           </div>
           
+          {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
+              
+              {/* Cart Items */}
               <div className="space-y-4 mb-6">
                 {cart.items.map((cartItem, index) => {
                   const item = cartItem.item || {};
@@ -1909,6 +1738,7 @@ const CheckoutPage = () => {
                 )}
               </div>
               
+              {/* Payment Method */}
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
                 <div className="space-y-2">
@@ -1963,6 +1793,7 @@ const CheckoutPage = () => {
                 </div>
               </div>
               
+              {/* Order Total */}
               <div className="border-t border-gray-200 pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-Accent font-Jost">
@@ -2086,7 +1917,7 @@ const CheckoutPage = () => {
                     !shippingAddressId || 
                     !billingAddressId || 
                     (isNigeria && !shippingMethod) ||
-                    (!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number || !isGuest))
+                    (isGuestCheckout && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number))
                   }
                 >
                   {loading ? (
