@@ -1,146 +1,218 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import videoBG from '../assets/CS.mp4';
+import videoBG2 from '../assets/tia2.mp4';
 import Button from './Button';
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
+  const intersectionObserverRef = useRef(null);
 
-  useEffect(() => {
-    // Check if mobile on mount and resize
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
-    // Preload the appropriate video based on screen size
-    const videoRef = isMobile ? mobileVideoRef : desktopVideoRef;
-    const video = videoRef.current;
-    
-    if (video) {
-      // Set loading strategy
-      video.preload = 'metadata';
-      
-      const handleCanPlay = () => {
-        setVideoLoaded(true);
-        // Start playing once it can play smoothly
-        video.play().catch(console.error);
-      };
-
-      const handleLoadStart = () => {
-        // Prioritize loading the visible video
-        if ((isMobile && video === mobileVideoRef.current) || 
-            (!isMobile && video === desktopVideoRef.current)) {
-          video.preload = 'auto';
-        }
-      };
-
-      video.addEventListener('canplay', handleCanPlay);
-      video.addEventListener('loadstart', handleLoadStart);
-      
-      return () => {
-        video.removeEventListener('canplay', handleCanPlay);
-        video.removeEventListener('loadstart', handleLoadStart);
-      };
+  // Memoized resize handler to prevent unnecessary re-renders
+  const handleResize = useCallback(() => {
+    const newIsMobile = window.innerWidth < 1024;
+    if (newIsMobile !== isMobile) {
+      setIsMobile(newIsMobile);
+      setVideoLoaded(false); // Reset loading state when switching videos
     }
   }, [isMobile]);
 
+  useEffect(() => {
+    // Throttled resize listener
+    let timeoutId;
+    const throttledResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleResize, 100);
+    };
+
+    window.addEventListener('resize', throttledResize);
+    return () => {
+      window.removeEventListener('resize', throttledResize);
+      clearTimeout(timeoutId);
+    };
+  }, [handleResize]);
+
+  // Video loading and playback management
+  useEffect(() => {
+    const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
+    const video = activeVideoRef.current;
+
+    if (!video) return;
+
+    const handleCanPlay = () => {
+      setVideoLoaded(true);
+      setVideoError(false);
+      
+      // Use requestAnimationFrame for smoother playback start
+      requestAnimationFrame(() => {
+        video.play().catch((error) => {
+          console.warn('Video autoplay failed:', error);
+          // Fallback: try playing on user interaction
+          document.addEventListener('click', () => video.play().catch(() => {}), { once: true });
+        });
+      });
+    };
+
+    const handleError = (error) => {
+      console.error('Video loading error:', error);
+      setVideoError(true);
+      setVideoLoaded(false);
+    };
+
+    const handleLoadStart = () => {
+      // Optimize loading based on visibility
+      if (intersectionObserverRef.current) {
+        video.preload = 'metadata';
+      }
+    };
+
+    // Event listeners
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadstart', handleLoadStart);
+
+    // Intersection Observer for performance
+    if ('IntersectionObserver' in window) {
+      intersectionObserverRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.target === video) {
+              video.preload = 'auto';
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+      
+      intersectionObserverRef.current.observe(video);
+    } else {
+      // Fallback for browsers without IntersectionObserver
+      video.preload = 'auto';
+    }
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadstart', handleLoadStart);
+      
+      if (intersectionObserverRef.current) {
+        intersectionObserverRef.current.disconnect();
+      }
+    };
+  }, [isMobile]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intersectionObserverRef.current) {
+        intersectionObserverRef.current.disconnect();
+      }
+    };
+  }, []);
+
   return (
     <div className="flex container-padding flex-col justify-start items-center h-[77dvh] sm:h-[84dvh] md:h-[82dvh] lg:h-[740px] relative overflow-hidden">
-      {/* Loading placeholder */}
-      {!videoLoaded && (
-        <div 
-          className="absolute top-0 left-0 w-full h-full bg-gray-900 flex items-center justify-center z-10"
-          style={{
-            backgroundImage: `url(${isMobile 
-              ? 'https://res.cloudinary.com/dgcwviufp/image/upload/v1756112530/CS_thumb.jpg'
-              : 'https://res.cloudinary.com/dgcwviufp/image/upload/v1756112795/tia2_thumb.jpg'
-            })`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        >
-          <div className="animate-pulse text-white">Loading...</div>
+      {/* Loading/Error States */}
+      {!videoLoaded && !videoError && (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10">
+          <div className="text-white text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-sm opacity-75">Loading experience...</p>
+          </div>
+        </div>
+      )}
+
+      {videoError && (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-10">
+          {/* Fallback background image or gradient */}
         </div>
       )}
 
       {/* Mobile Video */}
       <video
         ref={mobileVideoRef}
-        src="https://res.cloudinary.com/dgcwviufp/video/upload/v1756112530/CS_m65dwf.mp4"
+        src={videoBG}
         type="video/mp4"
-        autoPlay={false} // Let JavaScript control playback
+        autoPlay={false} // Controlled via JavaScript
         muted
         loop
         playsInline
-        preload="none" // Start with none, upgrade based on viewport
+        preload="none" // Start conservative, upgrade based on intersection
         controls={false}
         disablePictureInPicture
-        poster="https://res.cloudinary.com/dgcwviufp/image/upload/v1756112530/CS_thumb.jpg"
-        className={`absolute top-0 left-0 object-cover w-full h-full transition-opacity duration-300 lg:hidden ${
-          videoLoaded ? 'opacity-100' : 'opacity-0'
+        className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-500 ${
+          videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
-          pointerEvents: 'none', 
-          willChange: 'transform',
-          transform: 'translateZ(0)' // Force hardware acceleration
+          pointerEvents: 'none',
+          transform: 'translateZ(0)', // Hardware acceleration
+          willChange: 'transform, opacity'
         }}
-        onLoadedData={() => isMobile && setVideoLoaded(true)}
       />
 
       {/* Desktop Video */}
       <video
         ref={desktopVideoRef}
-        src="https://res.cloudinary.com/dgcwviufp/video/upload/v1756112795/tia2_gljwos.mp4"
+        src={videoBG2}
         type="video/mp4"
-        autoPlay={false} // Let JavaScript control playback
+        autoPlay={false} // Controlled via JavaScript
         muted
         loop
         playsInline
-        preload="none" // Start with none, upgrade based on viewport
+        preload="none" // Start conservative, upgrade based on intersection
         controls={false}
         disablePictureInPicture
-        poster="https://res.cloudinary.com/dgcwviufp/image/upload/v1756112795/tia2_thumb.jpg"
-        className={`absolute top-0 left-0 object-cover w-full h-full transition-opacity duration-300 hidden lg:block ${
-          videoLoaded ? 'opacity-100' : 'opacity-0'
+        className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-500 ${
+          videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
-          pointerEvents: 'none', 
-          willChange: 'transform',
-          transform: 'translateZ(0)' // Force hardware acceleration
+          pointerEvents: 'none',
+          transform: 'translateZ(0)', // Hardware acceleration
+          willChange: 'transform, opacity'
         }}
-        onLoadedData={() => !isMobile && setVideoLoaded(true)}
       />
 
       {/* Quick Nav */}
-      <div className="container quicknav flex flex-row justify-between lg:max-w-[800px] mb-[40dvh] sm:mb-38 md:mb-50 lg:mb-[50dvh] z-25">
-        <Link to="/shop?category=new" className="text-white hover:text-gray-300 transition-colors">
+      <nav 
+        className="container quicknav flex flex-row justify-between lg:max-w-[800px] mb-[40dvh] sm:mb-38 md:mb-50 lg:mb-[50dvh] z-25"
+        role="navigation"
+        aria-label="Product categories"
+      >
+        <Link 
+          to="/shop?category=new" 
+          className="text-white hover:text-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded px-2 py-1"
+        >
           NEW ARRIVALS
         </Link>
-        <Link to="/shop?category=briefs" className="text-white hover:text-gray-300 transition-colors">
+        <Link 
+          to="/shop?category=briefs" 
+          className="text-white hover:text-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded px-2 py-1"
+        >
           BRIEFS
         </Link>
-        <Link to="/shop?category=gymwear" className="text-white hover:text-gray-300 transition-colors">
+        <Link 
+          to="/shop?category=gymwear" 
+          className="text-white hover:text-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded px-2 py-1"
+        >
           GYM WEAR
         </Link>
-        <Link to="/shop" className="text-white hover:text-gray-300 transition-colors">
+        <Link 
+          to="/shop" 
+          className="text-white hover:text-gray-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded px-2 py-1"
+        >
           SHOP ALL
         </Link>
-      </div>
+      </nav>
 
       {/* Hero Text + CTA */}
       <div className="typography flex flex-col w-full items-center lgx:items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20">
         <h1 className="text-center lgx:text-left text-nowrap lgx:text-5xl">
           Unmatched Comfort.
-          <span className="max-sm:hidden">Bold Performance.</span>
+          <span className="max-sm:hidden"> Bold Performance.</span>
           <br />
           <span className="max-sm:text-base sm:text-3xl lg:text-5xl">Everyday Style.</span>
         </h1>
@@ -151,6 +223,7 @@ const HeroSection = () => {
             size="medium"
             stateProp="default"
             className="w-44"
+            divClassName=""
           />
         </Link>
       </div>
