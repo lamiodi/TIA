@@ -28,7 +28,6 @@ const HeroSection = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(handleResize, 100);
     };
-
     window.addEventListener('resize', throttledResize);
     return () => {
       window.removeEventListener('resize', throttledResize);
@@ -40,7 +39,6 @@ const HeroSection = () => {
   useEffect(() => {
     const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
     const video = activeVideoRef.current;
-
     if (!video) return;
 
     const handleCanPlay = () => {
@@ -119,19 +117,14 @@ const HeroSection = () => {
       {/* Loading/Error States */}
       {!videoLoaded && !videoError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10">
-          <div className="text-white text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-sm opacity-75">Loading experience...</p>
-          </div>
+          <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
         </div>
       )}
-
       {videoError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-10">
           {/* Fallback background image or gradient */}
         </div>
       )}
-
       {/* Mobile Video */}
       <video
         ref={mobileVideoRef}
@@ -153,7 +146,6 @@ const HeroSection = () => {
           willChange: 'transform, opacity'
         }}
       />
-
       {/* Desktop Video */}
       <video
         ref={desktopVideoRef}
@@ -175,7 +167,6 @@ const HeroSection = () => {
           willChange: 'transform, opacity'
         }}
       />
-
       {/* Quick Nav */}
       <nav 
         className="container quicknav flex flex-row justify-between lg:max-w-[800px] mb-[40dvh] sm:mb-38 md:mb-50 lg:mb-[50dvh] z-25"
@@ -207,7 +198,6 @@ const HeroSection = () => {
           SHOP ALL
         </Link>
       </nav>
-
       {/* Hero Text + CTA */}
       <div className="typography flex flex-col w-full items-center lgx:items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20">
         <h1 className="text-center lgx:text-left text-nowrap lgx:text-5xl">
