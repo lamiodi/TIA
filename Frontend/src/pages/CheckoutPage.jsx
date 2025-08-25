@@ -814,36 +814,6 @@ const CheckoutPage = () => {
     return () => document.body.removeChild(script);
   }, []);
   
-  // Add this useEffect to check for pending orders
-  useEffect(() => {
-    const checkPendingOrder = async () => {
-      const pendingOrderId = localStorage.getItem('pendingOrderId');
-      if (pendingOrderId) {
-        try {
-          const token = getToken();
-          const response = await axios.get(`${API_BASE_URL}/api/orders/${pendingOrderId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          const order = response.data;
-          if (order.payment_status === 'pending') {
-            toast.info('You have a pending order. Please complete the payment.');
-            navigate(`/orders/${pendingOrderId}`);
-            return;
-          }
-        } catch (err) {
-          console.error('Error checking pending order:', err);
-        } finally {
-          localStorage.removeItem('pendingOrderId');
-        }
-      }
-    };
-    
-    if (user && !authLoading && !contextLoading) {
-      checkPendingOrder();
-    }
-  }, [user, authLoading, contextLoading, navigate]);
-  
   const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
@@ -1101,6 +1071,8 @@ const CheckoutPage = () => {
                 console.error('Error checking payment status:', err);
                 toast.info('Payment window closed. You can complete payment later from your orders page.');
                 navigate(`/orders/${orderId}`);
+              } finally {
+                localStorage.removeItem('pendingOrderId'); // Clear pendingOrderId
               }
             };
             
@@ -1126,6 +1098,7 @@ const CheckoutPage = () => {
         setError(`Failed to process order: ${errorMessage}`);
         toast.error(`Failed to process order: ${errorMessage}`);
       }
+      localStorage.removeItem('pendingOrderId'); // Clear pendingOrderId on error
     } finally {
       setLoading(false);
     }
@@ -1177,24 +1150,8 @@ const CheckoutPage = () => {
     );
   }
   
-  // Updated empty cart handling to check for pending orders
+  // Updated empty cart handling
   if (!cart?.items?.length) {
-    // Check if there's a pending order
-    const pendingOrderId = localStorage.getItem('pendingOrderId');
-    if (pendingOrderId) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center text-gray-600 py-8 font-Jost">
-            <p>Your order is pending payment.</p>
-            <Link to={`/orders/${pendingOrderId}`} className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800">
-              View Order
-            </Link>
-          </div>
-        </div>
-      );
-    }
-    
-    // Original empty cart message
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-gray-600 py-8 font-Jost">
@@ -1844,7 +1801,7 @@ const CheckoutPage = () => {
                     <button
                       type="submit"
                       disabled={couponLoading || !couponCode.trim()}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-Jost"
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-Jost hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {couponLoading ? 'Applying...' : 'Apply'}
                     </button>
@@ -1852,220 +1809,177 @@ const CheckoutPage = () => {
                 )}
                 
                 {couponError && (
-                  <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {couponError}
-                  </div>
+                  <p className="text-sm text-red-600 mt-2 font-Jost">{couponError}</p>
                 )}
-                
-                {couponSuccess && !appliedCoupon && (
-                  <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    {couponSuccess}
-                  </div>
+                {couponSuccess && (
+                  <p className="text-sm text-green-600 mt-2 font-Jost">{couponSuccess}</p>
                 )}
               </div>
               
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 font-Manrope">Payment Method</h4>
-                <div className="space-y-2">
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'card' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
+              {/* Order Summary Totals */}
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                <div className="flex justify-between text-sm font-Jost">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-gray-900">
+                    {displaySubtotal.toLocaleString('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN',
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                
+                {displayFirstOrderDiscount > 0 && (
+                  <div className="flex justify-between text-sm font-Jost">
+                    <span className="text-green-600">First Order Discount (5%)</span>
+                    <span className="text-green-600">
+                      -{displayFirstOrderDiscount.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                
+                {displayCouponDiscount > 0 && (
+                  <div className="flex justify-between text-sm font-Jost">
+                    <span className="text-green-600">Coupon Discount</span>
+                    <span className="text-green-600">
+                      -{displayCouponDiscount.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                
+                {displayTotalDiscount > 0 && (
+                  <div className="flex justify-between text-sm font-Jost font-medium">
+                    <span className="text-green-700">Total Discount</span>
+                    <span className="text-green-700">
+                      -{displayTotalDiscount.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                
+                {displayTax > 0 && (
+                  <div className="flex justify-between text-sm font-Jost">
+                    <span className="text-gray-600">Tax (5%)</span>
+                    <span className="text-gray-900">
+                      {displayTax.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                
+                {isNigeria && shippingCost > 0 && (
+                  <div className="flex justify-between text-sm font-Jost">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="text-gray-900">
+                      {shippingCost.toLocaleString('en-NG', {
+                        style: 'currency',
+                        currency: 'NGN',
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-lg font-bold font-Manrope">
+                  <span className="text-gray-900">Total</span>
+                  <span className="text-gray-900">
+                    {displayTotal.toLocaleString('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN',
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Payment Method Selection */}
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Payment Method</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-gray-300 cursor-pointer">
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="card"
                       checked={paymentMethod === 'card'}
                       onChange={() => setPaymentMethod('card')}
-                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
+                      className="h-4 w-4 text-gray-900 focus:ring-gray-900"
                     />
-                    <span className="text-sm text-gray-600 font-Jost">Card Payment</span>
+                    <span className="ml-2 flex items-center text-sm font-medium text-gray-700 font-Jost">
+                      <Smartphone className="h-5 w-5 mr-2" />
+                      Pay with Card (Paystack)
+                    </span>
                   </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bank' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bank"
-                      checked={paymentMethod === 'bank'}
-                      onChange={() => setPaymentMethod('bank')}
-                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
-                    />
-                    <span className="text-sm text-gray-600 font-Jost">Bank Transfer</span>
-                  </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bitcoin' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
+                  
+                  <label className="flex items-center p-3 rounded-lg border border-gray-200 hover:border-gray-300 cursor-pointer">
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="bitcoin"
                       checked={paymentMethod === 'bitcoin'}
                       onChange={() => setPaymentMethod('bitcoin')}
-                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
+                      className="h-4 w-4 text-gray-900 focus:ring-gray-900"
                     />
-                    <div className="flex items-center">
-                      <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
-                      <span className="text-sm text-gray-600 font-Jost">Bitcoin/Crypto</span>
-                    </div>
+                    <span className="ml-2 flex items-center text-sm font-medium text-gray-700 font-Jost">
+                      <Bitcoin className="h-5 w-5 mr-2 text-orange-500" />
+                      Pay with Bitcoin
+                    </span>
                   </label>
                 </div>
               </div>
               
-              <div className="border-t border-gray-200 pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600 font-Jost">
-                    <span>Subtotal</span>
-                    <span>
-                      {displaySubtotal.toLocaleString('en-NG', {
-                        style: 'currency',
-                        currency: 'NGN',
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                  
-                  {displayFirstOrderDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>First Order Discount (5%)</span>
-                      <span>
-                        -{displayFirstOrderDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {displayCouponDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>Coupon Discount</span>
-                      <span>
-                        -{displayCouponDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between text-sm text-gray-600 font-Jost">
-                    <span>Shipping</span>
-                    <span>
-                      {isNigeria ? (
-                        (shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })
-                      ) : (
-                        'TBD'
-                      )}
-                    </span>
-                  </div>
-                  
-                  {!isNigeria && (
-                    <div className="flex justify-between text-sm text-gray-600 font-Jost">
-                      <span>Tax (5%)</span>
-                      <span>
-                        {displayTax.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-gray-900 font-Manrope">
-                    <span>Total</span>
-                    <span>
-                      {displayTotal.toLocaleString('en-NG', {
-                        style: 'currency',
-                        currency: 'NGN',
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                {!isNigeria && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-700 font-Jost">
-                      <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
-                    </p>
-                  </div>
-                )}
-                
-                {displayFirstOrderDiscount > 0 && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
-                    </p>
-                  </div>
-                )}
-                
-                {appliedCoupon && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎁 <strong>Coupon Applied!</strong> You saved {appliedCoupon.type === 'percentage' 
-                        ? `${appliedCoupon.value}%` 
-                        : `₦${appliedCoupon.amount.toFixed(2)}`} with coupon code {appliedCoupon.code}.
-                    </p>
-                  </div>
-                )}
-                
-                {isGuestConversion && (
-                  <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-xs text-yellow-700 font-Jost">
-                      <strong>Note:</strong> As a guest who created an account during checkout, you don't qualify for the first-order discount. This discount is only available to completely new customers.
-                    </p>
-                  </div>
-                )}
-                
+              {/* Checkout Button */}
+              <div className="mt-6">
                 <button
-                  onClick={handlePayment}
-                  className="mt-6 w-full bg-gray-900 text-white text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || !shippingAddressId || !billingAddressId || (isNigeria && !shippingMethod)}
+                  onClick={() => {
+                    if (paymentMethod === 'bitcoin') {
+                      setShowBitcoinInstructions(true);
+                    } else {
+                      handlePayment();
+                    }
+                  }}
+                  disabled={loading || isCreatingAccount || (!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number))}
+                  className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Jost"
                 >
-                  {loading ? (
+                  {loading || isCreatingAccount ? (
                     <div className="flex items-center justify-center">
-                      <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
                       Processing...
                     </div>
+                  ) : paymentMethod === 'bitcoin' ? (
+                    'Pay with Bitcoin'
                   ) : (
                     'Place Order'
                   )}
                 </button>
-                
-                {paymentMethod === 'bitcoin' && (
-                  <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <Bitcoin className="h-4 w-4 text-orange-600" />
-                      <p className="text-xs text-orange-800 font-Jost">
-                        Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
-                      </p>
-                    </div>
-                  </div>
-                )}
+              </div>
+              
+              {/* Security Note */}
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-600 font-Jost">
+                  <Lock className="h-4 w-4 inline mr-1" />
+                  Secure checkout powered by Paystack
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <WhatsAppChatWidget />
+      <WhatsAppChatWidget phoneNumber={WHATSAPP_NUMBER} />
       <Footer />
     </div>
   );

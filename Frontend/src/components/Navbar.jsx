@@ -27,6 +27,7 @@ export default function Navbar() {
   
   const handleLogout = () => {
     logout();
+    localStorage.removeItem('pendingOrderId'); // Clear pendingOrderId to prevent stale data
     toastSuccess('Logged out successfully');
     navigate('/login');
     setIsMenuOpen(false); // Close menu on logout
