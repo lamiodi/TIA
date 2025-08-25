@@ -218,20 +218,25 @@ const CheckoutPage = () => {
         const parsedCart = JSON.parse(guestCart);
         const userId = getUserId();
         
-        // Add each item to the user's cart
+        // Add each item to the user's cart with correct body
         for (const item of parsedCart.items) {
+          const body = {
+            user_id: userId,
+            product_type: item.product_type,
+            quantity: item.quantity,
+          };
+
+          if (item.product_type === 'single') {
+            body.variant_id = item.variant_id;
+            body.size_id = item.size_id;
+          } else if (item.product_type === 'bundle') {
+            body.bundle_id = item.bundle_id;
+            body.items = item.items;
+          }
+
           await axios.post(
-            `${API_BASE_URL}/api/cart/add`,
-            {
-              user_id: userId,
-              variant_id: item.item.is_product ? item.item.id : null,
-              bundle_id: item.item.is_product ? null : item.item.id,
-              quantity: item.quantity,
-              size_id: item.item.size_id || null,
-              color_name: item.item.color || null,
-              size_name: item.item.size || null,
-              price: item.item.price
-            },
+            `${API_BASE_URL}/api/cart`,
+            body,
             { headers: { Authorization: `Bearer ${token}` } }
           );
         }
@@ -414,15 +419,19 @@ const CheckoutPage = () => {
   };
   
   const handleShippingSubmit = async (data) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to add shipping address');
-      navigate('/login', { state: { from: '/checkout' } });
-      return;
-    }
-    
     try {
       setLoading(true);
+      if (!isAuthenticated()) {
+        const created = await createTemporaryUser();
+        if (!created) {
+          setLoading(false);
+          return;
+        }
+        await transferGuestCart();
+        await refreshUserData();
+        await fetchCartAndAddresses();
+      }
+
       const userId = getUserId();
       const token = getToken();
       const payload = { user_id: userId, ...data };
@@ -494,15 +503,19 @@ const CheckoutPage = () => {
   };
   
   const handleBillingSubmit = async (data) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to add billing address');
-      navigate('/login', { state: { from: '/checkout' } });
-      return;
-    }
-    
     try {
       setLoading(true);
+      if (!isAuthenticated()) {
+        const created = await createTemporaryUser();
+        if (!created) {
+          setLoading(false);
+          return;
+        }
+        await transferGuestCart();
+        await refreshUserData();
+        await fetchCartAndAddresses();
+      }
+
       const userId = getUserId();
       const token = getToken();
       const payload = { user_id: userId, ...data };
@@ -529,15 +542,19 @@ const CheckoutPage = () => {
   };
   
   const handleDeleteAddress = async (type, addressId) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to delete address');
-      navigate('/login', { state: { from: '/checkout' } });
-      return;
-    }
-  
     try {
       setLoading(true);
+      if (!isAuthenticated()) {
+        const created = await createTemporaryUser();
+        if (!created) {
+          setLoading(false);
+          return;
+        }
+        await transferGuestCart();
+        await refreshUserData();
+        await fetchCartAndAddresses();
+      }
+
       const token = getToken();
   
       // 1. Delete address from backend
@@ -679,22 +696,8 @@ const CheckoutPage = () => {
     }
   };
   
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => document.body.removeChild(script);
-  }, []);
-  
   // Fetch cart and addresses function
   const fetchCartAndAddresses = async () => {
-    if (!isAuthenticated()) {
-      setError('Please log in to proceed with checkout.');
-      toast.error('Please log in to proceed with checkout.');
-      return;
-    }
-    
     setLoading(true);
     try {
       const userId = getUserId();
@@ -777,59 +780,39 @@ const CheckoutPage = () => {
       setLoading(false);
     }
   };
+
+  const loadGuestCartForCheckout = () => {
+    const guestCart = localStorage.getItem('guestCart');
+    if (guestCart) {
+      const parsedCart = JSON.parse(guestCart);
+      setCart(parsedCart);
+      console.log('Loaded guest cart for checkout');
+    } else {
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+    }
+  };
   
   useEffect(() => {
-    const fetchCartAndAddressesAsync = async () => {
-      if (user && !authLoading && !contextLoading) {
+    const fetchData = async () => {
+      if (authLoading || contextLoading) return;
+
+      if (isAuthenticated() && user) {
         await fetchCartAndAddresses();
+      } else {
+        loadGuestCartForCheckout();
       }
     };
-    
-    fetchCartAndAddressesAsync();
+
+    fetchData();
   }, [user, authLoading, contextLoading]);
   
-  // Update billing address when shipping address changes if option is 'same'
   useEffect(() => {
-    if (billingAddressOption === 'same' && shippingAddressId) {
-      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-      if (selectedShippingAddress) {
-        // Try to find a matching billing address
-        const matchingBillingAddress = billingAddresses.find(addr => 
-          addr.address_line_1 === selectedShippingAddress.address_line_1 &&
-          addr.city === selectedShippingAddress.city &&
-          addr.state === selectedShippingAddress.state
-        );
-        
-        if (matchingBillingAddress) {
-          setBillingAddressId(String(matchingBillingAddress.id));
-        }
-      }
-    }
-  }, [shippingAddressId, billingAddressOption, shippingAddresses, billingAddresses]);
-  
-  useEffect(() => {
-    if (shippingAddresses.length > 0 && !shippingAddressId) {
-      setShippingAddressId(String(shippingAddresses[0].id));
-    }
-    if (billingAddresses.length > 0 && !billingAddressId) {
-      setBillingAddressId(String(billingAddresses[0].id));
-    }
-  }, [shippingAddresses, billingAddresses, shippingAddressId, billingAddressId]);
-  
-  useEffect(() => {
-    const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-    const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-    
-    if (isNigeria && !shippingMethod) {
-      const defaultMethod = shippingOptions[0];
-      setShippingMethod(defaultMethod);
-    }
-    
-    if (!isNigeria && shippingMethod) {
-      setShippingMethod(null);
-    }
-  }, [shippingAddresses, shippingAddressId, country]);
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
+  }, []);
   
   // Add this useEffect to check for pending orders
   useEffect(() => {
@@ -905,6 +888,9 @@ const CheckoutPage = () => {
       // Refresh user data
       await refreshUserData();
       setUserDataRefreshed(true);
+
+      // Fetch updated cart and addresses
+      await fetchCartAndAddresses();
       
       setIsCreatingAccount(false);
     }
@@ -1172,7 +1158,7 @@ const CheckoutPage = () => {
   if (authLoading || contextLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-Accent">
+        <div className="flex flex-col items-center justify-center text-gray-600">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <p className="mt-2 text-sm font-Jost">Loading...</p>
         </div>
@@ -1183,7 +1169,7 @@ const CheckoutPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-Accent">
+        <div className="flex flex-col items-center justify-center text-gray-600">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <p className="mt-2 text-sm font-Jost">Loading checkout data...</p>
         </div>
@@ -1198,9 +1184,9 @@ const CheckoutPage = () => {
     if (pendingOrderId) {
       return (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center text-Accent py-8 font-Jost">
+          <div className="text-center text-gray-600 py-8 font-Jost">
             <p>Your order is pending payment.</p>
-            <Link to={`/orders/${pendingOrderId}`} className="mt-4 inline-flex items-center text-Accent hover:text-Primarycolor">
+            <Link to={`/orders/${pendingOrderId}`} className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800">
               View Order
             </Link>
           </div>
@@ -1211,9 +1197,9 @@ const CheckoutPage = () => {
     // Original empty cart message
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-Accent py-8 font-Jost">
+        <div className="text-center text-gray-600 py-8 font-Jost">
           Your cart is empty. Please add items to proceed.
-          <Link to="/cart" className="mt-4 inline-flex items-center text-Accent hover:text-Primarycolor">
+          <Link to="/cart" className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800">
             <ArrowLeft className="h-5 w-5 mr-2" /> Go to Cart
           </Link>
         </div>
@@ -1223,7 +1209,7 @@ const CheckoutPage = () => {
   
   return (
     <div 
-      className="min-h-screen bg-gray-100 typography"
+      className="min-h-screen bg-gray-50 typography"
       style={{
         '--color-Primarycolor': '#1E1E1E',
         '--color-Secondarycolor': '#ffffff',
@@ -1234,10 +1220,10 @@ const CheckoutPage = () => {
     >
       <Navbar />
       <div className="max-w-7xl mx-auto px-[0.4em] md:px-4 sm:px-6 lg:px-8 py-7">
-        <Link to="/cart" className="inline-flex items-center text-Accent hover:text-Primarycolor mb-6 font-Jost">
+        <Link to="/cart" className="inline-flex items-center text-gray-600 hover:text-gray-800 mb-6 font-Jost">
           <ArrowLeft className="h-5 w-5 mr-1" /> Back to Cart
         </Link>
-        <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-8 font-Manrope">Checkout</h2>
         
         {/* Debug Panel - Remove in production */}
         {process.env.NODE_ENV === 'development' && (
@@ -1278,13 +1264,13 @@ const CheckoutPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-md w-full p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-Primarycolor flex items-center font-Manrope">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center font-Manrope">
                   <Bitcoin className="h-5 w-5 mr-2 text-orange-500" />
                   Bitcoin Payment Instructions
                 </h3>
                 <button 
                   onClick={() => setShowBitcoinInstructions(false)}
-                  className="text-Accent hover:text-Primarycolor"
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   ✕
                 </button>
@@ -1297,7 +1283,7 @@ const CheckoutPage = () => {
                   </p>
                 </div>
                 
-                <ol className="list-decimal pl-5 space-y-2 text-sm text-Accent font-Jost">
+                <ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600 font-Jost">
                   <li>Take a screenshot of your checkout page showing the order total and items</li>
                   <li>Click the button below to open WhatsApp</li>
                   <li>Send the screenshot along with your order details</li>
@@ -1321,7 +1307,7 @@ const CheckoutPage = () => {
                   </button>
                   <button
                     onClick={() => setShowBitcoinInstructions(false)}
-                    className="flex-1 bg-gray-200 text-Primarycolor py-2 px-4 rounded-md hover:bg-gray-300 transition-colors font-Jost"
+                    className="flex-1 bg-gray-200 text-gray-900 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors font-Jost"
                   >
                     Cancel
                   </button>
@@ -1336,7 +1322,7 @@ const CheckoutPage = () => {
             {/* Guest Information Section - Only show if user is not authenticated */}
             {!isAuthenticated() && (
               <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Your Information</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Your Information</h3>
                 
                 <div className="space-y-4">
                   <div>
@@ -1433,12 +1419,12 @@ const CheckoutPage = () => {
             )}
             
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Shipping Address</h3>
               
               {shippingAddresses.length > 0 ? (
                 <div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 font-Jost">Select Shipping Address</label>
                     <select
                       value={shippingAddressId ?? ''}
                       onChange={(e) => setShippingAddressId(String(e.target.value))}
@@ -1455,7 +1441,7 @@ const CheckoutPage = () => {
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={() => setShowShippingForm(true)}
-                      className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                      className="text-gray-900 hover:text-gray-800 text-sm flex items-center font-Jost"
                       disabled={loading}
                     >
                       Add New Address
@@ -1473,7 +1459,7 @@ const CheckoutPage = () => {
                 <div>
                   <button
                     onClick={() => setShowShippingForm(!showShippingForm)}
-                    className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                    className="text-gray-600 hover:text-gray-900 text-sm mb-4 font-Jost"
                   >
                     {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
                   </button>
@@ -1492,7 +1478,7 @@ const CheckoutPage = () => {
             </div>
             
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Billing Address</h3>
               
               {/* Billing Address Option Selector */}
               <div className="mb-6">
@@ -1504,9 +1490,9 @@ const CheckoutPage = () => {
                       value="same"
                       checked={billingAddressOption === 'same'}
                       onChange={() => setBillingAddressOption('same')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                      className="h-4 w-4 text-gray-900 focus:ring-gray-900 mr-2"
                     />
-                    <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                    <span className="text-sm font-medium text-gray-700 font-Jost">Same as shipping address</span>
                   </label>
                   <label className="flex items-center cursor-pointer">
                     <input
@@ -1515,9 +1501,9 @@ const CheckoutPage = () => {
                       value="different"
                       checked={billingAddressOption === 'different'}
                       onChange={() => setBillingAddressOption('different')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                      className="h-4 w-4 text-gray-900 focus:ring-gray-900 mr-2"
                     />
-                    <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                    <span className="text-sm font-medium text-gray-700 font-Jost">Use a different billing address</span>
                   </label>
                 </div>
               </div>
@@ -1526,9 +1512,9 @@ const CheckoutPage = () => {
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div className="flex items-start">
                     <div className="flex-1">
-                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                      <h4 className="font-medium text-gray-900 font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
                       {selectedShippingAddress ? (
-                        <div className="text-sm text-Accent font-Jost">
+                        <div className="text-sm text-gray-600 font-Jost">
                           <p>{selectedShippingAddress.address_line_1}</p>
                           {selectedShippingAddress.address_line_2 && <p>{selectedShippingAddress.address_line_2}</p>}
                           <p>{selectedShippingAddress.city}, {selectedShippingAddress.state} {selectedShippingAddress.zip_code}</p>
@@ -1540,7 +1526,7 @@ const CheckoutPage = () => {
                     </div>
                     <button
                       onClick={copyShippingToBilling}
-                      className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                      className="ml-4 p-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
                       title="Copy shipping address to billing address"
                     >
                       <Copy className="h-4 w-4" />
@@ -1552,7 +1538,7 @@ const CheckoutPage = () => {
                   {billingAddresses.length > 0 ? (
                     <div>
                       <div className="mb-4">
-                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 font-Jost">Select Billing Address</label>
                         <select
                           value={billingAddressId ?? ''}
                           onChange={(e) => setBillingAddressId(String(e.target.value))}
@@ -1569,7 +1555,7 @@ const CheckoutPage = () => {
                       <div className="flex gap-2 mt-4">
                         <button
                           onClick={() => setShowBillingForm(true)}
-                          className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                          className="text-gray-900 hover:text-gray-800 text-sm flex items-center font-Jost"
                           disabled={loading}
                         >
                           Add New Address
@@ -1587,7 +1573,7 @@ const CheckoutPage = () => {
                     <div>
                       <button
                         onClick={() => setShowBillingForm(!showBillingForm)}
-                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                        className="text-gray-600 hover:text-gray-900 text-sm mb-4 font-Jost"
                       >
                         {showBillingForm ? 'Cancel' : 'Add Billing Address'}
                       </button>
@@ -1608,7 +1594,7 @@ const CheckoutPage = () => {
             </div>
             
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Order Note (optional)</h3>
               <textarea
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
@@ -1616,11 +1602,11 @@ const CheckoutPage = () => {
                 placeholder="Add a note to your order (e.g., special instructions)"
                 className="w-full p-2 border border-gray-300 rounded-md font-Jost"
               />
-              <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
+              <p className="text-sm text-gray-600 font-Jost">Characters left: {500 - orderNote.length}/500</p>
             </div>
             
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6 font-Manrope">
                 <Truck className="h-5 w-5 inline mr-2" />
                 Shipping Method
               </h3>
@@ -1632,7 +1618,7 @@ const CheckoutPage = () => {
                       className={`
                         relative cursor-pointer rounded-xl border-2 transition-all duration-200
                         ${shippingMethod?.id === option.id 
-                          ? 'border-Primarycolor bg-gradient-to-r from-gray-50 to-blue-50 shadow-md' 
+                          ? 'border-gray-900 bg-gradient-to-r from-gray-50 to-blue-50 shadow-md' 
                           : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                         }
                       `}
@@ -1645,7 +1631,7 @@ const CheckoutPage = () => {
                             value={option.id}
                             checked={shippingMethod?.id === option.id}
                             onChange={() => setShippingMethod(option)}
-                            className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
+                            className="mt-1 h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900"
                           />
                           
                           <div className="flex-1">
@@ -1654,23 +1640,23 @@ const CheckoutPage = () => {
                                 <div className={`
                                   p-2 rounded-lg
                                   ${shippingMethod?.id === option.id 
-                                    ? 'bg-Primarycolor text-white' 
-                                    : 'bg-gray-100 text-Accent'
+                                    ? 'bg-gray-900 text-white' 
+                                    : 'bg-gray-100 text-gray-600'
                                   }
                                 `}>
                                   {getShippingIcon(option.icon)}
                                 </div>
                                 <div>
-                                  <h4 className="font-semibold text-Primarycolor text-sm sm:text-base font-Manrope">
+                                  <h4 className="font-bold text-gray-900 text-sm sm:text-base font-Manrope">
                                     {option.method}
                                   </h4>
-                                  <p className="text-xs sm:text-sm text-Accent font-Jost">
+                                  <p className="text-xs sm:text-sm text-gray-600 font-Jost">
                                     {option.description}
                                   </p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-Primarycolor text-lg font-Manrope">
+                                <div className="font-bold text-gray-900 text-lg font-Manrope">
                                   {option.total_cost.toLocaleString('en-NG', {
                                     style: 'currency',
                                     currency: 'NGN',
@@ -1679,7 +1665,7 @@ const CheckoutPage = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-Accent font-Jost">
+                            <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-gray-600 font-Jost">
                               <Clock className="h-4 w-4" />
                               <span>{option.estimated_delivery}</span>
                             </div>
@@ -1688,7 +1674,7 @@ const CheckoutPage = () => {
                       </div>
                       {shippingMethod?.id === option.id && (
                         <div className="absolute top-3 right-3">
-                          <div className="bg-Primarycolor text-white rounded-full p-1">
+                          <div className="bg-gray-900 text-white rounded-full p-1">
                             <CheckCircle className="h-4 w-4" />
                           </div>
                         </div>
@@ -1703,12 +1689,12 @@ const CheckoutPage = () => {
                       <MapPin className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-Primarycolor font-Manrope">
+                      <h4 className="font-semibold text-gray-900 font-Manrope">
                         International Shipping to {addressCountry}
                       </h4>
                     </div>
                   </div>
-                  <p className="text-sm text-Accent font-Jost mb-2">
+                  <p className="text-sm text-gray-600 font-Jost mb-2">
                     You will receive a separate email with payment instructions for international shipping fees.
                     Note: Payments are processed in NGN due to current system limitations.
                   </p>
@@ -1726,7 +1712,7 @@ const CheckoutPage = () => {
           
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-6 font-Manrope">Order Summary</h3>
               <div className="space-y-4 mb-6">
                 {cart.items.map((cartItem, index) => {
                   const item = cartItem.item || {};
@@ -1745,23 +1731,23 @@ const CheckoutPage = () => {
                               e.target.src = 'https://via.placeholder.com/80x80?text=No+Image'; 
                             }}
                           />
-                          <div className="absolute -top-2 -right-2 bg-Primarycolor text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                          <div className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
                             {cartItem.quantity || 1}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-Primarycolor text-sm sm:text-base truncate font-Manrope">
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate font-Manrope">
                             {item.name || 'Unknown Item'}
                           </h4>
                           {item.is_product && (item.color || item.size) && (
                             <div className="flex flex-wrap gap-2 mt-1">
                               {item.color && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-gray-600 font-Jost">
                                   {item.color || item.color_name}
                                 </span>
                               )}
                               {item.size && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-gray-600 font-Jost">
                                   {item.size || item.size_name}
                                 </span>
                               )}
@@ -1769,7 +1755,7 @@ const CheckoutPage = () => {
                           )}
                           {!item.is_product && Array.isArray(item.items) && item.items.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-xs text-Accent mb-1 font-Jost">Bundle includes:</p>
+                              <p className="text-xs text-gray-600 mb-1 font-Jost">Bundle includes:</p>
                               <div className="grid grid-cols-3 gap-1">
                                 {item.items.map((bundleItem, idx) => (
                                   <div key={bundleItem.id || idx} className="flex flex-col items-center">
@@ -1781,10 +1767,10 @@ const CheckoutPage = () => {
                                         e.target.src = 'https://via.placeholder.com/40x40'; 
                                       }}
                                     />
-                                    <span className="text-xs text-Accent font-Jost truncate w-full text-center">
+                                    <span className="text-xs text-gray-600 font-Jost truncate w-full text-center">
                                       {bundleItem.color_name}
                                     </span>
-                                    <span className="text-xs text-Accent font-Jost truncate w-full text-center">
+                                    <span className="text-xs text-gray-600 font-Jost truncate w-full text-center">
                                       {bundleItem.size_name}
                                     </span>
                                   </div>
@@ -1793,14 +1779,14 @@ const CheckoutPage = () => {
                             </div>
                           )}
                           <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-Accent font-Jost">
+                            <span className="text-xs text-gray-600 font-Jost">
                               {price.toLocaleString('en-NG', {
                                 style: 'currency',
                                 currency: 'NGN',
                                 minimumFractionDigits: 2,
                               })} each
                             </span>
-                            <span className="font-semibold text-Primarycolor font-Manrope">
+                            <span className="font-bold text-gray-900 font-Manrope">
                               {itemTotal.toLocaleString('en-NG', {
                                 style: 'currency',
                                 currency: 'NGN',
@@ -1881,11 +1867,11 @@ const CheckoutPage = () => {
               </div>
               
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 font-Manrope">Payment Method</h4>
                 <div className="space-y-2">
                   <label
                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'card' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                      paymentMethod === 'card' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <input
@@ -1894,13 +1880,13 @@ const CheckoutPage = () => {
                       value="card"
                       checked={paymentMethod === 'card'}
                       onChange={() => setPaymentMethod('card')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
                     />
-                    <span className="text-sm text-Accent font-Jost">Card Payment</span>
+                    <span className="text-sm text-gray-600 font-Jost">Card Payment</span>
                   </label>
                   <label
                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bank' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                      paymentMethod === 'bank' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <input
@@ -1909,13 +1895,13 @@ const CheckoutPage = () => {
                       value="bank"
                       checked={paymentMethod === 'bank'}
                       onChange={() => setPaymentMethod('bank')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
                     />
-                    <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
+                    <span className="text-sm text-gray-600 font-Jost">Bank Transfer</span>
                   </label>
                   <label
                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bitcoin' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                      paymentMethod === 'bitcoin' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <input
@@ -1924,11 +1910,11 @@ const CheckoutPage = () => {
                       value="bitcoin"
                       checked={paymentMethod === 'bitcoin'}
                       onChange={() => setPaymentMethod('bitcoin')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                      className="h-4 w-4 text-gray-900 focus:ring-2 focus:ring-gray-900 mr-3"
                     />
                     <div className="flex items-center">
                       <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
-                      <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
+                      <span className="text-sm text-gray-600 font-Jost">Bitcoin/Crypto</span>
                     </div>
                   </label>
                 </div>
@@ -1936,7 +1922,7 @@ const CheckoutPage = () => {
               
               <div className="border-t border-gray-200 pt-4">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
+                  <div className="flex justify-between text-sm text-gray-600 font-Jost">
                     <span>Subtotal</span>
                     <span>
                       {displaySubtotal.toLocaleString('en-NG', {
@@ -1973,7 +1959,7 @@ const CheckoutPage = () => {
                     </div>
                   )}
                   
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
+                  <div className="flex justify-between text-sm text-gray-600 font-Jost">
                     <span>Shipping</span>
                     <span>
                       {isNigeria ? (
@@ -1989,7 +1975,7 @@ const CheckoutPage = () => {
                   </div>
                   
                   {!isNigeria && (
-                    <div className="flex justify-between text-sm text-Accent font-Jost">
+                    <div className="flex justify-between text-sm text-gray-600 font-Jost">
                       <span>Tax (5%)</span>
                       <span>
                         {displayTax.toLocaleString('en-NG', {
@@ -2003,7 +1989,7 @@ const CheckoutPage = () => {
                 </div>
                 
                 <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
+                  <div className="flex justify-between text-lg font-bold text-gray-900 font-Manrope">
                     <span>Total</span>
                     <span>
                       {displayTotal.toLocaleString('en-NG', {
@@ -2051,7 +2037,7 @@ const CheckoutPage = () => {
                 
                 <button
                   onClick={handlePayment}
-                  className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
+                  className="mt-6 w-full bg-gray-900 text-white text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
                   disabled={loading || !shippingAddressId || !billingAddressId || (isNigeria && !shippingMethod)}
                 >
                   {loading ? (
