@@ -594,3 +594,69 @@ export const clearCartPost = async (req, res) => {
   console.log('Backend: POST /api/cart/clear/:userId called as fallback');
   return clearCart(req, res);
 };
+
+export const transferGuestCart = async (req, res) => {
+  const { user_id, guest_cart } = req.body;
+
+  if (!user_id || !guest_cart || !Array.isArray(guest_cart.items)) {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      // Get or create cart
+      let [cart] = await sql`
+        SELECT id FROM cart WHERE user_id = ${user_id}
+      `;
+      if (!cart) {
+        [cart] = await sql`
+          INSERT INTO cart (user_id, subtotal, tax, total) VALUES (${user_id}, 0, 0, 0) RETURNING id
+        `;
+      }
+      const cartId = cart.id;
+
+      let subtotal = 0;
+
+      for (const item of guest_cart.items) {
+        if (item.product_type === 'single') {
+          // Add product item
+          await sql`
+            INSERT INTO cart_items (cart_id, variant_id, size_id, quantity)
+            VALUES (${cartId}, ${item.variant_id}, ${item.size_id}, ${item.quantity})
+          `;
+          subtotal += item.price * item.quantity;
+        } else if (item.product_type === 'bundle') {
+          // Add bundle item
+          const [bundleItem] = await sql`
+            INSERT INTO cart_bundle_items (cart_id, bundle_id, quantity)
+            VALUES (${cartId}, ${item.bundle_id}, ${item.quantity})
+            RETURNING id
+          `;
+          const bundleItemId = bundleItem.id;
+
+          // Add bundle details (assuming cart_bundle_item_details table)
+          for (const bi of item.items || []) {
+            await sql`
+              INSERT INTO cart_bundle_item_details (cart_bundle_item_id, variant_id, size_id)
+              VALUES (${bundleItemId}, ${bi.variant_id}, ${bi.size_id})
+            `;
+          }
+          subtotal += item.price * item.quantity;
+        }
+      }
+
+      // Update cart totals (adjust tax logic as needed)
+      const tax = guest_cart.tax || 0;
+      const total = subtotal + tax;
+      await sql`
+        UPDATE cart SET subtotal = ${subtotal}, tax = ${tax}, total = ${total}
+        WHERE id = ${cartId}
+      `;
+    });
+
+    res.status(200).json({ message: 'Guest cart transferred successfully' });
+  } catch (err) {
+    console.error('Error transferring guest cart:', err);
+    res.status(500).json({ error: 'Failed to transfer guest cart' });
+  }
+};

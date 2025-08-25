@@ -287,73 +287,45 @@ export const updateUserFirstOrder = async (req, res) => {
 // In authController.js, update createTemporaryUser function:
 
 export const createTemporaryUser = async (req, res) => {
+  const { first_name, last_name, email, phone_number } = req.body;
+
+  if (!first_name || !last_name || !email || !phone_number) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
   try {
-    // Check if req.body exists
-    if (!req.body) {
-      return res.status(400).json({ error: 'Request body is missing' });
-    }
-
-    const { first_name, last_name, email, phone_number } = req.body;
-
-    // Validate required fields
-    if (!first_name || !last_name || !email || !phone_number) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['first_name', 'last_name', 'email', 'phone_number'],
-        received: req.body
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-
-    // Check if email already exists
+    // Check for existing email (prevent duplicates)
     const [existingUser] = await sql`
-      SELECT id FROM users 
-      WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
+      SELECT id FROM users WHERE email = ${email}
     `;
-    
     if (existingUser) {
-      return res.status(409).json({ error: 'Email is already registered' });
+      return res.status(400).json({ error: 'Email already in use. Please log in or use another email.' });
     }
 
-    // Create temporary user with first_order = false
-    const [user] = await sql`
-      INSERT INTO users
-      (first_name, last_name, username, email, phone_number, created_at, updated_at, is_admin, first_order)
-      VALUES (${first_name}, ${last_name}, ${null}, LOWER(${email}), ${phone_number}, NOW(), NOW(), ${false}, ${false})
-      RETURNING id, email, username, is_admin, first_order
+    // Generate random password (temp users don't need to know it)
+    const randomPassword = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    // Insert user with is_temporary flag (add column to users table if needed: ALTER TABLE users ADD COLUMN is_temporary BOOLEAN DEFAULT false;)
+    const [newUser] = await sql`
+      INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary)
+      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, true)
+      RETURNING id, first_name, last_name, email, phone_number
     `;
 
-    // Create cart for the user
-    await sql`INSERT INTO cart (user_id, total) VALUES (${user.id}, 0)`;
-
-    // Generate JWT token with temporary flag
-    const token = generateToken({ ...user, isTemporary: true });
+    // Generate JWT
+    const token = jwt.sign({ id: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.is_admin ? 'admin' : 'user',
-        first_order: user.first_order,
-        isTemporary: true
-      },
+      user: newUser,
+      isTemporary: true
     });
-  } catch (error) {
-    console.error('Error creating temporary user:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: error.message 
-    });
+  } catch (err) {
+    console.error('Error creating temporary user:', err);
+    res.status(500).json({ error: 'Failed to create temporary account' });
   }
 };
-
 export const completeProfile = async (req, res) => {
   const { password } = req.body;
   const userId = req.user.id;
