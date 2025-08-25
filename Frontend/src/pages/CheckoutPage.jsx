@@ -111,6 +111,9 @@ const CheckoutPage = () => {
   const [isTemporaryUser, setIsTemporaryUser] = useState(false);
   const [isGuestConversion, setIsGuestConversion] = useState(false);
   
+  // Add state to track if guest is ready to add addresses
+  const [guestReadyForAddresses, setGuestReadyForAddresses] = useState(false);
+  
   const decodeToken = (token) => {
     try {
       const base64Url = token.split('.')[1];
@@ -151,6 +154,11 @@ const CheckoutPage = () => {
       
       if (updatedUser) {
         console.log('User data refreshed successfully');
+        
+        // Check if user is temporary
+        const isTemp = localStorage.getItem('isTemporaryUser') === 'true';
+        setIsTemporaryUser(isTemp);
+        
         setUserDataRefreshed(true);
         return updatedUser;
       } else {
@@ -221,12 +229,16 @@ const CheckoutPage = () => {
         throw new Error('Please provide all required personal information: first name, last name, email, and phone number.');
       }
       
+      console.log('Creating temporary user with data:', guestForm);
+      
       const response = await axios.post(`${API_BASE_URL}/api/auth/temporary-user`, {
         first_name: guestForm.first_name,
         last_name: guestForm.last_name,
         email: guestForm.email,
         phone_number: guestForm.phone_number,
       });
+      
+      console.log('Temporary user creation response:', response.data);
       
       const { token, user: userData, isTemporary } = response.data;
       if (!token || !userData?.id) {
@@ -241,11 +253,37 @@ const CheckoutPage = () => {
       login({ token, user: userData, isTemporary });
       setIsGuestConversion(true);
       setIsTemporaryUser(true);
+      setGuestReadyForAddresses(true);
+      
+      // Refresh user data to ensure all states are updated
+      await refreshUserData();
       
       return true;
     } catch (err) {
       console.error('Error creating temporary user:', err);
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to create temporary user account';
+      
+      // Handle specific error messages from the backend
+      let errorMessage = 'Failed to create temporary user account';
+      
+      if (err.response) {
+        console.error('Error response:', err.response);
+        
+        if (err.response.status === 400) {
+          errorMessage = err.response.data.error || 'Invalid input data. Please check your information.';
+        } else if (err.response.status === 409) {
+          errorMessage = err.response.data.error || 'Email already in use. Please use another email or log in.';
+        } else if (err.response.status === 500) {
+          errorMessage = err.response.data.error || 'Server error. Please try again later.';
+          if (err.response.data.details) {
+            console.error('Server error details:', err.response.data.details);
+          }
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else {
+        errorMessage = err.message || 'Failed to create temporary user account';
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
       return false;
@@ -357,12 +395,17 @@ const CheckoutPage = () => {
     const currentSubtotal = cart.subtotal; // Always in NGN
     console.log('Calculating first order discount:', {
       userFirstOrder: user?.first_order,
+      isTemporaryUser,
       currentSubtotal,
       userDataRefreshed,
       refreshCount
     });
     
-    if (user?.first_order && currentSubtotal > 0) {
+    // Only apply first order discount if:
+    // 1. User has first_order flag set to true
+    // 2. User is NOT a temporary user
+    // 3. Cart subtotal is greater than 0
+    if (user?.first_order && !isTemporaryUser && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
       console.log('Applied first order discount:', discountAmount);
@@ -370,7 +413,7 @@ const CheckoutPage = () => {
       setFirstOrderDiscount(0);
       console.log('No first order discount applied');
     }
-  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
+  }, [user?.first_order, isTemporaryUser, cart.subtotal, userDataRefreshed, refreshCount]);
   
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
@@ -473,6 +516,52 @@ const CheckoutPage = () => {
       default:
         return <Truck className="h-5 w-5" />;
     }
+  };
+  
+  // Prepare guest user for address creation
+  const prepareGuestForAddresses = async () => {
+    if (!isAuthenticated()) {
+      if (!isGuest) {
+        setError('Please confirm you want to continue as guest.');
+        toast.error('Please confirm you want to continue as guest.');
+        return false;
+      }
+      
+      if (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number) {
+        setError('Please provide all required personal information: first name, last name, email, and phone number.');
+        toast.error('Please provide all required personal information.');
+        return false;
+      }
+      
+      setLoading(true);
+      try {
+        console.log('Preparing guest for addresses...');
+        const created = await createTemporaryUser();
+        if (!created) {
+          return false;
+        }
+        
+        // After creating temporary user, transfer guest cart and refresh data
+        await transferGuestCart();
+        await refreshUserData();
+        await fetchCartAndAddresses();
+        
+        setGuestReadyForAddresses(true);
+        console.log('Guest is now ready for addresses');
+        return true;
+      } catch (err) {
+        console.error('Error preparing guest for addresses:', err);
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to prepare guest account';
+        setError(errorMessage);
+        toast.error(errorMessage);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    setGuestReadyForAddresses(true);
+    return true;
   };
   
   const handleShippingSubmit = async (data) => {
@@ -864,14 +953,8 @@ const CheckoutPage = () => {
       toast.error('Please select a shipping method.');
       return;
     }
-    // If not authenticated, create temporary user
+    // If not authenticated, create temporary user now
     if (!isAuthenticated()) {
-      if (!isGuest) {
-        setError('Please confirm you want to continue as guest.');
-        toast.error('Please confirm you want to continue as guest.');
-        return;
-      }
-      
       const created = await createTemporaryUser();
       if (!created) {
         setError('Failed to create temporary user account');
@@ -903,7 +986,12 @@ const CheckoutPage = () => {
       
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = user?.first_order ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
+      
+      // Only apply first order discount if user is not temporary
+      const baseFirstOrderDiscount = (user?.first_order && !isTemporaryUser) 
+        ? Number((baseSubtotal * 0.05).toFixed(2)) 
+        : 0;
+      
       const baseCouponDiscount = couponDiscount;
       const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
@@ -960,7 +1048,7 @@ const CheckoutPage = () => {
         throw new Error('Order ID not found in response');
       }
       // Update user's first_order status if applicable
-      if (user.first_order) {
+      if (user.first_order && !isTemporaryUser) {
         try {
           console.log('Updating first_order status for user:', getUserId());
           
@@ -1208,6 +1296,9 @@ const CheckoutPage = () => {
                   onChange={(e) => setGuestForm(prev => ({ ...prev, email: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                 />
+                <p className="mt-1 text-xs text-gray-500 font-Jost">
+                  We'll send order updates to this email address
+                </p>
               </div>
               
               <div>
@@ -1219,6 +1310,9 @@ const CheckoutPage = () => {
                   onChange={(e) => setGuestForm(prev => ({ ...prev, phone_number: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                 />
+                <p className="mt-1 text-xs text-gray-500 font-Jost">
+                  For delivery updates and order confirmation
+                </p>
               </div>
             </div>
             
@@ -1236,6 +1330,20 @@ const CheckoutPage = () => {
                 Continue as guest
               </label>
             </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={prepareGuestForAddresses}
+                disabled={!isGuest || !guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number}
+                className={`w-full bg-Primarycolor text-Secondarycolor py-3 px-4 rounded-lg font-Manrope font-medium ${!isGuest || !guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Continue to Shipping
+              </button>
+              
+              <div className="mt-3 text-xs text-gray-500 font-Jost">
+                By clicking "Continue to Shipping", you agree to create a temporary account for this order.
+              </div>
+            </div>
           </div>
         )}
         
@@ -1246,6 +1354,7 @@ const CheckoutPage = () => {
             <p className="text-sm text-yellow-700">
               User ID: {user?.id}<br />
               First Order (DB): {user?.first_order?.toString()}<br />
+              Is Temporary User: {isTemporaryUser?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
@@ -1371,22 +1480,31 @@ const CheckoutPage = () => {
                 </div>
               ) : (
                 <div>
-                  <button
-                    onClick={() => setShowShippingForm(!showShippingForm)}
-                    disabled={!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number || !isGuest)}
-                    className={`text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost ${!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number || !isGuest) ? 'text-gray-400 cursor-not-allowed' : ''}`}
-                  >
-                    {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
-                  </button>
-                  {showShippingForm && (
-                    <ShippingAddressForm
-                      address={{ state: shippingForm, setState: setShippingForm }}
-                      onSubmit={handleShippingSubmit}
-                      onCancel={() => setShowShippingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                    />
+                  {isAuthenticated() || guestReadyForAddresses ? (
+                    <>
+                      <button
+                        onClick={() => setShowShippingForm(!showShippingForm)}
+                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                      >
+                        {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
+                      </button>
+                      {showShippingForm && (
+                        <ShippingAddressForm
+                          address={{ state: shippingForm, setState: setShippingForm }}
+                          onSubmit={handleShippingSubmit}
+                          onCancel={() => setShowShippingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-yellow-800 font-Jost">
+                        Please provide your information and click "Continue to Shipping" to add a shipping address.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
@@ -1486,22 +1604,31 @@ const CheckoutPage = () => {
                     </div>
                   ) : (
                     <div>
-                      <button
-                        onClick={() => setShowBillingForm(!showBillingForm)}
-                        disabled={!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number || !isGuest)}
-                        className={`text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost ${!isAuthenticated() && (!guestForm.first_name || !guestForm.last_name || !guestForm.email || !guestForm.phone_number || !isGuest) ? 'text-gray-400 cursor-not-allowed' : ''}`}
-                      >
-                        {showBillingForm ? 'Cancel' : 'Add Billing Address'}
-                      </button>
-                      {showBillingForm && (
-                        <BillingAddressForm
-                          address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
-                          onCancel={() => setShowBillingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
-                        />
+                      {isAuthenticated() || guestReadyForAddresses ? (
+                        <>
+                          <button
+                            onClick={() => setShowBillingForm(!showBillingForm)}
+                            className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                          >
+                            {showBillingForm ? 'Cancel' : 'Add Billing Address'}
+                          </button>
+                          {showBillingForm && (
+                            <BillingAddressForm
+                              address={{ state: billingForm, setState: setBillingForm }}
+                              onSubmit={handleBillingSubmit}
+                              onCancel={() => setShowBillingForm(false)}
+                              formErrors={formErrors}
+                              setFormErrors={setFormErrors}
+                              actionLoading={loading}
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                          <p className="text-sm text-yellow-800 font-Jost">
+                            Please provide your information and click "Continue to Shipping" to add a billing address.
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1849,7 +1976,7 @@ const CheckoutPage = () => {
                     </span>
                   </div>
                   
-                  {user?.first_order && displayFirstOrderDiscount > 0 && (
+                  {user?.first_order && !isTemporaryUser && displayFirstOrderDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-Jost">
                       <span>First Order Discount (5%)</span>
                       <span>
@@ -1925,10 +2052,18 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 
-                {user?.first_order && displayFirstOrderDiscount > 0 && (
+                {user?.first_order && !isTemporaryUser && displayFirstOrderDiscount > 0 && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700 font-Jost">
                       🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
+                    </p>
+                  </div>
+                )}
+                
+                {isTemporaryUser && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700 font-Jost">
+                      💡 <strong>Note:</strong> Create a permanent account to qualify for first order discounts on future purchases.
                     </p>
                   </div>
                 )}

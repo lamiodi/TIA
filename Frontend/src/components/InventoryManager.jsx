@@ -153,7 +153,7 @@ const InventoryManager = () => {
 
   if (loading && !products.length && !bundles.length) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <RefreshCw className="animate-spin w-8 h-8 text-blue-500" />
         <span className="ml-2 text-gray-600">Loading inventory...</span>
       </div>
@@ -161,7 +161,7 @@ const InventoryManager = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-7xl">
       {/* Header and Search */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative w-full sm:w-96">
@@ -169,7 +169,7 @@ const InventoryManager = () => {
           <input
             type="text"
             placeholder="Search by product or bundle name"
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -177,7 +177,7 @@ const InventoryManager = () => {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-colors whitespace-nowrap"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           Refresh
@@ -207,11 +207,11 @@ const InventoryManager = () => {
       {/* Conflict Resolution */}
       {conflictInfo && (
         <div className="p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-700">
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               <p className="font-medium">Resolution Required</p>
               <p>{error}</p>
-              <div className="mt-2 space-x-2">
+              <div className="mt-2 space-y-2 sm:space-y-0 sm:space-x-2 flex flex-col sm:flex-row">
                 <button
                   onClick={() => {
                     navigate(`/bundles/${conflictInfo.id}`);
@@ -246,7 +246,7 @@ const InventoryManager = () => {
                 </button>
               </div>
             </div>
-            <button onClick={() => setConflictInfo(null)} className="text-blue-700 hover:text-blue-900">
+            <button onClick={() => setConflictInfo(null)} className="text-blue-700 hover:text-blue-900 mt-2 sm:mt-0">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -255,30 +255,30 @@ const InventoryManager = () => {
 
       {/* Product Table */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <h3 className="px-6 py-4 font-semibold text-gray-900 flex items-center text-lg">
+        <h3 className="px-4 sm:px-6 py-4 font-semibold text-gray-900 flex items-center text-base sm:text-lg">
           <Package className="mr-2 h-5 w-5" />
           Products ({filteredProducts.length})
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 hidden sm:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SKU
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -287,8 +287,8 @@ const InventoryManager = () => {
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
                   <Fragment key={`product-${product.id}`}>
-                    <tr className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr className="hover:bg-gray-50 flex flex-col sm:table-row">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 flex justify-between items-center sm:table-cell">
                         <button
                           onClick={() => toggleExpand(product.id, 'product')}
                           className="flex items-center"
@@ -300,17 +300,40 @@ const InventoryManager = () => {
                           )}
                           {product.name}
                         </button>
+                        <div className="flex gap-2 sm:hidden">
+                          <button
+                            onClick={() => handleEdit(product, 'product')}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmDelete({
+                                type: 'product',
+                                id: product.id,
+                                name: product.name,
+                              })
+                            }
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {product.design_code || '-'}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">SKU: </span>{product.design_code || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ₦{Number(product.price).toLocaleString()}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Price: </span>₦{Number(product.price).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {product.stock || 0}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Stock: </span>{product.stock || 0}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Status: </span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
                             product.is_active
@@ -321,32 +344,34 @@ const InventoryManager = () => {
                           {product.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
-                        <button
-                          onClick={() => handleEdit(product, 'product')}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                          disabled={loading}
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDelete({
-                              type: 'product',
-                              id: product.id,
-                              name: product.name,
-                            })
-                          }
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          disabled={loading}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 hidden sm:table-cell">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(product, 'product')}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmDelete({
+                                type: 'product',
+                                id: product.id,
+                                name: product.name,
+                              })
+                            }
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedItems[`product-${product.id}`] && (
-                      <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                      <tr className="sm:table-row">
+                        <td colSpan="6" className="px-4 sm:px-6 py-4 bg-gray-50">
                           <div className="space-y-4">
                             <h4 className="font-medium text-gray-900">Variants</h4>
                             {product.variants?.length > 0 ? (
@@ -364,7 +389,7 @@ const InventoryManager = () => {
                                     </div>
                                     <div className="mt-2">
                                       <h5 className="text-sm font-medium text-gray-700 mb-2">Sizes</h5>
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                         {variant.sizes?.map((size) => (
                                           <div
                                             key={`size-${variant.id}-${size.size_id}`}
@@ -390,7 +415,7 @@ const InventoryManager = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="6" className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500">
                     No products found
                   </td>
                 </tr>
@@ -402,30 +427,30 @@ const InventoryManager = () => {
 
       {/* Bundle Table */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <h3 className="px-6 py-4 font-semibold text-gray-900 flex items-center text-lg">
+        <h3 className="px-4 sm:px-6 py-4 font-semibold text-gray-900 flex items-center text-base sm:text-lg">
           <Package className="mr-2 h-5 w-5" />
           Bundles ({filteredBundles.length})
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 hidden sm:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Items
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -434,8 +459,8 @@ const InventoryManager = () => {
               {filteredBundles.length > 0 ? (
                 filteredBundles.map((bundle) => (
                   <Fragment key={`bundle-${bundle.id}`}>
-                    <tr className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr className="hover:bg-gray-50 flex flex-col sm:table-row">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 flex justify-between items-center sm:table-cell">
                         <button
                           onClick={() => toggleExpand(bundle.id, 'bundle')}
                           className="flex items-center"
@@ -447,17 +472,40 @@ const InventoryManager = () => {
                           )}
                           {bundle.name}
                         </button>
+                        <div className="flex gap-2 sm:hidden">
+                          <button
+                            onClick={() => handleEdit(bundle, 'bundle')}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmDelete({
+                                type: 'bundle',
+                                id: bundle.id,
+                                name: bundle.name,
+                              })
+                            }
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {bundle.bundle_type}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Type: </span>{bundle.bundle_type}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ₦{Number(bundle.price).toLocaleString()}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Price: </span>₦{Number(bundle.price).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {bundle.item_count}
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Items: </span>{bundle.item_count}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 sm:table-cell">
+                        <span className="sm:hidden font-medium">Status: </span>
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
                             bundle.is_active
@@ -468,36 +516,38 @@ const InventoryManager = () => {
                           {bundle.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
-                        <button
-                          onClick={() => handleEdit(bundle, 'bundle')}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                          disabled={loading}
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDelete({
-                              type: 'bundle',
-                              id: bundle.id,
-                              name: bundle.name,
-                            })
-                          }
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          disabled={loading}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <td className="px-4 sm:px-6 py-2 sm:py-4 text-sm text-gray-500 hidden sm:table-cell">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(bundle, 'bundle')}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setConfirmDelete({
+                                type: 'bundle',
+                                id: bundle.id,
+                                name: bundle.name,
+                              })
+                            }
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            disabled={loading}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedItems[`bundle-${bundle.id}`] && (
-                      <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                      <tr className="sm:table-row">
+                        <td colSpan="6" className="px-4 sm:px-6 py-4 bg-gray-50">
                           <div className="space-y-4">
                             <h4 className="font-medium text-gray-900">Bundle Items</h4>
                             {bundle.items?.length > 0 ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {bundle.items.map((item) => (
                                   <div
                                     key={`bundle-item-${bundle.id}-${item.product_id}-${item.color_id}-${item.size_id}`}
@@ -521,7 +571,7 @@ const InventoryManager = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="6" className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500">
                     No bundles found
                   </td>
                 </tr>
@@ -533,10 +583,10 @@ const InventoryManager = () => {
 
       {/* Edit Modal */}
       {editingItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-gray-100">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md sm:max-w-lg lg:max-w-xl shadow-xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-bold text-gray-900">Edit {editingItem.type}</h4>
+              <h4 className="text-base sm:text-lg font-bold text-gray-900">Edit {editingItem.type}</h4>
               <button
                 onClick={() => setEditingItem(null)}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -545,7 +595,7 @@ const InventoryManager = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {editingItem.type === 'product' ? 'Base Price' : 'Bundle Price'} (NGN)
@@ -554,7 +604,7 @@ const InventoryManager = () => {
                   type="number"
                   min="0.01"
                   step="0.01"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={editingItem.price}
                   onChange={(e) =>
                     setEditingItem({
@@ -580,13 +630,13 @@ const InventoryManager = () => {
                           {variant.sizes?.map((size) => (
                             <div
                               key={`edit-size-${variant.id}-${size.size_id}`}
-                              className="flex items-center"
+                              className="flex items-center flex-col sm:flex-row"
                             >
-                              <span className="w-20 text-sm text-gray-600">{size.size_name}:</span>
+                              <span className="w-full sm:w-20 text-sm text-gray-600 mb-1 sm:mb-0">{size.size_name}:</span>
                               <input
                                 type="number"
                                 min="0"
-                                className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full sm:flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 value={size.stock_quantity}
                                 onChange={(e) => {
                                   const updatedVariants = editingItem.variants.map((v) => {
@@ -618,14 +668,13 @@ const InventoryManager = () => {
 
               <div className="mt-6 flex justify-end gap-3">
                 <button
-                  type="button"
                   onClick={() => setEditingItem(null)}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  onClick={handleUpdate}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
                   disabled={loading}
                 >
@@ -637,17 +686,17 @@ const InventoryManager = () => {
                   Update
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl border border-gray-100">
-            <h4 className="text-lg font-bold text-gray-900 mb-2">Delete {confirmDelete.type}?</h4>
-            <p className="mb-4 text-gray-600">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md shadow-xl border border-gray-100">
+            <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Delete {confirmDelete.type}?</h4>
+            <p className="mb-4 text-gray-600 text-sm sm:text-base">
               Are you sure you want to delete{' '}
               <strong className="font-semibold">{confirmDelete.name}</strong>? This action cannot be
               undone.
