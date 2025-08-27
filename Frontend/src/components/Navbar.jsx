@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { LogOut, Search } from 'lucide-react';
+import { LogOut, Search, User, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toastSuccess } from '../utils/toastConfig';
 import Logo from '../assets/icons/logo.svg';
@@ -13,6 +13,7 @@ export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // State for hamburger menu
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,8 +27,10 @@ export default function Navbar() {
   
   const handleLogout = () => {
     logout();
+    localStorage.removeItem('pendingOrderId'); // Clear pendingOrderId to prevent stale data
     toastSuccess('Logged out successfully');
     navigate('/login');
+    setIsMenuOpen(false); // Close menu on logout
   };
   
   // Updated search function to navigate to search results page
@@ -39,6 +42,12 @@ export default function Navbar() {
       // Clear search input after submission
       setSearchQuery('');
     }
+  };
+  
+  // Close menu when navigating
+  const handleMenuNavigation = (path) => {
+    navigate(path);
+    setIsMenuOpen(false);
   };
   
   if (loading && !loadingTimeout) {
@@ -113,14 +122,50 @@ export default function Navbar() {
                   </button>
                 </div>
                 
-                {/* Profile icon (desktop only) */}
-                <Link to="/profile" className="hidden lg:flex">
-                  <button className="flex items-center p-1 hover:opacity-80 transition-opacity" aria-label="Profile">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 text-Secondarycolor" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                {/* Hamburger menu for desktop - show from lg and above */}
+                <div className="hidden lg:flex relative">
+                  <button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="flex items-center p-1 hover:opacity-80 transition-opacity"
+                    aria-label="User menu"
+                  >
+                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-Secondarycolor" />
                   </button>
-                </Link>
+                  
+                  {/* Desktop dropdown menu */}
+                  {isMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      {user && (
+                        <>
+                          <Link 
+                            to="/profile" 
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => handleMenuNavigation('/profile')}
+                          >
+                            <User className="h-4 w-4 mr-3 text-gray-500" />
+                            Profile
+                          </Link>
+                          <Link 
+                            to="/orders" 
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => handleMenuNavigation('/orders')}
+                          >
+                            <Package className="h-4 w-4 mr-3 text-gray-500" />
+                            My Orders
+                          </Link>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <LogOut className="h-4 w-4 mr-3 text-gray-500" />
+                            Logout
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
                 {/* Auth button */}
                 {user ? (
@@ -201,14 +246,24 @@ export default function Navbar() {
               
               {/* Profile link (mobile only) */}
               {user && (
-                <Link to="/profile">
-                  <button className="flex items-center w-full text-left px-3 py-2 text-sm rounded transition-colors text-Secondarycolor hover:text-Softcolor hover:bg-white/5">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 text-Secondarycolor hover:text-Softcolor mr-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Profile
-                  </button>
-                </Link>
+                <>
+                  <Link to="/profile">
+                    <button className="flex items-center w-full text-left px-3 py-2 text-sm rounded transition-colors text-Secondarycolor hover:text-Softcolor hover:bg-white/5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 text-Secondarycolor hover:text-Softcolor mr-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Profile
+                    </button>
+                  </Link>
+                  
+                  {/* Orders link (mobile only) */}
+                  <Link to="/orders">
+                    <button className="flex items-center w-full text-left px-3 py-2 text-sm rounded transition-colors text-Secondarycolor hover:text-Softcolor hover:bg-white/5">
+                      <Package className="h-3 w-3 sm:h-4 sm:w-4 text-Secondarycolor hover:text-Softcolor mr-2" />
+                      My Orders
+                    </button>
+                  </Link>
+                </>
               )}
             </div>
           </DisclosurePanel>

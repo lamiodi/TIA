@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Button from './Button';
-import ctaimage from '../assets/images/ctaimage.png';
-import Newsletterimage from '../assets/images/Newsletterimage.png';
-import bundleImage from '../assets/images/bundleImage.png'; 
 import { CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -20,6 +17,16 @@ const CtaSlideshow = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, success, error
   const [message, setMessage] = useState('');
+
+  const ctaimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112992/ctaimage_md7l1k.png";
+
+const Newsletterimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756114935/Newsletterimage_uxjkup.webp";
+
+const bundleImage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112980/bundleImage_wonzss.png";
+
+const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1756116485/tinywow_change_bg_photo_83585550_jtewv2.png";
+
+
   
   // Auto-advance slides
   useEffect(() => {
@@ -76,7 +83,7 @@ const CtaSlideshow = () => {
   
   // Slide 1: Original CTA
   const renderSlide1 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:max-h-[510px] xl:max-h-[630px] 2xl:max-h-[970px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -143,7 +150,7 @@ const CtaSlideshow = () => {
   
   // Slide 2: Sign Up CTA
   const renderSlide2 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:max-h-[510px] xl:max-h-[630px] 2xl:max-h-[970px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -193,7 +200,7 @@ const CtaSlideshow = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-xl scale-110 group-hover:scale-125 transition-transform duration-500"></div>
           
           <img
-            src={ctaimage}
+            src={signup}
             alt="Sign Up"
             className="relative object-contain h-[90%] w-auto max-h-full transform group-hover:scale-105 transition-transform duration-300 filter drop-shadow-2xl top-[-15em] sm:top-[-11em] md:top-[-16em] lg:top-11"
           />
@@ -211,7 +218,7 @@ const CtaSlideshow = () => {
   
   // Slide 3: 3-in-1 Bundle CTA
   const renderSlide3 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:max-h-[510px] xl:max-h-[630px] 2xl:max-h-[970px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
@@ -282,7 +289,7 @@ const CtaSlideshow = () => {
   
   // Slide 4: Newsletter CTA
   const renderSlide4 = () => (
-    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/1.7] xl:h-[630px] 2xl:max-h-[970px] overflow-hidden">
+    <div className="container-padding custom-gradient relative flex flex-col lg:flex-row items-center justify-between w-full aspect-[2/2.2] sm:aspect-[2/1.9] md:aspect-[2/1.7] lg:aspect-[2/0.8] xl:aspect-[2/0.8] 2xl:aspect-[2/0.8] overflow-hidden">
       
       {/* Decorative Elements */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
