@@ -13,10 +13,8 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading } = useAuth();
@@ -717,10 +715,13 @@ const handleApplyCoupon = async (e) => {
     }
   }, [shippingAddresses, billingAddresses, shippingAddressId, billingAddressId]);
   
+  // Updated useEffect for shipping method selection
   useEffect(() => {
-    const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+    const selectedShippingAddress = isAuthenticated()
+      ? shippingAddresses.find(addr => addr.id.toString() === shippingAddressId)
+      : shippingForm;
     const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+    const isNigeria = addressCountry && addressCountry.toLowerCase() === 'nigeria';
     
     if (isNigeria && !shippingMethod) {
       const defaultMethod = shippingOptions[0];
@@ -730,7 +731,7 @@ const handleApplyCoupon = async (e) => {
     if (!isNigeria && shippingMethod) {
       setShippingMethod(null);
     }
-  }, [shippingAddresses, shippingAddressId, country]);
+  }, [isAuthenticated, shippingAddresses, shippingAddressId, shippingForm, country, shippingMethod]);
   
   // Add this useEffect to check for pending orders
   useEffect(() => {
@@ -762,10 +763,15 @@ const handleApplyCoupon = async (e) => {
     }
   }, [user, authLoading, contextLoading, navigate]);
   
-  const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+  // Updated selectedShippingAddress and isNigeria logic
+  const selectedShippingAddress = isAuthenticated()
+    ? shippingAddresses.find(addr => addr.id.toString() === shippingAddressId)
+    : shippingForm;
   const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
-  const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-  const selectedBillingAddress = billingAddresses.find(addr => addr.id.toString() === billingAddressId);
+  const isNigeria = addressCountry && addressCountry.toLowerCase() === 'nigeria';
+  const selectedBillingAddress = isAuthenticated()
+    ? billingAddresses.find(addr => addr.id.toString() === billingAddressId)
+    : (billingAddressOption === 'same' ? shippingForm : billingForm);
   
   // Always use NGN for calculations
   const subtotal = Number(cart?.subtotal) || 0;
@@ -1140,7 +1146,7 @@ const handleApplyCoupon = async (e) => {
         <div className="text-center text-Accent py-8 font-Jost">
           Your cart is empty. Please add items to proceed.
           <Link to="/cart" className="mt-4 inline-flex items-center text-Accent hover:text-Primarycolor">
-            <ArrowLeft className="h-5 w-5 mr-2" /> Go to Cart
+            <ArrowLeft className="h-5 w-5 mr-1" /> Go to Cart
           </Link>
         </div>
       </div>
@@ -2127,7 +2133,42 @@ const handleApplyCoupon = async (e) => {
                 <button
                   onClick={handlePayment}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || !shippingAddressId || !billingAddressId || (isNigeria && !shippingMethod)}
+                  disabled={
+                    (function () {
+                      const isDisabled =
+                        loading ||
+                        (isAuthenticated()
+                          ? (!shippingAddressId || !billingAddressId)
+                          : (!guestInfo.full_name ||
+                             !guestInfo.email ||
+                             !shippingForm.address_line_1 ||
+                             !shippingForm.city ||
+                             !shippingForm.state ||
+                             !shippingForm.phone_number ||
+                             (billingAddressOption === 'different' &&
+                               (!billingForm.full_name ||
+                                !billingForm.email ||
+                                !billingForm.address_line_1 ||
+                                !billingForm.city ||
+                                !billingForm.state ||
+                                !billingForm.phone_number)))) ||
+                        (isNigeria && !shippingMethod);
+                      console.log('Button disabled state:', {
+                        loading,
+                        isAuthenticated: isAuthenticated(),
+                        shippingAddressId,
+                        billingAddressId,
+                        guestInfo,
+                        shippingForm,
+                        billingForm,
+                        billingAddressOption,
+                        isNigeria,
+                        shippingMethod,
+                        isDisabled,
+                      });
+                      return isDisabled;
+                    })()
+                  }
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
@@ -2159,5 +2200,4 @@ const handleApplyCoupon = async (e) => {
     </div>
   );
 };
-
 export default CheckoutPage;
