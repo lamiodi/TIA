@@ -13,6 +13,9 @@ const shippingOptions = [
 export const createOrder = async (req, res) => {
   const {
     user_id,
+    guest_info, // For guest users
+    address, // For guest users
+    billing_address, // For guest users
     address_id,
     billing_address_id,
     cart_id,
@@ -40,83 +43,132 @@ export const createOrder = async (req, res) => {
     payment_method,
     exchange_rate,
     discount,
+    isGuest: !user_id && guest_info, // Log if this is a guest order
   });
   console.log('📋 Items:', items);
   
   try {
     await sql.begin(async (sql) => {
-      // Validate user - handle both cases (with and without deleted_at)
-      let [user] = await sql`
-        SELECT id, first_name, last_name FROM users 
-        WHERE id = ${user_id}
-      `;
+      let user, address, billingAddress, cart;
+      let guestUserId = null;
       
-      // If user has deleted_at column, check it's null
-      if (user && 'deleted_at' in user) {
-        [user] = await sql`
-          SELECT id, first_name, last_name FROM users 
-          WHERE id = ${user_id} AND deleted_at IS NULL
+      // Handle guest user orders
+      if (!user_id && guest_info) {
+        console.log('📥 Processing guest order');
+        
+        // Create a temporary guest user
+        const [guestUser] = await sql`
+          INSERT INTO users (first_name, last_name, email, phone_number, is_guest)
+          VALUES (${guest_info.full_name.split(' ')[0]}, ${guest_info.full_name.split(' ').slice(1).join(' ') || 'Guest'}, ${guest_info.email}, ${address?.phone_number || billing_address?.phone_number || ''}, true)
+          RETURNING id, first_name, last_name
         `;
-      }
-      
-      if (!user) {
-        console.error('Validation failed: User not found');
-        throw new Error('User not found');
-      }
-      
-      // Validate shipping address - handle both cases
-      let [address] = await sql`
-        SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
-        WHERE id = ${address_id} AND user_id = ${user_id}
-      `;
-      
-      // If address has deleted_at column, check it's null
-      if (address && 'deleted_at' in address) {
-        [address] = await sql`
-          SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
-          WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+        guestUserId = guestUser.id;
+        user = guestUser;
+        
+        // Create temporary shipping address
+        const [shippingAddress] = await sql`
+          INSERT INTO addresses (user_id, title, address_line_1, address_line_2, landmark, city, state, zip_code, country, phone_number)
+          VALUES (${guestUserId}, 'Shipping Address', ${address?.address_line_1 || ''}, ${address?.address_line_2 || ''}, ${address?.landmark || ''}, ${address?.city || ''}, ${address?.state || ''}, ${address?.zip_code || ''}, ${address?.country || 'Nigeria'}, ${address?.phone_number || ''})
+          RETURNING id, country, address_line_1, city, state, zip_code
         `;
-      }
-      
-      if (!address) {
-        console.error('Validation failed: Shipping address not found');
-        throw new Error('Shipping address not found');
-      }
-      
-      // Validate billing address - handle both cases
-      let [billingAddress] = await sql`
-        SELECT id FROM billing_addresses 
-        WHERE id = ${billing_address_id} AND user_id = ${user_id}
-      `;
-      
-      // If billingAddress has deleted_at column, check it's null
-      if (billingAddress && 'deleted_at' in billingAddress) {
-        [billingAddress] = await sql`
-          SELECT id FROM billing_addresses 
-          WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+        address_id = shippingAddress.id;
+        address = shippingAddress;
+        
+        // Create temporary billing address
+        const [billingAddr] = await sql`
+          INSERT INTO billing_addresses (user_id, full_name, email, phone_number, address_line_1, address_line_2, city, state, zip_code, country)
+          VALUES (${guestUserId}, ${billing_address?.full_name || guest_info.full_name}, ${billing_address?.email || guest_info.email}, ${billing_address?.phone_number || address?.phone_number || ''}, ${billing_address?.address_line_1 || address?.address_line_1 || ''}, ${billing_address?.address_line_2 || address?.address_line_2 || ''}, ${billing_address?.city || address?.city || ''}, ${billing_address?.state || address?.state || ''}, ${billing_address?.zip_code || address?.zip_code || ''}, ${billing_address?.country || address?.country || 'Nigeria'})
+          RETURNING id
         `;
-      }
-      
-      if (!billingAddress) {
-        console.error('Validation failed: Billing address not found');
-        throw new Error('Billing address not found');
-      }
-      
-      // Validate cart - handle both cases
-      let [cart] = await sql`
-        SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
-      `;
-      
-      // If cart has deleted_at column, check it's null
-      if (cart && 'deleted_at' in cart) {
-        [cart] = await sql`
-          SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
+        billing_address_id = billingAddr.id;
+        billingAddress = billingAddr;
+        
+        // For guest users, we'll create a temporary cart
+        const [tempCart] = await sql`
+          INSERT INTO cart (user_id, total)
+          VALUES (${guestUserId}, ${total})
+          RETURNING id
         `;
-      }
-      
-      if (!cart) {
-        console.error('Validation failed: Cart not found');
-        throw new Error('Cart not found');
+        cart_id = tempCart.id;
+        cart = tempCart;
+      } else {
+        // Validate user - handle both cases (with and without deleted_at)
+        let [authenticatedUser] = await sql`
+          SELECT id, first_name, last_name FROM users
+          WHERE id = ${user_id}
+        `;
+        
+        // If user has deleted_at column, check it's null
+        if (authenticatedUser && 'deleted_at' in authenticatedUser) {
+          [authenticatedUser] = await sql`
+            SELECT id, first_name, last_name FROM users
+            WHERE id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!authenticatedUser) {
+          console.error('Validation failed: User not found');
+          throw new Error('User not found');
+        }
+        user = authenticatedUser;
+        
+        // Validate shipping address - handle both cases
+        let [shippingAddress] = await sql`
+          SELECT id, country, address_line_1, city, state, zip_code FROM addresses
+          WHERE id = ${address_id} AND user_id = ${user_id}
+        `;
+        
+        // If address has deleted_at column, check it's null
+        if (shippingAddress && 'deleted_at' in shippingAddress) {
+          [shippingAddress] = await sql`
+            SELECT id, country, address_line_1, city, state, zip_code FROM addresses
+            WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!shippingAddress) {
+          console.error('Validation failed: Shipping address not found');
+          throw new Error('Shipping address not found');
+        }
+        address = shippingAddress;
+        
+        // Validate billing address - handle both cases
+        let [billingAddr] = await sql`
+          SELECT id FROM billing_addresses
+          WHERE id = ${billing_address_id} AND user_id = ${user_id}
+        `;
+        
+        // If billingAddress has deleted_at column, check it's null
+        if (billingAddr && 'deleted_at' in billingAddr) {
+          [billingAddr] = await sql`
+            SELECT id FROM billing_addresses
+            WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!billingAddr) {
+          console.error('Validation failed: Billing address not found');
+          throw new Error('Billing address not found');
+        }
+        billingAddress = billingAddr;
+        
+        // Validate cart - handle both cases
+        let [userCart] = await sql`
+          SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
+        `;
+        
+        // If cart has deleted_at column, check it's null
+        if (userCart && 'deleted_at' in userCart) {
+          [userCart] = await sql`
+            SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!userCart) {
+          console.error('Validation failed: Cart not found');
+          throw new Error('Cart not found');
+        }
+        cart = userCart;
       }
       
       // Validate discount
@@ -346,16 +398,17 @@ export const createOrder = async (req, res) => {
       }
       
       // Insert order
+      const userIdToUse = user_id || guestUserId;
       const [order] = await sql`
         INSERT INTO orders (
           user_id, address_id, billing_address_id, cart_id, total, discount, tax, shipping_method_id, shipping_cost,
           shipping_country, payment_method, payment_status, status, currency, reference, note, exchange_rate,
           base_currency_total, converted_total, delivery_fee_paid
         ) VALUES (
-          ${user_id}, ${address_id}, ${billing_address_id}, ${cart_id}, ${total}, ${discount}, 
+          ${userIdToUse}, ${address_id}, ${billing_address_id}, ${cart_id}, ${total}, ${discount},
           ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
-          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
-          ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
+          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note},
+          ${exchange_rate}, ${base_currency_total}, ${converted_total},
           ${address.country.toLowerCase() === 'nigeria' ? true : false}
         )
         RETURNING id
@@ -367,10 +420,10 @@ export const createOrder = async (req, res) => {
       for (const item of orderItems) {
         await sql`
           INSERT INTO order_items (
-            order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url, 
+            order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url,
             color_name, size_name, bundle_details
           ) VALUES (
-            ${orderId}, ${item.variant_id || null}, ${item.bundle_id || null}, ${item.quantity}, 
+            ${orderId}, ${item.variant_id || null}, ${item.bundle_id || null}, ${item.quantity},
             ${item.price}, ${item.size_id || null}, ${item.product_name}, ${item.image_url},
             ${item.color_name || null}, ${item.size_name || null}, ${item.bundle_details || '[]'}
           )
@@ -380,8 +433,8 @@ export const createOrder = async (req, res) => {
           // Update stock for variant
           if (item.size_id) {
             const [updateResult] = await sql`
-              UPDATE variant_sizes 
-              SET stock_quantity = stock_quantity - ${item.quantity} 
+              UPDATE variant_sizes
+              SET stock_quantity = stock_quantity - ${item.quantity}
               WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
               RETURNING stock_quantity
             `;
@@ -392,8 +445,8 @@ export const createOrder = async (req, res) => {
             console.log(`Updated stock for variant ${item.variant_id}, size ${item.size_id}: ${updateResult.stock_quantity}`);
           } else {
             const [updateResult] = await sql`
-              UPDATE variant_sizes 
-              SET stock_quantity = stock_quantity - ${item.quantity} 
+              UPDATE variant_sizes
+              SET stock_quantity = stock_quantity - ${item.quantity}
               WHERE variant_id = ${item.variant_id} LIMIT 1
               RETURNING stock_quantity
             `;
@@ -408,8 +461,8 @@ export const createOrder = async (req, res) => {
           for (const bi of bundleItems) {
             if (bi.size_id) {
               const [updateResult] = await sql`
-                UPDATE variant_sizes 
-                SET stock_quantity = stock_quantity - ${item.quantity} 
+                UPDATE variant_sizes
+                SET stock_quantity = stock_quantity - ${item.quantity}
                 WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
                 RETURNING stock_quantity
               `;
@@ -420,8 +473,8 @@ export const createOrder = async (req, res) => {
               console.log(`Updated stock for bundle item variant ${bi.variant_id}, size ${bi.size_id}: ${updateResult.stock_quantity}`);
             } else {
               const [updateResult] = await sql`
-                UPDATE variant_sizes 
-                SET stock_quantity = stock_quantity - ${item.quantity} 
+                UPDATE variant_sizes
+                SET stock_quantity = stock_quantity - ${item.quantity}
                 WHERE variant_id = ${bi.variant_id} LIMIT 1
                 RETURNING stock_quantity
               `;
@@ -450,7 +503,7 @@ export const createOrder = async (req, res) => {
         );
       }
       
-      console.log(`✅ Created order ${orderId} for user ${user_id} with reference ${reference}, discount ${discount}`);
+      console.log(`✅ Created order ${orderId} for user ${userIdToUse} with reference ${reference}, discount ${discount}`);
       res.status(201).json({ order: { id: orderId, reference, discount } });
     });
   } catch (err) {
@@ -613,7 +666,7 @@ export const getOrderById = async (req, res) => {
     const { id } = req.params;
     
     // Check if user has permission to access this order
-    if (!req.user.isAdmin) {
+    if (!req.user || !req.user.isAdmin) {
       // First try without deleted_at
       let [orderCheck] = await sql`SELECT user_id FROM orders WHERE id = ${id}`;
       
@@ -622,18 +675,23 @@ export const getOrderById = async (req, res) => {
         [orderCheck] = await sql`SELECT user_id FROM orders WHERE id = ${id} AND deleted_at IS NULL`;
       }
       
-      if (!orderCheck || req.user.id !== orderCheck.user_id) {
-        return res.status(403).json({ error: 'Unauthorized access' });
+      // For guest users or users accessing their own orders
+      if (!orderCheck || (req.user && req.user.id !== orderCheck.user_id)) {
+        // Check if the order belongs to a guest user
+        const [orderUser] = await sql`SELECT is_guest FROM users WHERE id = ${orderCheck?.user_id}`;
+        if (!orderUser || !orderUser.is_guest) {
+          return res.status(403).json({ error: 'Unauthorized access' });
+        }
       }
     }
     
     // First try without deleted_at
     let [order] = await sql`
-      SELECT 
-        o.*, 
+      SELECT
+        o.*,
         u.first_name, u.last_name, u.email,
         a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country_code,
-        ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number, 
+        ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number,
         ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
         ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
       FROM orders o
@@ -646,11 +704,11 @@ export const getOrderById = async (req, res) => {
     // If order exists and has deleted_at column, check it's null
     if (order && 'deleted_at' in order) {
       [order] = await sql`
-        SELECT 
-          o.*, 
+        SELECT
+          o.*,
           u.first_name, u.last_name, u.email,
           a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country_code,
-          ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number, 
+          ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number,
           ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
           ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
         FROM orders o
@@ -691,6 +749,84 @@ export const getOrderById = async (req, res) => {
     res.status(200).json(formattedOrder);
   } catch (err) {
     console.error('❌ Error fetching order:', err.message);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+};
+
+export const getGuestOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // First try without deleted_at
+    let [order] = await sql`
+      SELECT
+        o.*,
+        u.first_name, u.last_name, u.email,
+        a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country_code,
+        ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number,
+        ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
+        ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN addresses a ON o.address_id = a.id
+      JOIN billing_addresses ba ON o.billing_address_id = ba.id
+      WHERE o.id = ${id}
+    `;
+    
+    // If order exists and has deleted_at column, check it's null
+    if (order && 'deleted_at' in order) {
+      [order] = await sql`
+        SELECT
+          o.*,
+          u.first_name, u.last_name, u.email,
+          a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country_code,
+          ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number,
+          ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
+          ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        JOIN addresses a ON o.address_id = a.id
+        JOIN billing_addresses ba ON o.billing_address_id = ba.id
+        WHERE o.id = ${id} AND o.deleted_at IS NULL
+      `;
+    }
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Check if the order belongs to a guest user
+    const [user] = await sql`SELECT is_guest FROM users WHERE id = ${order.user_id}`;
+    if (!user || !user.is_guest) {
+      return res.status(403).json({ error: 'Unauthorized access' });
+    }
+    
+    const items = await sql`
+      SELECT oi.*, p.name as product_name
+      FROM order_items oi
+      LEFT JOIN product_variants pv ON oi.variant_id = pv.id
+      LEFT JOIN products p ON pv.product_id = p.id
+      WHERE oi.order_id = ${id}
+    `;
+    
+    const bundleItems = await sql`
+      SELECT obi.*, b.name as bundle_name
+      FROM order_bundle_items obi
+      JOIN bundles b ON obi.bundle_id = b.id
+      WHERE obi.order_id = ${id}
+    `;
+    
+    const formattedOrder = {
+      ...order,
+      shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
+      items,
+      bundle_items: bundleItems,
+    };
+    
+    console.log(`getGuestOrderById: Fetched order ${id}:`, formattedOrder);
+    res.status(200).json(formattedOrder);
+  } catch (err) {
+    console.error('❌ Error fetching guest order:', err.message);
     res.status(500).json({ error: 'Failed to fetch order' });
   }
 };

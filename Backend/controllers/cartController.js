@@ -1,5 +1,6 @@
 // cartController.js
 import sql from '../db/index.js';
+import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to validate single product
 const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
@@ -205,6 +206,111 @@ const updateCartTotal = async (sql, cartId, country) => {
   `;
   
   return { subtotal, tax, total };
+};
+
+// Guest cart functions
+export const getGuestCart = async (req, res) => {
+  try {
+    // For guest carts, we'll return an empty cart since everything is handled on the frontend
+    // This endpoint can be used to validate or sync guest carts if needed in the future
+    const emptyCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
+    console.log('Get guest cart payload:', JSON.stringify(emptyCart, null, 2));
+    res.status(200).json(emptyCart);
+  } catch (err) {
+    console.error('Get guest cart error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const addToGuestCart = async (req, res) => {
+  try {
+    // For guest carts, we'll just validate the request and return success
+    // The actual cart management is handled on the frontend with localStorage
+    const { product_type, variant_id, size_id, quantity, bundle_id, items } = req.body;
+    
+    // Validate input
+    if (!quantity || !product_type ||
+        (product_type === 'single' && (!variant_id || !size_id)) ||
+        (product_type === 'bundle' && (!bundle_id || !items?.length))) {
+      console.error('Missing required fields for guest cart:', { product_type, variant_id, size_id, quantity, bundle_id, items });
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    
+    if (quantity < 1) {
+      console.error('Invalid quantity for guest cart:', quantity);
+      return res.status(400).json({ error: 'Quantity must be a positive integer.' });
+    }
+    
+    // Return success response with empty cart data
+    // The frontend will handle the actual cart management
+    const response = {
+      message: 'Guest cart item added successfully',
+      cartId: null,
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      items: []
+    };
+    
+    console.log('Add to guest cart response:', JSON.stringify(response, null, 2));
+    res.status(201).json(response);
+  } catch (err) {
+    console.error('Add to guest cart error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const updateGuestCartItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { quantity } = req.body;
+    quantity = parseInt(quantity, 10);
+
+    console.log('Backend: Updating guest cart item', { id, quantity });
+
+    if (isNaN(quantity) || quantity < 1) {
+      console.error('Backend: Invalid quantity for guest cart', { quantity });
+      return res.status(400).json({ error: 'Quantity must be a positive integer' });
+    }
+
+    // For guest carts, we'll just validate and return success
+    // The frontend handles the actual cart management
+    console.log('Backend: Guest cart item updated successfully', { id, quantity });
+    res.json({ message: 'Guest cart item updated successfully' });
+  } catch (err) {
+    console.error('Backend: Update guest cart item error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
+};
+
+export const removeGuestCartItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Backend: Removing guest cart item', { id });
+
+    // For guest carts, we'll just validate and return success
+    // The frontend handles the actual cart management
+    console.log('Backend: Guest cart item removed successfully', { id });
+    res.json({ message: 'Guest cart item removed successfully' });
+  } catch (err) {
+    console.error('Backend: Remove guest cart item error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
+};
+
+export const clearGuestCart = async (req, res) => {
+  try {
+    const { guestId } = req.params;
+    console.log('Backend: Clearing guest cart for guestId:', guestId);
+
+    // For guest carts, we'll just validate and return success
+    // The frontend handles the actual cart management
+    console.log('Backend: Guest cart cleared successfully for guestId:', guestId);
+    res.json({ message: 'Guest cart cleared successfully' });
+  } catch (err) {
+    console.error('Backend: Clear guest cart error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
 };
 
 // Get cart
