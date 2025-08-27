@@ -25,6 +25,9 @@ const CheckoutPage = () => {
   // Use the user from our custom hook, fall back to AuthContext if needed
   const user = hookUser || authUser;
   
+  // Check if user is a guest (not logged in)
+  const isGuestUser = !authUser && !hookUser;
+  
   let currencyContext;
   try {
     currencyContext = useContext(CurrencyContext);
@@ -83,6 +86,13 @@ const CheckoutPage = () => {
     state: '',
     zip_code: '',
     country: 'Nigeria',
+  });
+  
+  // Guest user information
+  const [guestInfo, setGuestInfo] = useState({
+    full_name: '',
+    email: '',
+    phone_number: '',
   });
   
   // New state for billing address option
@@ -567,10 +577,27 @@ const handleApplyCoupon = async (e) => {
   
   useEffect(() => {
     const fetchCartAndAddresses = async () => {
+      // For guest users, we'll use the cart from localStorage
       if (!isAuthenticated()) {
-        setError('Please log in to proceed with checkout.');
-        toast.error('Please log in to proceed with checkout.');
-        navigate('/login', { state: { from: '/checkout' } });
+        // Load guest cart from localStorage
+        const guestCart = localStorage.getItem('guestCart');
+        if (guestCart) {
+          try {
+            const parsedCart = JSON.parse(guestCart);
+            setCart(parsedCart);
+            toast.success('Guest cart loaded successfully');
+          } catch (err) {
+            console.error('Error parsing guest cart:', err);
+            setError('Failed to load guest cart. Please try again.');
+            toast.error('Failed to load guest cart. Please try again.');
+          }
+        } else {
+          setError('Your cart is empty. Please add items to proceed.');
+          toast.error('Your cart is empty. Please add items to proceed.');
+          navigate('/cart');
+          return;
+        }
+        setLoading(false);
         return;
       }
       
@@ -655,6 +682,9 @@ const handleApplyCoupon = async (e) => {
     };
     
     if (user && !authLoading && !contextLoading) {
+      fetchCartAndAddresses();
+    } else if (!user && !authLoading && !contextLoading) {
+      // Handle guest user
       fetchCartAndAddresses();
     }
   }, [user, authLoading, contextLoading, navigate]);
@@ -758,28 +788,46 @@ const handleApplyCoupon = async (e) => {
   const displayTotal = total;
   
   const handlePayment = async () => {
-    if (!shippingAddressId) {
-      setError('Please select a shipping address.');
-      toast.error('Please select a shipping address.');
-      return;
-    }
-  
-    if (!billingAddressId) {
-      setError('Please select a billing address.');
-      toast.error('Please select a billing address.');
-      return;
+    if (!isAuthenticated()) {
+      // For guest users, validate guest info and shipping form
+      if (!guestInfo.full_name || !guestInfo.email) {
+        setError('Please provide your full name and email address.');
+        toast.error('Please provide your full name and email address.');
+        return;
+      }
+      
+      if (!shippingForm.address_line_1 || !shippingForm.city || !shippingForm.state || !shippingForm.phone_number) {
+        setError('Please provide complete shipping address information.');
+        toast.error('Please provide complete shipping address information.');
+        return;
+      }
+      
+      // If using different billing address, validate billing form
+      if (billingAddressOption === 'different' &&
+          (!billingForm.full_name || !billingForm.email || !billingForm.address_line_1 ||
+           !billingForm.city || !billingForm.state || !billingForm.phone_number)) {
+        setError('Please provide complete billing address information.');
+        toast.error('Please provide complete billing address information.');
+        return;
+      }
+    } else {
+      // For authenticated users, validate existing address selection
+      if (!shippingAddressId) {
+        setError('Please select a shipping address.');
+        toast.error('Please select a shipping address.');
+        return;
+      }
+    
+      if (!billingAddressId) {
+        setError('Please select a billing address.');
+        toast.error('Please select a billing address.');
+        return;
+      }
     }
   
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method.');
       toast.error('Please select a shipping method.');
-      return;
-    }
-  
-    if (!isAuthenticated()) {
-      setError('Please log in to process your order.');
-      toast.error('Please log in to process your order.');
-      navigate('/login', { state: { from: '/checkout' } });
       return;
     }
   
@@ -791,20 +839,34 @@ const handleApplyCoupon = async (e) => {
   
     setLoading(true);
     try {
-      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-      if (!selectedShippingAddress) {
-        throw new Error('Selected shipping address not found');
+      let userId, shippingAddressIdToSend, billingAddressIdToSend;
+      let selectedShippingAddress, addressCountry, isNigeria;
+      let selectedBillingAddressToSend;
+      
+      if (!isAuthenticated()) {
+        // For guest users, use the form data directly
+        selectedShippingAddress = shippingForm;
+        addressCountry = shippingForm.country;
+        isNigeria = addressCountry.toLowerCase() === 'nigeria';
+        selectedBillingAddressToSend = billingAddressOption === 'same' ? shippingForm : billingForm;
+      } else {
+        // For authenticated users, use existing logic
+        selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+        if (!selectedShippingAddress) {
+          throw new Error('Selected shipping address not found');
+        }
+        addressCountry = selectedShippingAddress.country;
+        isNigeria = addressCountry.toLowerCase() === 'nigeria';
+        selectedBillingAddressToSend = billingAddresses.find(addr => addr.id.toString() === billingAddressId);
+        userId = getUserId();
       }
-      const addressCountry = selectedShippingAddress.country;
-      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
   
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
-      const userId = getUserId();
       const token = getToken();
       
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = user?.first_order ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
+      const baseFirstOrderDiscount = !isAuthenticated() || user?.first_order ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
       const baseCouponDiscount = couponDiscount;
       const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
@@ -813,10 +875,15 @@ const handleApplyCoupon = async (e) => {
       const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
       const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
       
+      // For guest users, we'll need to create temporary addresses in the backend
+      // For now, we'll send the form data directly and let the backend handle it
       const orderData = {
-        user_id: userId,
-        address_id: parseInt(shippingAddressId),
-        billing_address_id: parseInt(billingAddressId),
+        user_id: userId || null, // Will be null for guest users
+        guest_info: !isAuthenticated() ? guestInfo : null, // Include guest info for guest users
+        address: !isAuthenticated() ? shippingForm : null, // Include shipping form for guest users
+        billing_address: !isAuthenticated() ? selectedBillingAddressToSend : null, // Include billing form for guest users
+        address_id: isAuthenticated() ? parseInt(shippingAddressId) : null, // Will be null for guest users
+        billing_address_id: isAuthenticated() ? parseInt(billingAddressId) : null, // Will be null for guest users
         cart_id: cart.cartId,
         total: baseTotal,
         discount: baseFinalDiscount,
@@ -836,8 +903,8 @@ const handleApplyCoupon = async (e) => {
             quantity: item.quantity || 1,
             price: basePrice,
             size_id: item.item?.size_id || null,
-            image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
-              (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
+            image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ?
+              (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) :
               (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
             product_name: item.item?.name || 'Unknown Item',
             color_name: item.item?.color || null,
@@ -854,7 +921,7 @@ const handleApplyCoupon = async (e) => {
       console.log('Order payload:', orderData);
   
       const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
       });
   
       console.log('Order response:', orderResponse.data);
@@ -865,14 +932,14 @@ const handleApplyCoupon = async (e) => {
         throw new Error('Order ID not found in response');
       }
   
-      // Update user's first_order status if applicable
-      if (user.first_order) {
+      // Update user's first_order status if applicable (only for authenticated users)
+      if (isAuthenticated() && user.first_order) {
         try {
           console.log('Updating first_order status for user:', getUserId());
           
           const response = await axios({
             method: 'PATCH',
-            url: `${API_BASE_URL}/api/auth/users/${getUserId()}`, 
+            url: `${API_BASE_URL}/api/auth/users/${getUserId()}`,
             data: { first_order: false },
             headers: { Authorization: `Bearer ${getToken()}` }
           });
@@ -907,7 +974,9 @@ const handleApplyCoupon = async (e) => {
       const paymentData = {
         order_id: orderId,
         reference: orderData.reference,
-        email: selectedBillingAddress?.email || billingForm.email || user.email,
+        email: !isAuthenticated() ?
+          (billingAddressOption === 'same' ? guestInfo.email : billingForm.email) :
+          (selectedBillingAddressToSend?.email || billingForm.email || user.email),
         amount: Math.round(paymentAmount * 100), // Convert to kobo
         currency: paymentCurrency,
         callback_url: callbackUrl,
@@ -918,7 +987,7 @@ const handleApplyCoupon = async (e) => {
       const paymentResponse = await axios.post(
         `${API_BASE_URL}/api/paystack/initialize`,
         paymentData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: token ? `Bearer ${token}` : undefined } }
       );
   
       console.log('Payment response:', paymentResponse.data);
@@ -956,7 +1025,7 @@ const handleApplyCoupon = async (e) => {
                 const paymentResponse = await axios.post(
                   `${API_BASE_URL}/api/paystack/verify`,
                   { reference: orderData.reference },
-                  { headers: { Authorization: `Bearer ${token}` } }
+                  { headers: { Authorization: token ? `Bearer ${token}` : undefined } }
                 );
                 
                 if (paymentResponse.data.order?.payment_status === 'completed') {
@@ -1035,13 +1104,7 @@ const handleApplyCoupon = async (e) => {
     );
   }
   
-  if (!isAuthenticated() && !authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600 py-8 font-Jost">Please log in to proceed with checkout.</div>
-      </div>
-    );
-  }
+  // Removed authentication check to allow guest checkout
   
   if (loading) {
     return (
@@ -1195,10 +1258,128 @@ const handleApplyCoupon = async (e) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
+            {/* Guest User Information Section */}
+            {!isAuthenticated() && (
+              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Your Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="guestFullName" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="guestFullName"
+                      value={guestInfo.full_name}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, full_name: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="guestEmail" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="guestEmail"
+                      value={guestInfo.email}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                      placeholder="Enter your email address"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
               
-              {shippingAddresses.length > 0 ? (
+              {!isAuthenticated() ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="guestShippingAddress1" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        Address Line 1 *
+                      </label>
+                      <input
+                        type="text"
+                        id="guestShippingAddress1"
+                        value={shippingForm.address_line_1}
+                        onChange={(e) => setShippingForm({ ...shippingForm, address_line_1: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter address line 1"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="guestShippingAddress2" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        Address Line 2
+                      </label>
+                      <input
+                        type="text"
+                        id="guestShippingAddress2"
+                        value={shippingForm.address_line_2}
+                        onChange={(e) => setShippingForm({ ...shippingForm, address_line_2: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter address line 2"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="guestShippingCity" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        City *
+                      </label>
+                      <input
+                        type="text"
+                        id="guestShippingCity"
+                        value={shippingForm.city}
+                        onChange={(e) => setShippingForm({ ...shippingForm, city: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter city"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="guestShippingState" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        State *
+                      </label>
+                      <input
+                        type="text"
+                        id="guestShippingState"
+                        value={shippingForm.state}
+                        onChange={(e) => setShippingForm({ ...shippingForm, state: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter state"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="guestShippingZip" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        ZIP Code
+                      </label>
+                      <input
+                        type="text"
+                        id="guestShippingZip"
+                        value={shippingForm.zip_code}
+                        onChange={(e) => setShippingForm({ ...shippingForm, zip_code: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter ZIP code"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="guestShippingPhone" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="guestShippingPhone"
+                        value={shippingForm.phone_number}
+                        onChange={(e) => setShippingForm({ ...shippingForm, phone_number: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : shippingAddresses.length > 0 ? (
                 <div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
@@ -1285,7 +1466,146 @@ const handleApplyCoupon = async (e) => {
                 </div>
               </div>
               
-              {billingAddressOption === 'same' ? (
+              {!isAuthenticated() ? (
+                billingAddressOption === 'same' ? (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                        <div className="text-sm text-Accent font-Jost">
+                          <p>{shippingForm.address_line_1}</p>
+                          {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
+                          <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                          <p>{shippingForm.country}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="guestBillingFullName" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingFullName"
+                          value={billingForm.full_name}
+                          onChange={(e) => setBillingForm({ ...billingForm, full_name: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingEmail" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          id="guestBillingEmail"
+                          value={billingForm.email}
+                          onChange={(e) => setBillingForm({ ...billingForm, email: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter email address"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingPhone" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          id="guestBillingPhone"
+                          value={billingForm.phone_number}
+                          onChange={(e) => setBillingForm({ ...billingForm, phone_number: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                      <div></div> {/* Empty div for spacing */}
+                      <div>
+                        <label htmlFor="guestBillingAddress1" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Address Line 1 *
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingAddress1"
+                          value={billingForm.address_line_1}
+                          onChange={(e) => setBillingForm({ ...billingForm, address_line_1: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter address line 1"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingAddress2" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Address Line 2
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingAddress2"
+                          value={billingForm.address_line_2}
+                          onChange={(e) => setBillingForm({ ...billingForm, address_line_2: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter address line 2"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingCity" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          City *
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingCity"
+                          value={billingForm.city}
+                          onChange={(e) => setBillingForm({ ...billingForm, city: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter city"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingState" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          State *
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingState"
+                          value={billingForm.state}
+                          onChange={(e) => setBillingForm({ ...billingForm, state: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter state"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingZip" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          ZIP Code
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingZip"
+                          value={billingForm.zip_code}
+                          onChange={(e) => setBillingForm({ ...billingForm, zip_code: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter ZIP code"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="guestBillingCountry" className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Country *
+                        </label>
+                        <input
+                          type="text"
+                          id="guestBillingCountry"
+                          value={billingForm.country}
+                          onChange={(e) => setBillingForm({ ...billingForm, country: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-Primarycolor font-Jost"
+                          placeholder="Enter country"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : billingAddressOption === 'same' ? (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div className="flex items-start">
                     <div className="flex-1">
