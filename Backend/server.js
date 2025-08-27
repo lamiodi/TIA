@@ -40,14 +40,20 @@ const app = express();
 const allowedOrigins = [
   'https://www.thetiabrand.org', // Production frontend
   'http://localhost:5173',        // Local Vite development
+  'http://127.0.0.1:5173',        // Alternative localhost
 ];
 
+// Enhanced CORS configuration
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like Postman) or from allowedOrigins
+    // Log the origin for debugging
+    console.log('CORS request from origin:', origin);
+    
+    // Allow requests with no origin (like Postman, mobile apps) or from allowedOrigins
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.error(`CORS blocked origin: ${origin}`);
       callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
   },
@@ -57,10 +63,33 @@ app.use(cors({
     'Authorization',
     'X-User-Country',
     'Cache-Control',
-    'Pragma'
+    'Pragma',
+    'Accept',
+    'Origin',
+    'X-Requested-With'
   ],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS']
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
+
+// Manual OPTIONS handler for extra safety
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log('OPTIONS preflight request from origin:', origin);
+  
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Country, Cache-Control, Pragma, Accept, Origin, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '3600');
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(403);
+  }
+});
 
 
 // ... existing code ...
@@ -103,6 +132,16 @@ cleanupOldOrders(); // Optional: Run on startup
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.status(200).json({ 
+    message: 'CORS is working!', 
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString() 
+  });
+});
+
 // Health check
 app.get('/', (req, res) => res.send('TIA Backend is running 🚀'));
 
