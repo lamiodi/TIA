@@ -16,6 +16,6 @@ router.get('/verify', authenticateToken, (req, res) => {
 });
 router.patch('/users/:id', authenticateToken, updateUserFirstOrder);
 // Add this to your authRoutes file
-router.post('/create-temp-user', authenticateToken, createTemporaryUser);
+router.post('/create-temp-user', createTemporaryUser);
 
 export default router;
