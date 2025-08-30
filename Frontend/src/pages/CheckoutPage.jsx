@@ -14,10 +14,8 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -60,8 +58,6 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showShippingForm, setShowShippingForm] = useState(false);
-  const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     title: '',
@@ -72,12 +68,12 @@ const CheckoutPage = () => {
     state: '',
     zip_code: '',
     country: 'Nigeria',
-    phone_number: user?.phone_number || '',
+    phone_number: '',
   });
   const [billingForm, setBillingForm] = useState({
-    full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
-    email: user?.email || '',
-    phone_number: user?.phone_number || '',
+    full_name: '',
+    email: '',
+    phone_number: '',
     address_line_1: '',
     address_line_2: '',
     city: '',
@@ -306,191 +302,7 @@ const handleApplyCoupon = async (e) => {
     }
   };
   
-  // Guest checkout functions
-  const handleGuestSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate guest form
-    const errors = {};
-    if (!guestForm.name.trim()) {
-      errors.name = 'Name is required';
-    }
-    if (!guestForm.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
-      errors.email = 'Email is invalid';
-    }
-    if (!guestForm.phone_number.trim()) {
-      errors.phone_number = 'Phone number is required';
-    }
-    
-    if (Object.keys(errors).length > 0) {
-      setGuestFormErrors(errors);
-      return;
-    }
-    
-    setGuestFormErrors({});
-    setLoading(true);
-    
-    try {
-      // Try to create a temporary user
-      const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
-        name: guestForm.name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number
-      });
-      
-      // If we get here, the user was created successfully
-      const { user } = response.data;
-      setCreatedUserId(user.id);
-      setIsGuest(false);
-      setShowGuestForm(false);
-      setExistingUserType('temporary');
-      
-      toast.success('Account created successfully!');
-      
-      // Create a cart for the temporary user and add items from localStorage
-      const guestCartData = localStorage.getItem('guestCart');
-      if (guestCartData) {
-        try {
-          const guestCart = JSON.parse(guestCartData);
-          
-          // Create cart for the user
-          const cartResponse = await axios.post(
-            `${API_BASE_URL}/api/cart`,
-            { user_id: user.id }
-          );
-          
-          const cartId = cartResponse.data?.data?.id || cartResponse.data?.id;
-          setCreatedCartId(cartId);
-          
-          // Add items to the cart
-          for (const item of guestCart.items) {
-            const cartItemData = {
-              cart_id: cartId,
-              user_id: user.id,
-              variant_id: item.item?.is_product ? item.item.id : null,
-              bundle_id: item.item?.is_product ? null : item.item.id,
-              quantity: item.quantity || 1,
-              is_bundle: !item.item?.is_product,
-              size_id: item.item?.size_id || null,
-              color_name: item.item?.color || null,
-              size_name: item.item?.size || null,
-              price: Number(item.item?.price || 0)
-            };
-            
-            const cartItemResponse = await axios.post(
-              `${API_BASE_URL}/api/cart/items`,
-              cartItemData
-            );
-            
-            // If it's a bundle, add bundle items
-            if (!item.item?.is_product && item.item?.items) {
-              for (const bundleItem of item.item.items) {
-                await axios.post(
-                  `${API_BASE_URL}/api/cart/bundle-items`,
-                  {
-                    cart_item_id: cartItemResponse.data?.data?.id || cartItemResponse.data?.id,
-                    variant_id: bundleItem.variant_id,
-                    size_id: bundleItem.size_id,
-                    price: Number(bundleItem.price || 0)
-                  }
-                );
-              }
-            }
-          }
-          
-          // Update cart total
-          await axios.put(
-            `${API_BASE_URL}/api/cart/${cartId}`,
-            { total: guestCart.total }
-          );
-          
-          // Set the cart ID in state
-          setCart(prev => ({ ...prev, cartId }));
-          
-          // Now proceed with payment with the created cart ID
-          await processPayment(user.id, cartId);
-        } catch (err) {
-          console.error('Error creating cart for temporary user:', err);
-          const errorMessage = err.response?.data?.error || 'Failed to create cart';
-          setError(errorMessage);
-          toast.error(errorMessage);
-        }
-      } else {
-        // No guest cart data, proceed with payment
-        await processPayment(user.id);
-      }
-    } catch (err) {
-      console.error('Error creating temporary user:', err);
-      
-      // Check if the error is because the user already exists
-      if (err.response?.status === 400 && 
-          err.response?.data?.error?.includes('already exists')) {
-        
-        // Try to determine if it's a temporary or permanent user
-        // We'll assume it's a temporary user first and try to get it
-        try {
-          // We don't have a direct endpoint to get a user by email, 
-          // so we'll try to login with a dummy password to see if it's a permanent account
-          const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-            email: guestForm.email,
-            password: 'dummy_password_for_check' // Using a dummy password
-          });
-          
-          // If login succeeds, it's a permanent user
-          if (loginResponse.data.token) {
-            setExistingUserType('permanent');
-            setError('An account with this email already exists. Please log in to continue.');
-            toast.error('An account with this email already exists. Please log in to continue.');
-          }
-        } catch (loginErr) {
-          // If login fails with 401, it might be a temporary user
-          if (loginErr.response?.status === 401) {
-            // Assume it's a temporary user
-            setExistingUserType('temporary');
-            
-            // We don't have a direct way to get the temporary user ID,
-            // so we'll show a message to the user
-            setError('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
-            toast.error('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
-          } else {
-            // Some other error occurred
-            const errorMessage = err.response?.data?.error || 'Failed to create account';
-            setError(errorMessage);
-            toast.error(errorMessage);
-          }
-        }
-      } else {
-        // Some other error occurred
-        const errorMessage = err.response?.data?.error || 'Failed to create account';
-        setError(errorMessage);
-        toast.error(errorMessage);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   const processPayment = async (userId, cartId = null) => {
-    if (!shippingAddressId) {
-      setError('Please select a shipping address.');
-      toast.error('Please select a shipping address.');
-      return;
-    }
-  
-    if (!billingAddressId) {
-      setError('Please select a billing address.');
-      toast.error('Please select a billing address.');
-      return;
-    }
-  
-    if (isNigeria && !shippingMethod) {
-      setError('Please select a shipping method.');
-      toast.error('Please select a shipping method.');
-      return;
-    }
-  
     if (!cart?.items?.length) {
       setError('Cart is empty.');
       toast.error('Cart is empty.');
@@ -498,11 +310,7 @@ const handleApplyCoupon = async (e) => {
     }
   
     try {
-      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-      if (!selectedShippingAddress) {
-        throw new Error('Selected shipping address not found');
-      }
-      const addressCountry = selectedShippingAddress.country;
+      const addressCountry = shippingForm.country || 'Nigeria';
       const isNigeria = addressCountry.toLowerCase() === 'nigeria';
   
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
@@ -520,8 +328,8 @@ const handleApplyCoupon = async (e) => {
       
       const orderData = {
         user_id: userId,
-        address_id: parseInt(shippingAddressId),
-        billing_address_id: parseInt(billingAddressId),
+        address_id: shippingAddressId,
+        billing_address_id: billingAddressId,
         cart_id: cartId, // Use the provided cart ID
         total: baseTotal,
         discount: baseFinalDiscount,
@@ -641,225 +449,208 @@ const handleApplyCoupon = async (e) => {
     }
   };
   
+  // Updated handlePayment function to handle everything automatically
   const handlePayment = async () => {
-    if (isGuest) {
-      // Validate guest form first
-      const errors = {};
-      if (!guestForm.name.trim()) {
-        errors.name = 'Name is required';
-      }
-      if (!guestForm.email.trim()) {
-        errors.email = 'Email is required';
-      } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
-        errors.email = 'Email is invalid';
-      }
-      if (!guestForm.phone_number.trim()) {
-        errors.phone_number = 'Phone number is required';
+    setLoading(true);
+    setError('');
+    setFormErrors({});
+    
+    try {
+      let userId = getUserId();
+      let cartId = cart.cartId;
+      
+      // Step 1: Handle guest user creation if needed
+      if (isGuest && !createdUserId) {
+        // Validate guest form
+        const errors = {};
+        if (!guestForm.name.trim()) errors.name = 'Name is required';
+        if (!guestForm.email.trim()) {
+          errors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
+          errors.email = 'Email is invalid';
+        }
+        if (!guestForm.phone_number.trim()) errors.phone_number = 'Phone number is required';
+        
+        if (Object.keys(errors).length > 0) {
+          setGuestFormErrors(errors);
+          setLoading(false);
+          return;
+        }
+        
+        // Create temporary user
+        const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
+          name: guestForm.name,
+          email: guestForm.email,
+          phone_number: guestForm.phone_number
+        });
+        
+        const { user } = response.data;
+        setCreatedUserId(user.id);
+        userId = user.id;
+        
+        // Create cart for the temporary user and add items from localStorage
+        const guestCartData = localStorage.getItem('guestCart');
+        if (guestCartData) {
+          const guestCart = JSON.parse(guestCartData);
+          
+          const cartResponse = await axios.post(
+            `${API_BASE_URL}/api/cart`,
+            { user_id: user.id }
+          );
+          
+          cartId = cartResponse.data?.data?.id || cartResponse.data?.id;
+          setCreatedCartId(cartId);
+          
+          // Add items to the cart
+          for (const item of guestCart.items) {
+            const cartItemData = {
+              cart_id: cartId,
+              user_id: user.id,
+              variant_id: item.item?.is_product ? item.item.id : null,
+              bundle_id: item.item?.is_product ? null : item.item.id,
+              quantity: item.quantity || 1,
+              is_bundle: !item.item?.is_product,
+              size_id: item.item?.size_id || null,
+              color_name: item.item?.color || null,
+              size_name: item.item?.size || null,
+              price: Number(item.item?.price || 0)
+            };
+            
+            await axios.post(
+              `${API_BASE_URL}/api/cart/items`,
+              cartItemData
+            );
+          }
+          
+          // Update cart total
+          await axios.put(
+            `${API_BASE_URL}/api/cart/${cartId}`,
+            { total: guestCart.total }
+          );
+          
+          setCart(prev => ({ ...prev, cartId }));
+        }
       }
       
-      if (Object.keys(errors).length > 0) {
-        setGuestFormErrors(errors);
-        setShowGuestForm(true);
+      // Step 2: Validate and create shipping address
+      const shippingErrors = {};
+      if (!shippingForm.title) shippingErrors.title = 'Title is required';
+      if (!shippingForm.address_line_1) shippingErrors.address_line_1 = 'Address line 1 is required';
+      if (!shippingForm.city) shippingErrors.city = 'City is required';
+      if (!shippingForm.country) shippingErrors.country = 'Country is required';
+      
+      if (Object.keys(shippingErrors).length > 0) {
+        setFormErrors(shippingErrors);
+        setLoading(false);
         return;
       }
       
-      // If guest form is valid, submit it
-      await handleGuestSubmit({ preventDefault: () => {} });
-      return;
-    }
-    
-    // For authenticated users, proceed with normal payment flow
-    await processPayment(getUserId(), cart.cartId);
-  };
-  
-  const handleShippingSubmit = async (data) => {
-    if (!isAuthenticated() && !createdUserId) {
-      console.error('CheckoutPage: No user ID available');
-      toast.error('Please create an account to add shipping address');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const userId = createdUserId || getUserId();
+      const shippingPayload = {
+        user_id: userId,
+        title: shippingForm.title,
+        address_line_1: shippingForm.address_line_1,
+        address_line_2: shippingForm.address_line_2 || '',
+        landmark: shippingForm.landmark || '',
+        city: shippingForm.city,
+        state: shippingForm.state || '',
+        zip_code: shippingForm.zip_code || '',
+        country: shippingForm.country,
+        phone_number: shippingForm.phone_number || guestForm.phone_number || ''
+      };
       
-      const payload = { user_id: userId, ...data };
-      const response = await axios.post(
+      const shippingResponse = await axios.post(
         `${API_BASE_URL}/api/addresses`,
-        payload
+        shippingPayload
       );
       
-      // normalize and prepend new address so it becomes the selected default
-      const created = response.data?.data || response.data;
-      setShippingAddresses(prev => [created, ...prev]);
-      setShippingAddressId(String(created.id));
+      const createdShippingAddress = shippingResponse.data?.data || shippingResponse.data;
+      setShippingAddresses(prev => [createdShippingAddress, ...prev]);
+      const shippingAddressIdValue = String(createdShippingAddress.id);
+      setShippingAddressId(shippingAddressIdValue);
       
-      // If billing address option is 'same', update billing address to match
+      // Step 3: Validate and create billing address
+      let billingAddressIdValue = null;
+      
       if (billingAddressOption === 'same') {
-        // Create a billing address object from the shipping address
-        const billingAddress = {
-          full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
-          email: guestForm.email || user?.email || '',
-          phone_number: data.phone_number,
-          address_line_1: data.address_line_1,
-          address_line_2: data.address_line_2,
-          city: data.city,
-          state: data.state,
-          zip_code: data.zip_code,
-          country: data.country,
+        // Use shipping address as billing address
+        const billingPayload = {
+          user_id: userId,
+          full_name: guestForm.name || billingForm.full_name,
+          email: guestForm.email || billingForm.email,
+          phone_number: shippingForm.phone_number || guestForm.phone_number || '',
+          address_line_1: shippingForm.address_line_1,
+          address_line_2: shippingForm.address_line_2 || '',
+          city: shippingForm.city,
+          state: shippingForm.state || '',
+          zip_code: shippingForm.zip_code || '',
+          country: shippingForm.country
         };
         
-        // Try to find if this billing address already exists
-        const matchingBillingAddress = billingAddresses.find(addr => 
-          addr.address_line_1 === billingAddress.address_line_1 &&
-          addr.city === billingAddress.city &&
-          addr.state === billingAddress.state
+        const billingResponse = await axios.post(
+          `${API_BASE_URL}/api/billing-addresses`,
+          billingPayload
         );
         
-        if (matchingBillingAddress) {
-          setBillingAddressId(String(matchingBillingAddress.id));
-        } else {
-          // Create a new billing address
-          try {
-            const billingResponse = await axios.post(
-              `${API_BASE_URL}/api/billing-addresses`,
-              { user_id: userId, ...billingAddress }
-            );
-            
-            const newBillingAddress = billingResponse.data?.data || billingResponse.data;
-            setBillingAddresses(prev => [newBillingAddress, ...prev]);
-            setBillingAddressId(String(newBillingAddress.id));
-          } catch (err) {
-            console.error('Error creating billing address:', err);
-            toast.error('Failed to create billing address from shipping address');
-          }
-        }
-      }
-      
-      setShowShippingForm(false);
-      setFormErrors({});
-      setSuccess('Shipping address added successfully.');
-      toast.success('Shipping address added');
-    } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add shipping address: ${errorMessage}`);
-      toast.error(`Failed to add shipping address: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleBillingSubmit = async (data) => {
-    if (!isAuthenticated() && !createdUserId) {
-      console.error('CheckoutPage: No user ID available');
-      toast.error('Please create an account to add billing address');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const userId = createdUserId || getUserId();
-      const payload = { user_id: userId, ...data };
-      const response = await axios.post(
-        `${API_BASE_URL}/api/billing-addresses`,
-        payload
-      );
-      
-      const created = response.data?.data || response.data;
-      setBillingAddresses(prev => [created, ...prev]);
-      setBillingAddressId(String(created.id));
-      setShowBillingForm(false);
-      setFormErrors({});
-      setSuccess('Billing address added successfully.');
-      toast.success('Billing address added');
-    } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add billing address: ${errorMessage}`);
-      toast.error(`Failed to add billing address: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleDeleteAddress = async (type, addressId) => {
-    if (!isAuthenticated() && !createdUserId) {
-      console.error('CheckoutPage: No user ID available');
-      toast.error('Please create an account to delete address');
-      return;
-    }
-  
-    try {
-      setLoading(true);
-      
-      // 1. Delete address from backend
-      await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`);
-  
-      if (type === 'addresses') {
-        // Remove from local state
-        const remaining = shippingAddresses.filter(addr => String(addr.id) !== String(addressId));
-        setShippingAddresses(remaining);
-  
-        // If deleted address was selected, pick first remaining or null
-        if (String(shippingAddressId) === String(addressId)) {
-          const newShippingId = remaining.length ? String(remaining[0].id) : null;
-          setShippingAddressId(newShippingId);
-  
-          if (billingAddressOption === 'same' && remaining.length > 0) {
-            const newShippingAddress = remaining[0];
-  
-            // Check for matching billing address
-            const matchingBillingAddress = billingAddresses.find(addr =>
-              addr.address_line_1 === newShippingAddress.address_line_1 &&
-              addr.city === newShippingAddress.city &&
-              addr.state === newShippingAddress.state
-            );
-  
-            if (matchingBillingAddress) {
-              setBillingAddressId(String(matchingBillingAddress.id));
-            } else {
-              // Create new billing address from shipping
-              const billingAddress = {
-                full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
-                email: guestForm.email || user?.email || '',
-                phone_number: newShippingAddress.phone_number,
-                address_line_1: newShippingAddress.address_line_1,
-                address_line_2: newShippingAddress.address_line_2,
-                city: newShippingAddress.city,
-                state: newShippingAddress.state,
-                zip_code: newShippingAddress.zip_code,
-                country: newShippingAddress.country,
-              };
-  
-              try {
-                const billingResponse = await axios.post(
-                  `${API_BASE_URL}/api/billing-addresses`,
-                  { user_id: createdUserId || getUserId(), ...billingAddress }
-                );
-  
-                const newBillingAddress = billingResponse.data?.data || billingResponse.data;
-                setBillingAddresses(prev => [newBillingAddress, ...prev]);
-                setBillingAddressId(String(newBillingAddress.id));
-              } catch (err) {
-                console.error('Error creating billing address:', err);
-              }
-            }
-          }
-        }
+        const createdBillingAddress = billingResponse.data?.data || billingResponse.data;
+        setBillingAddresses(prev => [createdBillingAddress, ...prev]);
+        billingAddressIdValue = String(createdBillingAddress.id);
+        setBillingAddressId(billingAddressIdValue);
       } else {
-        // Type = 'billing-addresses'
-        const remaining = billingAddresses.filter(addr => String(addr.id) !== String(addressId));
-        setBillingAddresses(remaining);
-        if (String(billingAddressId) === String(addressId)) {
-          setBillingAddressId(remaining.length ? String(remaining[0].id) : null);
+        // Validate billing form
+        const billingErrors = {};
+        if (!billingForm.full_name) billingErrors.full_name = 'Full name is required';
+        if (!billingForm.email) billingErrors.email = 'Email is required';
+        if (!billingForm.address_line_1) billingErrors.address_line_1 = 'Address line 1 is required';
+        if (!billingForm.city) billingErrors.city = 'City is required';
+        if (!billingForm.country) billingErrors.country = 'Country is required';
+        
+        if (Object.keys(billingErrors).length > 0) {
+          setFormErrors(billingErrors);
+          setLoading(false);
+          return;
         }
+        
+        const billingPayload = {
+          user_id: userId,
+          full_name: billingForm.full_name,
+          email: billingForm.email,
+          phone_number: billingForm.phone_number || guestForm.phone_number || '',
+          address_line_1: billingForm.address_line_1,
+          address_line_2: billingForm.address_line_2 || '',
+          city: billingForm.city,
+          state: billingForm.state || '',
+          zip_code: billingForm.zip_code || '',
+          country: billingForm.country
+        };
+        
+        const billingResponse = await axios.post(
+          `${API_BASE_URL}/api/billing-addresses`,
+          billingPayload
+        );
+        
+        const createdBillingAddress = billingResponse.data?.data || billingResponse.data;
+        setBillingAddresses(prev => [createdBillingAddress, ...prev]);
+        billingAddressIdValue = String(createdBillingAddress.id);
+        setBillingAddressId(billingAddressIdValue);
       }
-  
-      setSuccess(`Successfully deleted ${type === 'addresses' ? 'shipping' : 'billing'} address.`);
-      toast.success(`Deleted ${type === 'addresses' ? 'shipping' : 'billing'} address`);
+      
+      // Step 4: Validate shipping method if in Nigeria
+      const addressCountry = shippingForm.country || 'Nigeria';
+      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+      
+      if (isNigeria && !shippingMethod) {
+        setError('Please select a shipping method.');
+        setLoading(false);
+        return;
+      }
+      
+      // Step 5: Process payment
+      await processPayment(userId, cartId);
     } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to delete address: ${errorMessage}`);
-      toast.error(`Failed to delete address: ${errorMessage}`);
+      console.error('Payment processing error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      setError(`Failed to process order: ${errorMessage}`);
+      toast.error(`Failed to process order: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -867,62 +658,19 @@ const handleApplyCoupon = async (e) => {
   
   // Copy shipping address to billing address
   const copyShippingToBilling = () => {
-    const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-    if (!selectedShippingAddress) {
-      toast.error('Please select a shipping address first');
-      return;
-    }
-    
-    // Create a billing address object from the shipping address
-    const billingAddress = {
-      full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
-      email: guestForm.email || user?.email || '',
-      phone_number: selectedShippingAddress.phone_number,
-      address_line_1: selectedShippingAddress.address_line_1,
-      address_line_2: selectedShippingAddress.address_line_2,
-      city: selectedShippingAddress.city,
-      state: selectedShippingAddress.state,
-      zip_code: selectedShippingAddress.zip_code,
-      country: selectedShippingAddress.country,
-    };
-    
-    // Try to find if this billing address already exists
-    const matchingBillingAddress = billingAddresses.find(addr => 
-      addr.address_line_1 === billingAddress.address_line_1 &&
-      addr.city === billingAddress.city &&
-      addr.state === billingAddress.state
-    );
-    
-    if (matchingBillingAddress) {
-      setBillingAddressId(String(matchingBillingAddress.id));
-      toast.success('Billing address updated to match shipping address');
-    } else {
-      // Create a new billing address
-      const createBillingAddress = async () => {
-        try {
-          setLoading(true);
-          const userId = createdUserId || getUserId();
-          
-          const response = await axios.post(
-            `${API_BASE_URL}/api/billing-addresses`,
-            { user_id: userId, ...billingAddress }
-          );
-          
-          const newBillingAddress = response.data?.data || response.data;
-          setBillingAddresses(prev => [newBillingAddress, ...prev]);
-          setBillingAddressId(String(newBillingAddress.id));
-          toast.success('Billing address created to match shipping address');
-        } catch (err) {
-          const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-          setError(`Failed to create billing address: ${errorMessage}`);
-          toast.error(`Failed to create billing address: ${errorMessage}`);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      createBillingAddress();
-    }
+    setBillingForm({
+      ...billingForm,
+      full_name: guestForm.name,
+      email: guestForm.email,
+      phone_number: shippingForm.phone_number || guestForm.phone_number,
+      address_line_1: shippingForm.address_line_1,
+      address_line_2: shippingForm.address_line_2,
+      city: shippingForm.city,
+      state: shippingForm.state,
+      zip_code: shippingForm.zip_code,
+      country: shippingForm.country
+    });
+    toast.success('Shipping address copied to billing address');
   };
   
   useEffect(() => {
@@ -1050,34 +798,6 @@ const handleApplyCoupon = async (e) => {
     }
   }, [user, authLoading, contextLoading, navigate, createdUserId]);
   
-  // Update billing address when shipping address changes if option is 'same'
-  useEffect(() => {
-    if (billingAddressOption === 'same' && shippingAddressId) {
-      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-      if (selectedShippingAddress) {
-        // Try to find a matching billing address
-        const matchingBillingAddress = billingAddresses.find(addr => 
-          addr.address_line_1 === selectedShippingAddress.address_line_1 &&
-          addr.city === selectedShippingAddress.city &&
-          addr.state === selectedShippingAddress.state
-        );
-        
-        if (matchingBillingAddress) {
-          setBillingAddressId(String(matchingBillingAddress.id));
-        }
-      }
-    }
-  }, [shippingAddressId, billingAddressOption, shippingAddresses, billingAddresses]);
-  
-  useEffect(() => {
-    if (shippingAddresses.length > 0 && !shippingAddressId) {
-      setShippingAddressId(String(shippingAddresses[0].id));
-    }
-    if (billingAddresses.length > 0 && !billingAddressId) {
-      setBillingAddressId(String(billingAddresses[0].id));
-    }
-  }, [shippingAddresses, billingAddresses, shippingAddressId, billingAddressId]);
-  
   useEffect(() => {
     const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
     const addressCountry = selectedShippingAddress ? selectedShippingAddress.country : country;
@@ -1188,7 +908,7 @@ const handleApplyCoupon = async (e) => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-Accent">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="mt-2 text-sm font-Jost">Loading checkout data...</p>
+          <p className="mt-2 text-sm font-Jost">Processing your order...</p>
         </div>
       </div>
     );
@@ -1271,94 +991,65 @@ const handleApplyCoupon = async (e) => {
         </div>
       )}
       
-      <form onSubmit={handleGuestSubmit}>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              value={guestForm.name}
-              onChange={(e) => setGuestForm({...guestForm, name: e.target.value})}
-              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-              placeholder="Enter your full name"
-            />
-            {guestFormErrors.name && (
-              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              value={guestForm.email}
-              onChange={(e) => {
-                setGuestForm({...guestForm, email: e.target.value});
-                setExistingUserType(null); // Reset existing user type when email changes
-              }}
-              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-              placeholder="Enter your email address"
-            />
-            {guestFormErrors.email && (
-              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-              Phone Number *
-            </label>
-            <input
-              type="tel"
-              value={guestForm.phone_number}
-              onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
-              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-              placeholder="Enter your phone number"
-            />
-            {guestFormErrors.phone_number && (
-              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
-            )}
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-blue-700 font-Jost">
-              <strong>Note:</strong> A temporary account will be created with your information. 
-              You'll receive an email with instructions to set a password and access your order history.
-            </p>
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-Primarycolor text-Secondarycolor py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                Creating Account...
-              </div>
-            ) : (
-              'Create Account & Continue to Payment'
-            )}
-          </button>
-          
-          {existingUserType === 'permanent' && (
-            <div className="mt-3 text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/login', { state: { from: '/checkout' } })}
-                className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
-              >
-                Log in to your existing account
-              </button>
-            </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            value={guestForm.name}
+            onChange={(e) => setGuestForm({...guestForm, name: e.target.value})}
+            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+            placeholder="Enter your full name"
+          />
+          {guestFormErrors.name && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
           )}
         </div>
-      </form>
+        
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Email Address *
+          </label>
+          <input
+            type="email"
+            value={guestForm.email}
+            onChange={(e) => {
+              setGuestForm({...guestForm, email: e.target.value});
+              setExistingUserType(null); // Reset existing user type when email changes
+            }}
+            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+            placeholder="Enter your email address"
+          />
+          {guestFormErrors.email && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            value={guestForm.phone_number}
+            onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+            placeholder="Enter your phone number"
+          />
+          {guestFormErrors.phone_number && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
+          )}
+        </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-700 font-Jost">
+            <strong>Note:</strong> A temporary account will be created with your information. 
+            You'll receive an email with instructions to set a password and access your order history.
+          </p>
+        </div>
+      </div>
     </div>
   );
   
@@ -1473,70 +1164,18 @@ const handleApplyCoupon = async (e) => {
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Guest Checkout Form */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Guest Checkout Form - Now placed just above shipping address */}
             {isGuest && showGuestForm && <GuestCheckoutForm />}
-          </div>
-          
-          {/* Middle Column - Checkout Forms */}
-          <div className="lg:col-span-1 space-y-8">
+            
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
               
-              {shippingAddresses.length > 0 ? (
-                <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
-                    <select
-                      value={shippingAddressId ?? ''}
-                      onChange={(e) => setShippingAddressId(String(e.target.value))}
-                      className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                    >
-                      {shippingAddresses.map((address) => (
-                        <option key={address.id} value={String(address.id)}>
-                          {address.title}, {address.address_line_1}, {address.city}, {address.country}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => setShowShippingForm(true)}
-                      className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
-                    >
-                      Add New Address
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
-                      className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <button
-                    onClick={() => setShowShippingForm(!showShippingForm)}
-                    className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                  >
-                    {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
-                  </button>
-                  {showShippingForm && (
-                    <ShippingAddressForm
-                      address={{ state: shippingForm, setState: setShippingForm }}
-                      onSubmit={handleShippingSubmit}
-                      onCancel={() => setShowShippingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                    />
-                  )}
-                </div>
-              )}
+              <ShippingAddressForm
+                address={{ state: shippingForm, setState: setShippingForm }}
+                formErrors={formErrors}
+                setFormErrors={setFormErrors}
+              />
             </div>
             
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -1575,16 +1214,9 @@ const handleApplyCoupon = async (e) => {
                   <div className="flex items-start">
                     <div className="flex-1">
                       <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                      {selectedShippingAddress ? (
-                        <div className="text-sm text-Accent font-Jost">
-                          <p>{selectedShippingAddress.address_line_1}</p>
-                          {selectedShippingAddress.address_line_2 && <p>{selectedShippingAddress.address_line_2}</p>}
-                          <p>{selectedShippingAddress.city}, {selectedShippingAddress.state} {selectedShippingAddress.zip_code}</p>
-                          <p>{selectedShippingAddress.country}</p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
-                      )}
+                      <p className="text-sm text-gray-500 font-Jost">
+                        Your billing address will be the same as your shipping address.
+                      </p>
                     </div>
                     <button
                       onClick={copyShippingToBilling}
@@ -1596,62 +1228,11 @@ const handleApplyCoupon = async (e) => {
                   </div>
                 </div>
               ) : (
-                <>
-                  {billingAddresses.length > 0 ? (
-                    <div>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
-                        <select
-                          value={billingAddressId ?? ''}
-                          onChange={(e) => setBillingAddressId(String(e.target.value))}
-                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                        >
-                          {billingAddresses.map((address) => (
-                            <option key={address.id} value={String(address.id)}>
-                              {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          onClick={() => setShowBillingForm(true)}
-                          className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                          disabled={loading}
-                        >
-                          Add New Address
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
-                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                          disabled={loading}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <button
-                        onClick={() => setShowBillingForm(!showBillingForm)}
-                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                      >
-                        {showBillingForm ? 'Cancel' : 'Add Billing Address'}
-                      </button>
-                      {showBillingForm && (
-                        <BillingAddressForm
-                          address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
-                          onCancel={() => setShowBillingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
-                        />
-                      )}
-                    </div>
-                  )}
-                </>
+                <BillingAddressForm
+                  address={{ state: billingForm, setState: setBillingForm }}
+                  formErrors={formErrors}
+                  setFormErrors={setFormErrors}
+                />
               )}
             </div>
             
@@ -1772,7 +1353,6 @@ const handleApplyCoupon = async (e) => {
             </div>
           </div>
           
-          {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
@@ -2093,15 +1673,13 @@ const handleApplyCoupon = async (e) => {
                 <button
                   onClick={handlePayment}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || !shippingAddressId || !billingAddressId || (isNigeria && !shippingMethod)}
+                  disabled={loading}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
                       <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
                       Processing...
                     </div>
-                  ) : isGuest ? (
-                    'Create Account & Place Order'
                   ) : (
                     'Place Order'
                   )}
@@ -2127,5 +1705,4 @@ const handleApplyCoupon = async (e) => {
     </div>
   );
 };
-
 export default CheckoutPage;
