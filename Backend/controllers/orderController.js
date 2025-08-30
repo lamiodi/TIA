@@ -439,15 +439,8 @@ export const createOrder = async (req, res) => {
         }
       }
       
-      // If user is temporary and this is their first order, convert to permanent
-      if (user.is_temporary && user.first_order) {
-        await sql`
-          UPDATE users 
-          SET is_temporary = false, first_order = false 
-          WHERE id = ${user_id}
-        `;
-        console.log(`✅ Converted temporary user ${user_id} to permanent`);
-      }
+      // Note: Removed automatic conversion of temporary users to permanent
+      // Temporary users will remain temporary until they set a password via resetPassword
       
       // Send notification for international orders
       if (address.country.toLowerCase() !== 'nigeria') {
@@ -464,7 +457,7 @@ export const createOrder = async (req, res) => {
         );
       }
       
-      console.log(`✅ Created order ${orderId} for user ${user_id} with reference ${reference}, discount ${discount}`);
+      console.log(`✅ Created order ${orderId} for user ${user_id} (${user.is_temporary ? 'temporary' : 'permanent'}) with reference ${reference}, discount ${discount}`);
       res.status(201).json({ order: { id: orderId, reference, discount } });
     });
   } catch (err) {
