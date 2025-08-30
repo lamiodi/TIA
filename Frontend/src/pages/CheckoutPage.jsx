@@ -14,8 +14,10 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -110,6 +112,8 @@ const CheckoutPage = () => {
   const [guestFormErrors, setGuestFormErrors] = useState({});
   const [createdUserId, setCreatedUserId] = useState(null);
   const [createdCartId, setCreatedCartId] = useState(null);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
   const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
   
   const decodeToken = (token) => {
@@ -1468,10 +1472,10 @@ const handleApplyCoupon = async (e) => {
           </div>
         )}
         
-        {/* Updated to two-column layout with right column smaller */}
-        <div className="grid grid-cols-1 lg:grid-cols-5/3 gap-8">
+        {/* Updated to two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Forms */}
-          <div className="lg:col-span-3 space-y-8">
+          <div className="lg:col-span-1 space-y-8">
             {/* Guest Checkout Form */}
             {isGuest && showGuestForm && <GuestCheckoutForm />}
             
@@ -1798,7 +1802,7 @@ const handleApplyCoupon = async (e) => {
           </div>
           
           {/* Right Column - Order Summary */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
               <div className="space-y-4 mb-6">
@@ -2152,4 +2156,5 @@ const handleApplyCoupon = async (e) => {
     </div>
   );
 };
+
 export default CheckoutPage;
