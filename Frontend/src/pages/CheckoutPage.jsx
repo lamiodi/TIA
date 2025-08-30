@@ -14,8 +14,10 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -110,6 +112,8 @@ const CheckoutPage = () => {
   const [guestFormErrors, setGuestFormErrors] = useState({});
   const [createdUserId, setCreatedUserId] = useState(null);
   const [createdCartId, setCreatedCartId] = useState(null);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
   const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
   
   const decodeToken = (token) => {
@@ -1468,8 +1472,8 @@ const handleApplyCoupon = async (e) => {
           </div>
         )}
         
-        {/* Updated to two-column layout with right column smaller */}
-        <div className="grid grid-cols-1 lg:grid-cols-3/2 gap-8">
+        {/* Updated to two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Forms */}
           <div className="lg:col-span-1 space-y-8">
             {/* Guest Checkout Form */}
@@ -2152,4 +2156,5 @@ const handleApplyCoupon = async (e) => {
     </div>
   );
 };
+
 export default CheckoutPage;
