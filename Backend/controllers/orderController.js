@@ -29,6 +29,7 @@ export const createOrder = async (req, res) => {
     exchange_rate,
     base_currency_total,
     converted_total,
+    tax,
   } = req.body;
   console.log('📥 Create order request:', {
     user_id,
@@ -47,14 +48,14 @@ export const createOrder = async (req, res) => {
     await sql.begin(async (sql) => {
       // Validate user - handle both cases (with and without deleted_at)
       let [user] = await sql`
-        SELECT id, first_name, last_name FROM users 
+        SELECT id, first_name, last_name, is_temporary, first_order FROM users 
         WHERE id = ${user_id}
       `;
       
       // If user has deleted_at column, check it's null
       if (user && 'deleted_at' in user) {
         [user] = await sql`
-          SELECT id, first_name, last_name FROM users 
+          SELECT id, first_name, last_name, is_temporary, first_order FROM users 
           WHERE id = ${user_id} AND deleted_at IS NULL
         `;
       }
@@ -102,21 +103,24 @@ export const createOrder = async (req, res) => {
         throw new Error('Billing address not found');
       }
       
-      // Validate cart - handle both cases
-      let [cart] = await sql`
-        SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
-      `;
-      
-      // If cart has deleted_at column, check it's null
-      if (cart && 'deleted_at' in cart) {
-        [cart] = await sql`
-          SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
+      // For guest users, cart_id might be null initially
+      // If cart_id is provided, validate it
+      if (cart_id) {
+        let [cart] = await sql`
+          SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
         `;
-      }
-      
-      if (!cart) {
-        console.error('Validation failed: Cart not found');
-        throw new Error('Cart not found');
+        
+        // If cart has deleted_at column, check it's null
+        if (cart && 'deleted_at' in cart) {
+          [cart] = await sql`
+            SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!cart) {
+          console.error('Validation failed: Cart not found');
+          throw new Error('Cart not found');
+        }
       }
       
       // Validate discount
@@ -328,7 +332,7 @@ export const createOrder = async (req, res) => {
         calculatedSubtotal += 0; // Shipping cost TBD
       }
       
-      const calculatedTax = delivery_option === 'international' ? Number((calculatedSubtotal * 0.05).toFixed(2)) : 0;
+      const calculatedTax = tax || (delivery_option === 'international' ? Number((calculatedSubtotal * 0.05).toFixed(2)) : 0);
       const calculatedTotal = Number((calculatedSubtotal - discount + calculatedTax).toFixed(2));
       
       if (Math.abs(calculatedTotal - total) > 0.01) {
@@ -435,6 +439,16 @@ export const createOrder = async (req, res) => {
         }
       }
       
+      // If user is temporary and this is their first order, convert to permanent
+      if (user.is_temporary && user.first_order) {
+        await sql`
+          UPDATE users 
+          SET is_temporary = false, first_order = false 
+          WHERE id = ${user_id}
+        `;
+        console.log(`✅ Converted temporary user ${user_id} to permanent`);
+      }
+      
       // Send notification for international orders
       if (address.country.toLowerCase() !== 'nigeria') {
         await sendAdminDeliveryFeeNotification(
@@ -519,43 +533,73 @@ export const cancelOrder = async (req, res) => {
       }
       
       const items = await sql`SELECT * FROM order_items WHERE order_id = ${orderId}`;
-      const bundleItems = await sql`SELECT * FROM order_bundle_items WHERE order_id = ${orderId}`;
       
       for (const item of items) {
-        const [cartItem] = await sql`
-          SELECT size_id FROM cart_items 
-          WHERE variant_id = ${item.variant_id} AND cart_id = ${order.cart_id}
-        `;
-        
-        if (cartItem && cartItem.size_id) {
-          await sql`
-            UPDATE variant_sizes 
-            SET stock_quantity = stock_quantity + ${item.quantity} 
-            WHERE variant_id = ${item.variant_id} AND size_id = ${cartItem.size_id}
-          `;
+        if (item.variant_id) {
+          // Restore stock for variant
+          if (item.size_id) {
+            const [updateResult] = await sql`
+              UPDATE variant_sizes 
+              SET stock_quantity = stock_quantity + ${item.quantity} 
+              WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+              RETURNING stock_quantity
+            `;
+            if (!updateResult) {
+              console.error(`Stock restore failed: No stock found for variant ${item.variant_id}, size ${item.size_id}`);
+              throw new Error(`Failed to restore stock for variant ${item.variant_id}, size ${item.size_id}`);
+            }
+            console.log(`Restored stock for variant ${item.variant_id}, size ${item.size_id}: ${updateResult.stock_quantity}`);
+          } else {
+            const [updateResult] = await sql`
+              UPDATE variant_sizes 
+              SET stock_quantity = stock_quantity + ${item.quantity} 
+              WHERE variant_id = ${item.variant_id} LIMIT 1
+              RETURNING stock_quantity
+            `;
+            if (!updateResult) {
+              console.error(`Stock restore failed: No stock found for variant ${item.variant_id} without size`);
+              throw new Error(`Failed to restore stock for variant ${item.variant_id} without size`);
+            }
+            console.log(`Restored stock for variant ${item.variant_id} without size: ${updateResult.stock_quantity}`);
+          }
+        } else if (item.bundle_id) {
+          const bundleItems = item.bundle_details ? JSON.parse(item.bundle_details) : [];
+          for (const bi of bundleItems) {
+            if (bi.size_id) {
+              const [updateResult] = await sql`
+                UPDATE variant_sizes 
+                SET stock_quantity = stock_quantity + ${item.quantity} 
+                WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
+                RETURNING stock_quantity
+              `;
+              if (!updateResult) {
+                console.error(`Stock restore failed: No stock found for bundle item variant ${bi.variant_id}, size ${bi.size_id}`);
+                throw new Error(`Failed to restore stock for bundle item variant ${bi.variant_id}, size ${bi.size_id}`);
+              }
+              console.log(`Restored stock for bundle item variant ${bi.variant_id}, size ${bi.size_id}: ${updateResult.stock_quantity}`);
+            } else {
+              const [updateResult] = await sql`
+                UPDATE variant_sizes 
+                SET stock_quantity = stock_quantity + ${item.quantity} 
+                WHERE variant_id = ${bi.variant_id} LIMIT 1
+                RETURNING stock_quantity
+              `;
+              if (!updateResult) {
+                console.error(`Stock restore failed: No stock found for bundle item variant ${bi.variant_id} without size`);
+                throw new Error(`Failed to restore stock for bundle item variant ${bi.variant_id} without size`);
+              }
+              console.log(`Restored stock for bundle item variant ${bi.variant_id} without size: ${updateResult.stock_quantity}`);
+            }
+          }
         }
       }
       
-      for (const item of bundleItems) {
-        const bundleItemsDetails = await sql`
-          SELECT bi.variant_id, vs.size_id, vs.stock_quantity
-          FROM bundle_items bi
-          JOIN variant_sizes vs ON vs.variant_id = bi.variant_id
-          WHERE bi.bundle_id = ${item.bundle_id}
-        `;
-        
-        for (const bi of bundleItemsDetails) {
-          await sql`
-            UPDATE variant_sizes 
-            SET stock_quantity = stock_quantity + ${item.quantity} 
-            WHERE variant_id = ${bi.variant_id} AND size_id = ${bi.size_id}
-          `;
-        }
-      }
-      
-      await sql`DELETE FROM order_bundle_items WHERE order_id = ${orderId}`;
-      await sql`DELETE FROM order_items WHERE order_id = ${orderId}`;
-      await sql`DELETE FROM orders WHERE id = ${orderId}`;
+      // Mark order as cancelled instead of deleting it
+      await sql`
+        UPDATE orders 
+        SET status = 'cancelled', updated_at = NOW() 
+        WHERE id = ${orderId}
+      `;
       
       console.log(`✅ Cancelled order ${orderId}`);
       res.json({ message: 'Order cancelled and stock restored' });
@@ -673,18 +717,10 @@ export const getOrderById = async (req, res) => {
       WHERE oi.order_id = ${id}
     `;
     
-    const bundleItems = await sql`
-      SELECT obi.*, b.name as bundle_name
-      FROM order_bundle_items obi
-      JOIN bundles b ON obi.bundle_id = b.id
-      WHERE obi.order_id = ${id}
-    `;
-    
     const formattedOrder = {
       ...order,
       shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
       items,
-      bundle_items: bundleItems,
     };
     
     console.log(`getOrderById: Fetched order ${id}:`, formattedOrder);

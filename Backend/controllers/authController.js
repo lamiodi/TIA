@@ -171,8 +171,9 @@ export const requestPasswordReset = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
   try {
+    // Get user details including is_temporary flag
     const [user] = await sql`
-      SELECT id FROM users 
+      SELECT id, is_temporary FROM users 
       WHERE reset_token = ${token} AND reset_token_expires > NOW() AND deleted_at IS NULL
     `;
     
@@ -180,13 +181,23 @@ export const resetPassword = async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
+    // Update password and clear reset token
+    // Also convert temporary account to permanent if needed
     await sql`
       UPDATE users 
-      SET password = ${hashedPassword}, reset_token = NULL, reset_token_expires = NULL, updated_at = NOW()
+      SET 
+        password = ${hashedPassword}, 
+        reset_token = NULL, 
+        reset_token_expires = NULL, 
+        is_temporary = ${user.is_temporary ? false : null}, // Set to false if it was a temporary account
+        updated_at = NOW()
       WHERE reset_token = ${token}
     `;
     
-    res.json({ message: 'Password has been reset successfully' });
+    res.json({ 
+      message: 'Password has been reset successfully',
+      accountConverted: user.is_temporary // Let client know if account was converted
+    });
   } catch (err) {
     console.error('resetPassword error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -269,5 +280,75 @@ export const updateUserFirstOrder = async (req, res) => {
       error: 'Failed to update first order status',
       details: err.message 
     });
+  }
+};
+
+// Add this to your auth controller
+export const createTemporaryUser = async (req, res) => {
+  try {
+    const { name, email, phone_number } = req.body;
+    
+    // Validate input
+    if (!name || !email || !phone_number) {
+      return res.status(400).json({ error: 'Name, email, and phone number are required' });
+    }
+    
+    // Split name into first and last name
+    const nameParts = name.trim().split(' ');
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.slice(1).join(' ') || '';
+    
+    // Generate a random password (but we won't send it to the user)
+    const generateRandomPassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+    
+    const password = generateRandomPassword();
+    
+    // Check if user already exists and get user details
+    const [existingUser] = await sql`
+      SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
+      FROM users 
+      WHERE email = ${email} OR phone_number = ${phone_number}
+    `;
+    
+    if (existingUser) {
+      // Return detailed information about the existing user
+      return res.status(400).json({ 
+        error: 'An account with this email or phone number already exists',
+        existingUser: {
+          id: existingUser.id,
+          is_temporary: existingUser.is_temporary,
+          email: existingUser.email,
+          phone_number: existingUser.phone_number
+        }
+      });
+    }
+    
+    // Hash the password
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Create the user
+    const [newUser] = await sql`
+      INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary, first_order)
+      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, ${true}, ${true})
+      RETURNING id, first_name, last_name, email, phone_number, is_temporary, first_order
+    `;
+    
+    // Return user data without token
+    res.status(201).json({
+      user: newUser,
+      message: 'Temporary account created successfully'
+    });
+  } catch (err) {
+    console.error('Error creating temporary user:', err);
+    res.status(500).json({ error: 'Failed to create temporary account' });
   }
 };

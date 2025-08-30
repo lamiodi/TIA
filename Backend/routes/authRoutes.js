@@ -1,6 +1,6 @@
 //authroutes
 import express from 'express';
-import { loginUser, adminLogin, signupUser, requestPasswordReset, resetPassword, getMe, updateProfile, updateUserFirstOrder } from '../controllers/authController.js';
+import { loginUser, adminLogin, signupUser, requestPasswordReset, resetPassword, getMe, updateProfile, updateUserFirstOrder, createTemporaryUser } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
@@ -15,5 +15,7 @@ router.get('/verify', authenticateToken, (req, res) => {
   res.json({ valid: true, user: req.user });
 });
 router.patch('/users/:id', authenticateToken, updateUserFirstOrder);
+// Add this to your authRoutes file
+router.post('/create-temp-user', authenticateToken, createTemporaryUser);
 
 export default router;
