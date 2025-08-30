@@ -120,7 +120,7 @@ const ProductDetails = () => {
     } catch (err) {
       console.error('Error loading guest cart:', err);
     }
-    return { items: [] };
+    return { items: [], subtotal: 0, tax: 0, total: 0 };
   };
   
   // Save guest cart to localStorage

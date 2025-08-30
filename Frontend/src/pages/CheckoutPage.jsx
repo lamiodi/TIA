@@ -1,7 +1,8 @@
+// src/pages/CheckoutPage.jsx
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BillingAddressForm from '../components/BillingAddressForm';
@@ -19,7 +20,7 @@ const WHATSAPP_NUMBER = '2348104117122';
 
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, login } = useAuth();
   const { user: hookUser, refreshUser, refreshCount } = useUserManager();
   
   // Use the user from our custom hook, fall back to AuthContext if needed
@@ -99,6 +100,21 @@ const CheckoutPage = () => {
   
   // Add state to track if user data has been refreshed
   const [userDataRefreshed, setUserDataRefreshed] = useState(false);
+  
+  // Guest user states
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestForm, setGuestForm] = useState({
+    name: '',
+    email: '',
+    phone_number: ''
+  });
+  const [showGuestForm, setShowGuestForm] = useState(true);
+  const [guestFormErrors, setGuestFormErrors] = useState({});
+  const [createdUserId, setCreatedUserId] = useState(null);
+  const [createdCartId, setCreatedCartId] = useState(null);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
+  const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
   
   const decodeToken = (token) => {
     try {
@@ -290,23 +306,387 @@ const handleApplyCoupon = async (e) => {
     }
   };
   
+  // Guest checkout functions
+  const handleGuestSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate guest form
+    const errors = {};
+    if (!guestForm.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    if (!guestForm.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
+      errors.email = 'Email is invalid';
+    }
+    if (!guestForm.phone_number.trim()) {
+      errors.phone_number = 'Phone number is required';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setGuestFormErrors(errors);
+      return;
+    }
+    
+    setGuestFormErrors({});
+    setLoading(true);
+    
+    try {
+      // Try to create a temporary user
+      const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
+        name: guestForm.name,
+        email: guestForm.email,
+        phone_number: guestForm.phone_number
+      });
+      
+      // If we get here, the user was created successfully
+      const { user } = response.data;
+      setCreatedUserId(user.id);
+      setIsGuest(false);
+      setShowGuestForm(false);
+      setExistingUserType('temporary');
+      
+      toast.success('Account created successfully!');
+      
+      // Create a cart for the temporary user and add items from localStorage
+      const guestCartData = localStorage.getItem('guestCart');
+      if (guestCartData) {
+        try {
+          const guestCart = JSON.parse(guestCartData);
+          
+          // Create cart for the user
+          const cartResponse = await axios.post(
+            `${API_BASE_URL}/api/cart`,
+            { user_id: user.id }
+          );
+          
+          const cartId = cartResponse.data?.data?.id || cartResponse.data?.id;
+          setCreatedCartId(cartId);
+          
+          // Add items to the cart
+          for (const item of guestCart.items) {
+            const cartItemData = {
+              cart_id: cartId,
+              user_id: user.id,
+              variant_id: item.item?.is_product ? item.item.id : null,
+              bundle_id: item.item?.is_product ? null : item.item.id,
+              quantity: item.quantity || 1,
+              is_bundle: !item.item?.is_product,
+              size_id: item.item?.size_id || null,
+              color_name: item.item?.color || null,
+              size_name: item.item?.size || null,
+              price: Number(item.item?.price || 0)
+            };
+            
+            const cartItemResponse = await axios.post(
+              `${API_BASE_URL}/api/cart/items`,
+              cartItemData
+            );
+            
+            // If it's a bundle, add bundle items
+            if (!item.item?.is_product && item.item?.items) {
+              for (const bundleItem of item.item.items) {
+                await axios.post(
+                  `${API_BASE_URL}/api/cart/bundle-items`,
+                  {
+                    cart_item_id: cartItemResponse.data?.data?.id || cartItemResponse.data?.id,
+                    variant_id: bundleItem.variant_id,
+                    size_id: bundleItem.size_id,
+                    price: Number(bundleItem.price || 0)
+                  }
+                );
+              }
+            }
+          }
+          
+          // Update cart total
+          await axios.put(
+            `${API_BASE_URL}/api/cart/${cartId}`,
+            { total: guestCart.total }
+          );
+          
+          // Set the cart ID in state
+          setCart(prev => ({ ...prev, cartId }));
+          
+          // Now proceed with payment with the created cart ID
+          await processPayment(user.id, cartId);
+        } catch (err) {
+          console.error('Error creating cart for temporary user:', err);
+          const errorMessage = err.response?.data?.error || 'Failed to create cart';
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
+      } else {
+        // No guest cart data, proceed with payment
+        await processPayment(user.id);
+      }
+    } catch (err) {
+      console.error('Error creating temporary user:', err);
+      
+      // Check if the error is because the user already exists
+      if (err.response?.status === 400 && 
+          err.response?.data?.error?.includes('already exists')) {
+        
+        // Try to determine if it's a temporary or permanent user
+        // We'll assume it's a temporary user first and try to get it
+        try {
+          // We don't have a direct endpoint to get a user by email, 
+          // so we'll try to login with a dummy password to see if it's a permanent account
+          const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+            email: guestForm.email,
+            password: 'dummy_password_for_check' // Using a dummy password
+          });
+          
+          // If login succeeds, it's a permanent user
+          if (loginResponse.data.token) {
+            setExistingUserType('permanent');
+            setError('An account with this email already exists. Please log in to continue.');
+            toast.error('An account with this email already exists. Please log in to continue.');
+          }
+        } catch (loginErr) {
+          // If login fails with 401, it might be a temporary user
+          if (loginErr.response?.status === 401) {
+            // Assume it's a temporary user
+            setExistingUserType('temporary');
+            
+            // We don't have a direct way to get the temporary user ID,
+            // so we'll show a message to the user
+            setError('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
+            toast.error('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
+          } else {
+            // Some other error occurred
+            const errorMessage = err.response?.data?.error || 'Failed to create account';
+            setError(errorMessage);
+            toast.error(errorMessage);
+          }
+        }
+      } else {
+        // Some other error occurred
+        const errorMessage = err.response?.data?.error || 'Failed to create account';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const processPayment = async (userId, cartId = null) => {
+    if (!shippingAddressId) {
+      setError('Please select a shipping address.');
+      toast.error('Please select a shipping address.');
+      return;
+    }
+  
+    if (!billingAddressId) {
+      setError('Please select a billing address.');
+      toast.error('Please select a billing address.');
+      return;
+    }
+  
+    if (isNigeria && !shippingMethod) {
+      setError('Please select a shipping method.');
+      toast.error('Please select a shipping method.');
+      return;
+    }
+  
+    if (!cart?.items?.length) {
+      setError('Cart is empty.');
+      toast.error('Cart is empty.');
+      return;
+    }
+  
+    try {
+      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
+      if (!selectedShippingAddress) {
+        throw new Error('Selected shipping address not found');
+      }
+      const addressCountry = selectedShippingAddress.country;
+      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+  
+      const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
+      
+      // Calculate amounts in NGN
+      const baseSubtotal = Number(cart?.subtotal) || 0;
+      const baseFirstOrderDiscount = true; // Always true for new users
+      const baseCouponDiscount = couponDiscount;
+      const baseTotalDiscount = Number((baseFirstOrderDiscount ? (baseSubtotal * 0.05) : 0 + baseCouponDiscount).toFixed(2));
+      const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
+      const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
+      const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+      const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
+      const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
+      
+      const orderData = {
+        user_id: userId,
+        address_id: parseInt(shippingAddressId),
+        billing_address_id: parseInt(billingAddressId),
+        cart_id: cartId, // Use the provided cart ID
+        total: baseTotal,
+        discount: baseFinalDiscount,
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        delivery_option: isNigeria ? 'standard' : 'international',
+        shipping_method_id: isNigeria ? shippingMethod?.id : null,
+        shipping_cost: baseShippingCost,
+        shipping_country: addressCountry,
+        payment_method: paymentMethod,
+        currency: orderCurrency,
+        reference: uuidv4(),
+        items: cart.items.map(item => {
+          const basePrice = Number(item.item?.price || 0);
+          return {
+            variant_id: item.item?.is_product ? item.item.id : null,
+            bundle_id: item.item?.is_product ? null : item.item.id,
+            quantity: item.quantity || 1,
+            price: basePrice,
+            size_id: item.item?.size_id || null,
+            image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
+              (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
+              (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
+            product_name: item.item?.name || 'Unknown Item',
+            color_name: item.item?.color || null,
+            size_name: item.item?.size || null,
+          };
+        }),
+        note: orderNote,
+        exchange_rate: 1, // No conversion needed
+        base_currency_total: baseTotal,
+        converted_total: baseTotal,
+        tax: baseTax,
+      };
+  
+      console.log('Order payload:', orderData);
+  
+      const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
+  
+      console.log('Order response:', orderResponse.data);
+  
+      const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
+      if (!orderId) {
+        console.error('Order ID not found in response:', orderResponse.data);
+        throw new Error('Order ID not found in response');
+      }
+  
+      const paymentCurrency = 'NGN';
+      const paymentAmount = baseTotal;
+  
+      const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
+      
+      const paymentData = {
+        order_id: orderId,
+        reference: orderData.reference,
+        email: guestForm.email || billingForm.email || user.email,
+        amount: Math.round(paymentAmount * 100), // Convert to kobo
+        currency: paymentCurrency,
+        callback_url: callbackUrl,
+      };
+  
+      console.log('Payment payload:', paymentData);
+  
+      const paymentResponse = await axios.post(
+        `${API_BASE_URL}/api/paystack/initialize`,
+        paymentData
+      );
+  
+      console.log('Payment response:', paymentResponse.data);
+      
+      let paymentInfo = paymentResponse.data;
+      if (paymentResponse.data.data) {
+        paymentInfo = paymentResponse.data.data;
+      }
+      
+      const accessCode = paymentInfo.access_code;
+      const authorizationUrl = paymentInfo.authorization_url;
+      
+      if (accessCode) {
+        // Clear guest cart from localStorage
+        localStorage.removeItem('guestCart');
+        toast.success('Order placed successfully. Opening payment popup...');
+        localStorage.setItem('lastOrderReference', orderData.reference);
+        localStorage.setItem('pendingOrderId', orderId); // Store the order ID
+        
+        const paystack = new PaystackPop();
+        paystack.newTransaction({
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+          email: paymentData.email,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          reference: paymentData.reference,
+          callback: (response) => {
+            toast.success('Payment successful!');
+            navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
+          },
+          onClose: () => {
+            toast.info('Payment window closed. You can complete payment later from your orders page.');
+            navigate(`/orders/${orderId}`);
+          }
+        });
+      } else if (authorizationUrl) {
+        // Clear guest cart from localStorage
+        localStorage.removeItem('guestCart');
+        toast.success('Order placed successfully. Redirecting to payment page...');
+        localStorage.setItem('lastOrderReference', orderData.reference);
+        localStorage.setItem('pendingOrderId', orderId);
+        window.location.href = authorizationUrl;
+      } else {
+        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
+        throw new Error('Failed to get payment information');
+      }
+    } catch (err) {
+      console.error('Payment processing error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      setError(`Failed to process order: ${errorMessage}`);
+      toast.error(`Failed to process order: ${errorMessage}`);
+    }
+  };
+  
+  const handlePayment = async () => {
+    if (isGuest) {
+      // Validate guest form first
+      const errors = {};
+      if (!guestForm.name.trim()) {
+        errors.name = 'Name is required';
+      }
+      if (!guestForm.email.trim()) {
+        errors.email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
+        errors.email = 'Email is invalid';
+      }
+      if (!guestForm.phone_number.trim()) {
+        errors.phone_number = 'Phone number is required';
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setGuestFormErrors(errors);
+        setShowGuestForm(true);
+        return;
+      }
+      
+      // If guest form is valid, submit it
+      await handleGuestSubmit({ preventDefault: () => {} });
+      return;
+    }
+    
+    // For authenticated users, proceed with normal payment flow
+    await processPayment(getUserId(), cart.cartId);
+  };
+  
   const handleShippingSubmit = async (data) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to add shipping address');
-      navigate('/login', { state: { from: '/checkout' } });
+    if (!isAuthenticated() && !createdUserId) {
+      console.error('CheckoutPage: No user ID available');
+      toast.error('Please create an account to add shipping address');
       return;
     }
     
     try {
       setLoading(true);
-      const userId = getUserId();
-      const token = getToken();
+      const userId = createdUserId || getUserId();
+      
       const payload = { user_id: userId, ...data };
       const response = await axios.post(
         `${API_BASE_URL}/api/addresses`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        payload
       );
       
       // normalize and prepend new address so it becomes the selected default
@@ -318,8 +698,8 @@ const handleApplyCoupon = async (e) => {
       if (billingAddressOption === 'same') {
         // Create a billing address object from the shipping address
         const billingAddress = {
-          full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
-          email: user?.email || '',
+          full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
+          email: guestForm.email || user?.email || '',
           phone_number: data.phone_number,
           address_line_1: data.address_line_1,
           address_line_2: data.address_line_2,
@@ -343,8 +723,7 @@ const handleApplyCoupon = async (e) => {
           try {
             const billingResponse = await axios.post(
               `${API_BASE_URL}/api/billing-addresses`,
-              { user_id: userId, ...billingAddress },
-              { headers: { Authorization: `Bearer ${token}` } }
+              { user_id: userId, ...billingAddress }
             );
             
             const newBillingAddress = billingResponse.data?.data || billingResponse.data;
@@ -371,22 +750,19 @@ const handleApplyCoupon = async (e) => {
   };
   
   const handleBillingSubmit = async (data) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to add billing address');
-      navigate('/login', { state: { from: '/checkout' } });
+    if (!isAuthenticated() && !createdUserId) {
+      console.error('CheckoutPage: No user ID available');
+      toast.error('Please create an account to add billing address');
       return;
     }
     
     try {
       setLoading(true);
-      const userId = getUserId();
-      const token = getToken();
+      const userId = createdUserId || getUserId();
       const payload = { user_id: userId, ...data };
       const response = await axios.post(
         `${API_BASE_URL}/api/billing-addresses`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        payload
       );
       
       const created = response.data?.data || response.data;
@@ -406,21 +782,17 @@ const handleApplyCoupon = async (e) => {
   };
   
   const handleDeleteAddress = async (type, addressId) => {
-    if (!isAuthenticated()) {
-      console.error('CheckoutPage: No user ID or token available');
-      toast.error('Please log in to delete address');
-      navigate('/login', { state: { from: '/checkout' } });
+    if (!isAuthenticated() && !createdUserId) {
+      console.error('CheckoutPage: No user ID available');
+      toast.error('Please create an account to delete address');
       return;
     }
   
     try {
       setLoading(true);
-      const token = getToken();
-  
+      
       // 1. Delete address from backend
-      await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`);
   
       if (type === 'addresses') {
         // Remove from local state
@@ -447,8 +819,8 @@ const handleApplyCoupon = async (e) => {
             } else {
               // Create new billing address from shipping
               const billingAddress = {
-                full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
-                email: user?.email || '',
+                full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
+                email: guestForm.email || user?.email || '',
                 phone_number: newShippingAddress.phone_number,
                 address_line_1: newShippingAddress.address_line_1,
                 address_line_2: newShippingAddress.address_line_2,
@@ -461,8 +833,7 @@ const handleApplyCoupon = async (e) => {
               try {
                 const billingResponse = await axios.post(
                   `${API_BASE_URL}/api/billing-addresses`,
-                  { user_id: getUserId(), ...billingAddress },
-                  { headers: { Authorization: `Bearer ${token}` } }
+                  { user_id: createdUserId || getUserId(), ...billingAddress }
                 );
   
                 const newBillingAddress = billingResponse.data?.data || billingResponse.data;
@@ -494,7 +865,6 @@ const handleApplyCoupon = async (e) => {
     }
   };
   
-  
   // Copy shipping address to billing address
   const copyShippingToBilling = () => {
     const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
@@ -505,8 +875,8 @@ const handleApplyCoupon = async (e) => {
     
     // Create a billing address object from the shipping address
     const billingAddress = {
-      full_name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : '',
-      email: user?.email || '',
+      full_name: guestForm.name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : ''),
+      email: guestForm.email || user?.email || '',
       phone_number: selectedShippingAddress.phone_number,
       address_line_1: selectedShippingAddress.address_line_1,
       address_line_2: selectedShippingAddress.address_line_2,
@@ -531,13 +901,11 @@ const handleApplyCoupon = async (e) => {
       const createBillingAddress = async () => {
         try {
           setLoading(true);
-          const userId = getUserId();
-          const token = getToken();
+          const userId = createdUserId || getUserId();
           
           const response = await axios.post(
             `${API_BASE_URL}/api/billing-addresses`,
-            { user_id: userId, ...billingAddress },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { user_id: userId, ...billingAddress }
           );
           
           const newBillingAddress = response.data?.data || response.data;
@@ -567,16 +935,38 @@ const handleApplyCoupon = async (e) => {
   
   useEffect(() => {
     const fetchCartAndAddresses = async () => {
-      if (!isAuthenticated()) {
-        setError('Please log in to proceed with checkout.');
-        toast.error('Please log in to proceed with checkout.');
-        navigate('/login', { state: { from: '/checkout' } });
+      // Check if user is authenticated
+      if (!isAuthenticated() && !createdUserId) {
+        // Load guest cart from localStorage
+        const guestCartData = localStorage.getItem('guestCart');
+        if (guestCartData) {
+          try {
+            const guestCart = JSON.parse(guestCartData);
+            setCart(guestCart);
+            setIsGuest(true);
+            setLoading(false);
+            return;
+          } catch (err) {
+            console.error('Error parsing guest cart:', err);
+          }
+        }
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+        setIsGuest(true);
+        setShowGuestForm(true);
+        setLoading(false);
         return;
       }
       
       setLoading(true);
       try {
-        const userId = getUserId();
+        const userId = createdUserId || getUserId();
+        
+        // If we have a createdUserId but no token, we don't need to fetch addresses
+        if (createdUserId && !isAuthenticated()) {
+          setLoading(false);
+          return;
+        }
+        
         const token = getToken();
         
         const cartResponse = await axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
@@ -593,6 +983,7 @@ const handleApplyCoupon = async (e) => {
         }
         
         setCart(cartData);
+        setIsGuest(false);
         
         try {
           const shippingResponse = await axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
@@ -654,10 +1045,10 @@ const handleApplyCoupon = async (e) => {
       }
     };
     
-    if (user && !authLoading && !contextLoading) {
+    if (!authLoading && !contextLoading) {
       fetchCartAndAddresses();
     }
-  }, [user, authLoading, contextLoading, navigate]);
+  }, [user, authLoading, contextLoading, navigate, createdUserId]);
   
   // Update billing address when shipping address changes if option is 'same'
   useEffect(() => {
@@ -757,249 +1148,6 @@ const handleApplyCoupon = async (e) => {
   const displayTax = tax;
   const displayTotal = total;
   
-  const handlePayment = async () => {
-    if (!shippingAddressId) {
-      setError('Please select a shipping address.');
-      toast.error('Please select a shipping address.');
-      return;
-    }
-  
-    if (!billingAddressId) {
-      setError('Please select a billing address.');
-      toast.error('Please select a billing address.');
-      return;
-    }
-  
-    if (isNigeria && !shippingMethod) {
-      setError('Please select a shipping method.');
-      toast.error('Please select a shipping method.');
-      return;
-    }
-  
-    if (!isAuthenticated()) {
-      setError('Please log in to process your order.');
-      toast.error('Please log in to process your order.');
-      navigate('/login', { state: { from: '/checkout' } });
-      return;
-    }
-  
-    if (!cart?.items?.length) {
-      setError('Cart is empty.');
-      toast.error('Cart is empty.');
-      return;
-    }
-  
-    setLoading(true);
-    try {
-      const selectedShippingAddress = shippingAddresses.find(addr => addr.id.toString() === shippingAddressId);
-      if (!selectedShippingAddress) {
-        throw new Error('Selected shipping address not found');
-      }
-      const addressCountry = selectedShippingAddress.country;
-      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-  
-      const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
-      const userId = getUserId();
-      const token = getToken();
-      
-      // Calculate amounts in NGN
-      const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = user?.first_order ? Number((baseSubtotal * 0.05).toFixed(2)) : 0;
-      const baseCouponDiscount = couponDiscount;
-      const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
-      const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
-      const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
-      const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
-      const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
-      const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
-      
-      const orderData = {
-        user_id: userId,
-        address_id: parseInt(shippingAddressId),
-        billing_address_id: parseInt(billingAddressId),
-        cart_id: cart.cartId,
-        total: baseTotal,
-        discount: baseFinalDiscount,
-        coupon_code: appliedCoupon ? appliedCoupon.code : null,
-        delivery_option: isNigeria ? 'standard' : 'international',
-        shipping_method_id: isNigeria ? shippingMethod?.id : null,
-        shipping_cost: baseShippingCost,
-        shipping_country: addressCountry,
-        payment_method: paymentMethod,
-        currency: orderCurrency,
-        reference: uuidv4(),
-        items: cart.items.map(item => {
-          const basePrice = Number(item.item?.price || 0);
-          return {
-            variant_id: item.item?.is_product ? item.item.id : null,
-            bundle_id: item.item?.is_product ? null : item.item.id,
-            quantity: item.quantity || 1,
-            price: basePrice,
-            size_id: item.item?.size_id || null,
-            image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
-              (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
-              (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
-            product_name: item.item?.name || 'Unknown Item',
-            color_name: item.item?.color || null,
-            size_name: item.item?.size || null,
-          };
-        }),
-        note: orderNote,
-        exchange_rate: 1, // No conversion needed
-        base_currency_total: baseTotal,
-        converted_total: baseTotal,
-        tax: baseTax,
-      };
-  
-      console.log('Order payload:', orderData);
-  
-      const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-  
-      console.log('Order response:', orderResponse.data);
-  
-      const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
-      if (!orderId) {
-        console.error('Order ID not found in response:', orderResponse.data);
-        throw new Error('Order ID not found in response');
-      }
-  
-      // Update user's first_order status if applicable
-      if (user.first_order) {
-        try {
-          console.log('Updating first_order status for user:', getUserId());
-          
-          const response = await axios({
-            method: 'PATCH',
-            url: `${API_BASE_URL}/api/auth/users/${getUserId()}`, 
-            data: { first_order: false },
-            headers: { Authorization: `Bearer ${getToken()}` }
-          });
-          
-          console.log('Update response:', response.data);
-          
-          if (response.data && response.data.success) {
-            // Refresh user data from server using our custom hook
-            const updatedUser = await refreshUserData();
-            
-            if (updatedUser && !updatedUser.first_order) {
-              console.log('User data refreshed, first_order is now false');
-            } else {
-              console.warn('User data refresh failed or first_order is still true');
-            }
-          }
-        } catch (err) {
-          console.error('Failed to update first_order status:', err);
-          
-          // Only show error toast if it's a server error
-          if (err.response) {
-            toast.error('We had trouble updating your account. Please contact support if you see this discount again.');
-          }
-        }
-      }
-  
-      const paymentCurrency = 'NGN';
-      const paymentAmount = baseTotal;
-  
-      const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
-      
-      const paymentData = {
-        order_id: orderId,
-        reference: orderData.reference,
-        email: selectedBillingAddress?.email || billingForm.email || user.email,
-        amount: Math.round(paymentAmount * 100), // Convert to kobo
-        currency: paymentCurrency,
-        callback_url: callbackUrl,
-      };
-  
-      console.log('Payment payload:', paymentData);
-  
-      const paymentResponse = await axios.post(
-        `${API_BASE_URL}/api/paystack/initialize`,
-        paymentData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-  
-      console.log('Payment response:', paymentResponse.data);
-      
-      let paymentInfo = paymentResponse.data;
-      if (paymentResponse.data.data) {
-        paymentInfo = paymentResponse.data.data;
-      }
-      
-      const accessCode = paymentInfo.access_code;
-      const authorizationUrl = paymentInfo.authorization_url;
-      
-      if (accessCode) {
-        toast.success('Order placed successfully. Opening payment popup...');
-        localStorage.setItem('lastOrderReference', orderData.reference);
-        localStorage.setItem('pendingOrderId', orderId); // Store the order ID
-        
-        const paystack = new PaystackPop();
-        paystack.newTransaction({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-          email: paymentData.email,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          reference: paymentData.reference,
-          callback: (response) => {
-            toast.success('Payment successful!');
-            // Use navigate instead of window.location.href
-            navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
-          },
-          onClose: () => {
-            // Check if payment was completed by verifying with backend
-            const checkPaymentStatus = async () => {
-              try {
-                const token = getToken();
-                const paymentResponse = await axios.post(
-                  `${API_BASE_URL}/api/paystack/verify`,
-                  { reference: orderData.reference },
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                
-                if (paymentResponse.data.order?.payment_status === 'completed') {
-                  toast.success('Payment was successful!');
-                  navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
-                } else {
-                  toast.info('Payment window closed. You can complete payment later from your orders page.');
-                  navigate(`/orders/${orderId}`);
-                }
-              } catch (err) {
-                console.error('Error checking payment status:', err);
-                toast.info('Payment window closed. You can complete payment later from your orders page.');
-                navigate(`/orders/${orderId}`);
-              }
-            };
-            
-            checkPaymentStatus();
-          }
-        });
-      } else if (authorizationUrl) {
-        toast.success('Order placed successfully. Redirecting to payment page...');
-        localStorage.setItem('lastOrderReference', orderData.reference);
-        localStorage.setItem('pendingOrderId', orderId);
-        window.location.href = authorizationUrl;
-      } else {
-        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
-        throw new Error('Failed to get payment information');
-      }
-    } catch (err) {
-      console.error('Payment processing error:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
-      if (err.response?.data?.code === 'unsupported_currency') {
-        setError('Payments in USD are not supported at this time. Please select a shipping address in Nigeria or contact support.');
-        toast.error('Payments in USD are not supported. Please select a Nigeria address or contact support.');
-      } else {
-        setError(`Failed to process order: ${errorMessage}`);
-        toast.error(`Failed to process order: ${errorMessage}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   const handleWhatsAppPayment = () => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
       style: 'currency',
@@ -1017,7 +1165,7 @@ const handleApplyCoupon = async (e) => {
       style: 'currency',
       currency: 'NGN',
       minimumFractionDigits: 2,
-    })}\n- Currency: NGN\n- Order Reference: order_${getUserId()}_${Date.now()}\n\nI have attached a screenshot of my checkout for your reference.`;
+    })}\n- Currency: NGN\n- Order Reference: order_${createdUserId || getUserId()}_${Date.now()}\n\nI have attached a screenshot of my checkout for your reference.`;
     
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${WHATSAPP_NUMBER.replace(/[^0-9]/g, '')}?text=${encodedMessage}`, '_blank');
@@ -1031,14 +1179,6 @@ const handleApplyCoupon = async (e) => {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           <p className="mt-2 text-sm font-Jost">Loading...</p>
         </div>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated() && !authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600 py-8 font-Jost">Please log in to proceed with checkout.</div>
       </div>
     );
   }
@@ -1084,6 +1224,144 @@ const handleApplyCoupon = async (e) => {
     );
   }
   
+  // Guest Checkout Form Component
+  const GuestCheckoutForm = () => (
+    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
+        <User className="h-5 w-5 mr-2" />
+        Guest Checkout
+      </h3>
+      <p className="text-sm text-Accent mb-4 font-Jost">
+        Create a temporary account to complete your purchase. You'll receive an email with instructions to set a password and access your order history.
+      </p>
+      
+      {existingUserType && (
+        <div className={`mb-4 p-3 rounded-lg ${
+          existingUserType === 'temporary' 
+            ? 'bg-blue-50 border border-blue-200' 
+            : 'bg-yellow-50 border border-yellow-200'
+        }`}>
+          <div className="flex items-start">
+            {existingUserType === 'temporary' ? (
+              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+            )}
+            <div>
+              <p className={`text-sm font-medium ${
+                existingUserType === 'temporary' 
+                  ? 'text-blue-800' 
+                  : 'text-yellow-800'
+              } font-Jost`}>
+                {existingUserType === 'temporary' 
+                  ? 'A temporary account with this email already exists' 
+                  : 'An account with this email already exists'}
+              </p>
+              <p className={`text-xs mt-1 ${
+                existingUserType === 'temporary' 
+                  ? 'text-blue-700' 
+                  : 'text-yellow-700'
+              } font-Jost`}>
+                {existingUserType === 'temporary' 
+                  ? 'Please use a different email or log in if you have a password.' 
+                  : 'Please log in to continue with your existing account.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <form onSubmit={handleGuestSubmit}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              value={guestForm.name}
+              onChange={(e) => setGuestForm({...guestForm, name: e.target.value})}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="Enter your full name"
+            />
+            {guestFormErrors.name && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              value={guestForm.email}
+              onChange={(e) => {
+                setGuestForm({...guestForm, email: e.target.value});
+                setExistingUserType(null); // Reset existing user type when email changes
+              }}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="Enter your email address"
+            />
+            {guestFormErrors.email && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Phone Number *
+            </label>
+            <input
+              type="tel"
+              value={guestForm.phone_number}
+              onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="Enter your phone number"
+            />
+            {guestFormErrors.phone_number && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
+            )}
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-700 font-Jost">
+              <strong>Note:</strong> A temporary account will be created with your information. 
+              You'll receive an email with instructions to set a password and access your order history.
+            </p>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-Primarycolor text-Secondarycolor py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                Creating Account...
+              </div>
+            ) : (
+              'Create Account & Continue to Payment'
+            )}
+          </button>
+          
+          {existingUserType === 'permanent' && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/login', { state: { from: '/checkout' } })}
+                className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
+              >
+                Log in to your existing account
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+  
   return (
     <div 
       className="min-h-screen bg-gray-100 typography"
@@ -1102,12 +1380,16 @@ const handleApplyCoupon = async (e) => {
         </Link>
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
         
+        {/* Guest Checkout Form */}
+        {isGuest && showGuestForm && <GuestCheckoutForm />}
+        
         {/* Debug Panel - Remove in production */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
             <p className="text-sm text-yellow-700">
-              User ID: {user?.id}<br />
+              User ID: {user?.id || createdUserId}<br />
+              Is Guest: {isGuest?.toString()}<br />
               First Order (DB): {user?.first_order?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
@@ -1710,7 +1992,7 @@ const handleApplyCoupon = async (e) => {
                     </span>
                   </div>
                   
-                  {user?.first_order && displayFirstOrderDiscount > 0 && (
+                  {displayFirstOrderDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-Jost">
                       <span>First Order Discount (5%)</span>
                       <span>
@@ -1786,7 +2068,7 @@ const handleApplyCoupon = async (e) => {
                   </div>
                 )}
                 
-                {user?.first_order && displayFirstOrderDiscount > 0 && (
+                {displayFirstOrderDiscount > 0 && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700 font-Jost">
                       🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
@@ -1814,6 +2096,8 @@ const handleApplyCoupon = async (e) => {
                       <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
                       Processing...
                     </div>
+                  ) : isGuest ? (
+                    'Create Account & Place Order'
                   ) : (
                     'Place Order'
                   )}

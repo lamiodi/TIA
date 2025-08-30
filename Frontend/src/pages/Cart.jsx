@@ -165,6 +165,58 @@ const Cart = () => {
     }
   }, []);
   
+  // Function to migrate guest cart to user cart after account creation
+  const migrateGuestCartToUserCart = useCallback(async (userId, token) => {
+    const guestCartData = localStorage.getItem('guestCart');
+    if (!guestCartData) return;
+    
+    try {
+      const guestCart = JSON.parse(guestCartData);
+      if (!guestCart.items || guestCart.items.length === 0) return;
+      
+      const authAxios = axios.create({
+        baseURL: API_BASE_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      // Process each item in the guest cart
+      for (const item of guestCart.items) {
+        if (item.product_type === 'single') {
+          await authAxios.post('/cart', {
+            user_id: userId,
+            product_type: 'single',
+            variant_id: item.variant_id,
+            size_id: item.size_id,
+            quantity: item.quantity,
+          });
+        } else if (item.product_type === 'bundle') {
+          await authAxios.post('/cart', {
+            user_id: userId,
+            product_type: 'bundle',
+            bundle_id: item.bundle_id,
+            quantity: item.quantity,
+            items: item.items,
+          });
+        }
+      }
+      
+      // Clear the guest cart after successful migration
+      localStorage.removeItem('guestCart');
+      toast.success('Your cart has been transferred to your account');
+      
+      // Reload the cart to show the updated items
+      const response = await authAxios.get(`/cart/${userId}`);
+      setCart(response.data);
+      setIsGuest(false);
+    } catch (error) {
+      console.error('Error migrating guest cart:', error);
+      toast.error('Failed to transfer your cart. Please try adding items again.');
+    }
+  }, []);
+  
   // Fetch cart data
   useEffect(() => {
     const fetchCart = async (retries = 3, delay = 1000) => {

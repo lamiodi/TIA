@@ -1,7 +1,8 @@
+// src/pages/ThankYou.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Loader2, CheckCircle, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, UserPlus, Mail, Lock, Shield, Clock, Gift } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -13,14 +14,16 @@ const ThankYou = () => {
   const navigate = useNavigate();
   const reference = searchParams.get('reference') || localStorage.getItem('lastOrderReference');
   const [order, setOrder] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [polling, setPolling] = useState(false);
+  const [showConvertOption, setShowConvertOption] = useState(false);
   const pollIntervalRef = useRef(null);
   const timeoutRef = useRef(null);
-
+  
   // Clean up intervals and timeouts on unmount
   useEffect(() => {
     return () => {
@@ -28,6 +31,34 @@ const ThankYou = () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  // Check if user is temporary
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const userData = response.data;
+        setUser(userData);
+        
+        // Show convert option if user is temporary
+        if (userData.is_temporary) {
+          setShowConvertOption(true);
+        }
+      } catch (err) {
+        console.error('Error checking user status:', err);
+      }
+    };
+    
+    if (order) {
+      checkUserStatus();
+    }
+  }, [order]);
 
   const startPolling = (token) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -141,6 +172,15 @@ const ThankYou = () => {
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handleConvertAccount = () => {
+    // Simply navigate to the forgot password page
+    navigate('/forgot-password', { 
+      state: { 
+        isTemporary: true
+      } 
+    });
   };
 
   const formatTotal = () => {
@@ -327,6 +367,50 @@ const ThankYou = () => {
                 <div className="ml-3">
                   <p className="text-sm text-yellow-700 font-Jost">
                     Payment is still being processed. This page will update automatically once payment is confirmed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Enhanced Account Conversion Banner for Temporary Users */}
+          {showConvertOption && (
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-1 mb-8 max-w-2xl mx-auto">
+              <div className="bg-white rounded-lg p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
+                    <UserPlus className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-Primarycolor mb-2 font-Manrope">Create Your Permanent Account</h3>
+                  <p className="text-Accent mb-6 max-w-md font-Jost">
+                    You're currently using a temporary account. Set up a password to convert it to a permanent account and unlock these benefits:
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full">
+                    <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg">
+                      <Shield className="h-8 w-8 text-blue-600 mb-2" />
+                      <span className="text-sm font-medium text-Primarycolor font-Manrope">Secure Access</span>
+                    </div>
+                    <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg">
+                      <Clock className="h-8 w-8 text-blue-600 mb-2" />
+                      <span className="text-sm font-medium text-Primarycolor font-Manrope">Order History</span>
+                    </div>
+                    <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg">
+                      <Gift className="h-8 w-8 text-blue-600 mb-2" />
+                      <span className="text-sm font-medium text-Primarycolor font-Manrope">Exclusive Offers</span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleConvertAccount}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all shadow-lg flex items-center font-Manrope"
+                  >
+                    <Lock className="h-5 w-5 mr-2" />
+                    Set Up Password
+                  </button>
+                  
+                  <p className="text-xs text-Accent mt-3 font-Jost">
+                    This will convert your temporary account to a permanent one
                   </p>
                 </div>
               </div>
