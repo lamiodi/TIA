@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminAuth } from '../context/AdminAuthContext';
-import { Search, Users, Mail, Phone, Eye, XCircle, Calendar, MapPin } from 'lucide-react';
+import { Search, Users, Mail, Phone, Eye, XCircle, Calendar, MapPin, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { format } from 'date-fns';
@@ -62,6 +62,7 @@ const Customers = () => {
           created_at: customer.created_at,
           is_admin: customer.is_admin,
           total_spent: customer.total_spent || 0,
+          is_temporary: customer.is_temporary || false, // Added this line
         }));
         setCustomers(formatted);
         toast.success('Customers loaded successfully');
@@ -186,9 +187,16 @@ const Customers = () => {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500 font-Jost">Full Name</p>
-                          <p className="font-medium font-Manrope">
-                            {selectedCustomer.first_name} {selectedCustomer.last_name}
-                          </p>
+                          <div className="flex items-center">
+                            <p className="font-medium font-Manrope">
+                              {selectedCustomer.first_name} {selectedCustomer.last_name}
+                            </p>
+                            {selectedCustomer.is_temporary && (
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
+                                <User className="w-3 h-3 mr-1" /> Guest
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -373,8 +381,15 @@ const Customers = () => {
                                 </div>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900 font-Manrope">
-                                  {customer.first_name} {customer.last_name}
+                                <div className="flex items-center">
+                                  <div className="text-sm font-medium text-gray-900 font-Manrope">
+                                    {customer.first_name} {customer.last_name}
+                                  </div>
+                                  {customer.is_temporary && (
+                                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
+                                      <User className="w-3 h-3 mr-1" /> Guest
+                                    </span>
+                                  )}
                                 </div>
                                 {customer.is_admin && (
                                   <div className="text-xs text-blue-600 font-Jost">Admin</div>

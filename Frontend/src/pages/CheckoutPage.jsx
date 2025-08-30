@@ -14,8 +14,10 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -59,6 +61,8 @@ const CheckoutPage = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
+  
+  // New state for shipping and billing forms
   const [shippingForm, setShippingForm] = useState({
     title: '',
     address_line_1: '',
@@ -70,6 +74,7 @@ const CheckoutPage = () => {
     country: 'Nigeria',
     phone_number: '',
   });
+  
   const [billingForm, setBillingForm] = useState({
     full_name: '',
     email: '',
@@ -1163,79 +1168,87 @@ const handleApplyCoupon = async (e) => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        {/* Updated to two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Forms */}
+          <div className="lg:col-span-1 space-y-8">
             {/* Guest Checkout Form - Now placed just above shipping address */}
             {isGuest && showGuestForm && <GuestCheckoutForm />}
             
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
-              
-              <ShippingAddressForm
-                address={{ state: shippingForm, setState: setShippingForm }}
-                formErrors={formErrors}
-                setFormErrors={setFormErrors}
-              />
-            </div>
-            
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
-              
-              {/* Billing Address Option Selector */}
-              <div className="mb-6">
-                <div className="flex items-center space-x-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingAddressOption"
-                      value="same"
-                      checked={billingAddressOption === 'same'}
-                      onChange={() => setBillingAddressOption('same')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                    />
-                    <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingAddressOption"
-                      value="different"
-                      checked={billingAddressOption === 'different'}
-                      onChange={() => setBillingAddressOption('different')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                    />
-                    <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
-                  </label>
-                </div>
-              </div>
-              
-              {billingAddressOption === 'same' ? (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                      <p className="text-sm text-gray-500 font-Jost">
-                        Your billing address will be the same as your shipping address.
-                      </p>
-                    </div>
-                    <button
-                      onClick={copyShippingToBilling}
-                      className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
-                      title="Copy shipping address to billing address"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <BillingAddressForm
-                  address={{ state: billingForm, setState: setBillingForm }}
+            {/* Address Forms Container */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Shipping Address Form */}
+              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+                
+                <ShippingAddressForm
+                  address={{ state: shippingForm, setState: setShippingForm }}
                   formErrors={formErrors}
                   setFormErrors={setFormErrors}
                 />
-              )}
+              </div>
+              
+              {/* Billing Address Form */}
+              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+                
+                {/* Billing Address Option Selector */}
+                <div className="mb-6">
+                  <div className="flex flex-col space-y-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="billingAddressOption"
+                        value="same"
+                        checked={billingAddressOption === 'same'}
+                        onChange={() => setBillingAddressOption('same')}
+                        className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                      />
+                      <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="billingAddressOption"
+                        value="different"
+                        checked={billingAddressOption === 'different'}
+                        onChange={() => setBillingAddressOption('different')}
+                        className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                      />
+                      <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {billingAddressOption === 'same' ? (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                        <p className="text-sm text-gray-500 font-Jost">
+                          Your billing address will be the same as your shipping address.
+                        </p>
+                      </div>
+                      <button
+                        onClick={copyShippingToBilling}
+                        className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                        title="Copy shipping address to billing address"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <BillingAddressForm
+                    address={{ state: billingForm, setState: setBillingForm }}
+                    formErrors={formErrors}
+                    setFormErrors={setFormErrors}
+                  />
+                )}
+              </div>
             </div>
             
+            {/* Order Note */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
               <textarea
@@ -1248,6 +1261,7 @@ const handleApplyCoupon = async (e) => {
               <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
             </div>
             
+            {/* Shipping Method */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
                 <Truck className="h-5 w-5 inline mr-2" />
@@ -1353,6 +1367,7 @@ const handleApplyCoupon = async (e) => {
             </div>
           </div>
           
+          {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
@@ -1705,4 +1720,5 @@ const handleApplyCoupon = async (e) => {
     </div>
   );
 };
+
 export default CheckoutPage;

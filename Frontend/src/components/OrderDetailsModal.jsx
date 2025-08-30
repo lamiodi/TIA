@@ -1,7 +1,7 @@
 import { 
   XCircle, User, Mail, Phone, Calendar, Globe, MapPin, Package, CreditCard, 
   ChevronRight as ChevronRightIcon, ChevronLeft as ChevronLeftIcon, 
-  Printer, CheckCircle, Send, Trash2
+  Printer, CheckCircle, Send, Trash2, Truck
 } from 'lucide-react';
 
 const OrderDetailsModal = ({
@@ -29,7 +29,39 @@ const OrderDetailsModal = ({
   const bundleItems = details.bundleItems || [];
   const order = details.order || {};
   const orderData = { ...selectedOrder, ...order };
-
+  
+  // Function to get shipping method icon and description
+  const getShippingMethodInfo = (method) => {
+    const shippingMethods = {
+      'Delivery within Lagos': { 
+        icon: <Truck className="w-4 h-4" />, 
+        description: 'Fast delivery within Lagos state',
+        estimated: '3-5 business days'
+      },
+      'GIG Logistics (Outside Lagos)': { 
+        icon: <Package className="w-4 h-4" />, 
+        description: 'Reliable nationwide delivery',
+        estimated: '5-7 business days'
+      },
+      'Home Delivery – Outside Lagos': { 
+        icon: <MapPin className="w-4 h-4" />, 
+        description: 'Direct to your doorstep',
+        estimated: '7-10 business days'
+      },
+      'International': { 
+        icon: <Globe className="w-4 h-4" />, 
+        description: 'International shipping service',
+        estimated: '10-21 business days'
+      }
+    };
+    
+    return shippingMethods[method] || { 
+      icon: <Package className="w-4 h-4" />, 
+      description: 'Standard delivery',
+      estimated: 'Delivery time varies'
+    };
+  };
+  
   const renderImageGallery = (images, itemId, productName) => {
     const imageArray = Array.isArray(images) ? images : (images ? [images] : []);
     if (imageArray.length === 0) {
@@ -69,7 +101,7 @@ const OrderDetailsModal = ({
       </div>
     );
   };
-
+  
   const handlePrintPackingList = () => {
     const printContent = document.getElementById('packing-checklist').innerHTML;
     const printWindow = window.open('', '_blank');
@@ -97,7 +129,7 @@ const OrderDetailsModal = ({
     printWindow.document.close();
     printWindow.print();
   };
-
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-100">
@@ -124,7 +156,17 @@ const OrderDetailsModal = ({
                 <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-full"><User className="w-5 h-5 text-blue-600" /></div>
-                    <div><p className="text-sm text-gray-500">Full Name</p><p className="font-medium">{user.first_name || orderData.first_name} {user.last_name || orderData.last_name}</p></div>
+                    <div>
+                      <p className="text-sm text-gray-500">Full Name</p>
+                      <div className="flex items-center">
+                        <p className="font-medium">{user.first_name || orderData.first_name} {user.last_name || orderData.last_name}</p>
+                        {user.is_temporary && (
+                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <User className="w-3 h-3 mr-1" /> Guest
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-full"><Mail className="w-5 h-5 text-blue-600" /></div>
@@ -136,7 +178,6 @@ const OrderDetailsModal = ({
                   </div>
                 </div>
               </div>
-
               {/* Order Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -168,8 +209,23 @@ const OrderDetailsModal = ({
                     <div><p className="text-sm text-gray-500">Shipping Country</p><p className="font-medium">{orderData.shipping_country || 'N/A'}</p></div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-full"><Globe className="w-5 h-5 text-blue-600" /></div>
-                    <div><p className="text-sm text-gray-500">Shipping Method</p><p className="font-medium">{orderData.shipping_method || 'N/A'}</p></div>
+                    <div className="p-2 bg-blue-100 rounded-full">
+                      {getShippingMethodInfo(orderData.shipping_method).icon}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Shipping Method</p>
+                      <p className="font-medium">{orderData.shipping_method || 'N/A'}</p>
+                      {orderData.shipping_method && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {getShippingMethodInfo(orderData.shipping_method).description}
+                          <span className="mx-2">•</span>
+                          <span className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {getShippingMethodInfo(orderData.shipping_method).estimated}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-full"><CreditCard className="w-5 h-5 text-blue-600" /></div>
@@ -188,7 +244,6 @@ const OrderDetailsModal = ({
                   </div>
                 </div>
               </div>
-
               {/* Shipping Address */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -216,7 +271,6 @@ const OrderDetailsModal = ({
                   <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">Shipping address not available.</div>
                 )}
               </div>
-
               {/* Billing Address */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -244,7 +298,6 @@ const OrderDetailsModal = ({
                   <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">Billing address not available.</div>
                 )}
               </div>
-
               {/* Packing Checklist */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">

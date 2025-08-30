@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { 
   Clock, AlertCircle, Package, CheckCircle, XCircle, Search, Filter, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, DollarSign
+  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, DollarSign, User
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -78,6 +78,7 @@ const Orders = () => {
           payment_status: order.payment_status || 'pending',
           delivery_fee_paid: order.delivery_fee_paid || false,
           delivery_fee: order.delivery_fee || 0,
+          is_temporary: order.is_temporary || false, // Added this line
         }));
         setOrders(processedOrders);
         toast.success('Orders loaded successfully');
@@ -440,7 +441,16 @@ const Orders = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <div className="font-medium text-gray-900 font-Manrope">{order.first_name} {order.last_name}</div>
+                        <div className="flex items-center">
+                          <div className="font-medium text-gray-900 font-Manrope">
+                            {order.first_name} {order.last_name}
+                          </div>
+                          {order.is_temporary && (
+                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
+                              <User className="w-3 h-3 mr-1" /> Guest
+                            </span>
+                          )}
+                        </div>
                         <div className="text-gray-600 font-Jost">{order.user_email}</div>
                       </td>
                       <td className="py-3 px-4 text-gray-600 text-sm font-Jost">{formatDate(order.created_at)}</td>
