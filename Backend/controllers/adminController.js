@@ -28,6 +28,7 @@ export const getAllOrdersForAdmin = async (req, res) => {
         u.email AS user_email,
         u.first_name,
         u.last_name,
+        u.is_temporary,  // Add this line to include the is_temporary field
         COALESCE(a.country, o.shipping_country) AS shipping_country
       FROM orders o
       JOIN users u ON o.user_id = u.id
