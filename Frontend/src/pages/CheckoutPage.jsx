@@ -1479,68 +1479,46 @@ const handleApplyCoupon = async (e) => {
             {/* Guest Checkout Form */}
             {isGuest && showGuestForm && <GuestCheckoutForm />}
             
-            {/* Address Forms Container */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Shipping Address Form */}
-              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
-                
-                {shippingAddresses.length > 0 ? (
-                  <div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
-                      <select
-                        value={shippingAddressId ?? ''}
-                        onChange={(e) => setShippingAddressId(String(e.target.value))}
-                        className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                      >
-                        {shippingAddresses.map((address) => (
-                          <option key={address.id} value={String(address.id)}>
-                            {address.title}, {address.address_line_1}, {address.city}, {address.country}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => setShowShippingForm(true)}
-                        className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                        disabled={loading}
-                      >
-                        Add New Address
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
-                        className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                      </button>
-                    </div>
-                    
-                    {showShippingForm && (
-                      <div className="mt-4">
-                        <ShippingAddressForm
-                          address={{ state: shippingForm, setState: setShippingForm }}
-                          onSubmit={handleShippingSubmit}
-                          onCancel={() => setShowShippingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <button
-                      onClick={() => setShowShippingForm(!showShippingForm)}
-                      className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+            {/* Shipping Address Form */}
+            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+              
+              {shippingAddresses.length > 0 ? (
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
+                    <select
+                      value={shippingAddressId ?? ''}
+                      onChange={(e) => setShippingAddressId(String(e.target.value))}
+                      className="w-full p-2 border border-gray-300 rounded-md font-Jost"
                     >
-                      {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
+                      {shippingAddresses.map((address) => (
+                        <option key={address.id} value={String(address.id)}>
+                          {address.title}, {address.address_line_1}, {address.city}, {address.country}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => setShowShippingForm(true)}
+                      className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                      disabled={loading}
+                    >
+                      Add New Address
                     </button>
-                    {showShippingForm && (
+                    <button
+                      onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
+                      className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                    </button>
+                  </div>
+                  
+                  {showShippingForm && (
+                    <div className="mt-4">
                       <ShippingAddressForm
                         address={{ state: shippingForm, setState: setShippingForm }}
                         onSubmit={handleShippingSubmit}
@@ -1549,126 +1527,126 @@ const handleApplyCoupon = async (e) => {
                         setFormErrors={setFormErrors}
                         actionLoading={loading}
                       />
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <button
+                    onClick={() => setShowShippingForm(!showShippingForm)}
+                    className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                  >
+                    {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
+                  </button>
+                  {showShippingForm && (
+                    <ShippingAddressForm
+                      address={{ state: shippingForm, setState: setShippingForm }}
+                      onSubmit={handleShippingSubmit}
+                      onCancel={() => setShowShippingForm(false)}
+                      formErrors={formErrors}
+                      setFormErrors={setFormErrors}
+                      actionLoading={loading}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Billing Address Form */}
+            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+              
+              {/* Billing Address Option Selector */}
+              <div className="mb-6">
+                <div className="flex items-center space-x-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAddressOption"
+                      value="same"
+                      checked={billingAddressOption === 'same'}
+                      onChange={() => setBillingAddressOption('same')}
+                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                    />
+                    <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billingAddressOption"
+                      value="different"
+                      checked={billingAddressOption === 'different'}
+                      onChange={() => setBillingAddressOption('different')}
+                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                    />
+                    <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                  </label>
+                </div>
               </div>
               
-              {/* Billing Address Form */}
-              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
-                
-                {/* Billing Address Option Selector */}
-                <div className="mb-6">
-                  <div className="flex flex-col space-y-3">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="billingAddressOption"
-                        value="same"
-                        checked={billingAddressOption === 'same'}
-                        onChange={() => setBillingAddressOption('same')}
-                        className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                      />
-                      <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="billingAddressOption"
-                        value="different"
-                        checked={billingAddressOption === 'different'}
-                        onChange={() => setBillingAddressOption('different')}
-                        className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                      />
-                      <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
-                    </label>
+              {billingAddressOption === 'same' ? (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                      {selectedShippingAddress ? (
+                        <div className="text-sm text-Accent font-Jost">
+                          <p>{selectedShippingAddress.address_line_1}</p>
+                          {selectedShippingAddress.address_line_2 && <p>{selectedShippingAddress.address_line_2}</p>}
+                          <p>{selectedShippingAddress.city}, {selectedShippingAddress.state} {selectedShippingAddress.zip_code}</p>
+                          <p>{selectedShippingAddress.country}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={copyShippingToBilling}
+                      className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                      title="Copy shipping address to billing address"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-                
-                {billingAddressOption === 'same' ? (
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                        {selectedShippingAddress ? (
-                          <div className="text-sm text-Accent font-Jost">
-                            <p>{selectedShippingAddress.address_line_1}</p>
-                            {selectedShippingAddress.address_line_2 && <p>{selectedShippingAddress.address_line_2}</p>}
-                            <p>{selectedShippingAddress.city}, {selectedShippingAddress.state} {selectedShippingAddress.zip_code}</p>
-                            <p>{selectedShippingAddress.country}</p>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={copyShippingToBilling}
-                        className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
-                        title="Copy shipping address to billing address"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {billingAddresses.length > 0 ? (
-                      <div>
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
-                          <select
-                            value={billingAddressId ?? ''}
-                            onChange={(e) => setBillingAddressId(String(e.target.value))}
-                            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                          >
-                            {billingAddresses.map((address) => (
-                              <option key={address.id} value={String(address.id)}>
-                                {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        <div className="flex gap-2 mt-4">
-                          <button
-                            onClick={() => setShowBillingForm(true)}
-                            className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                            disabled={loading}
-                          >
-                            Add New Address
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
-                            className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                            disabled={loading}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                          </button>
-                        </div>
-                        
-                        {showBillingForm && (
-                          <div className="mt-4">
-                            <BillingAddressForm
-                              address={{ state: billingForm, setState: setBillingForm }}
-                              onSubmit={handleBillingSubmit}
-                              onCancel={() => setShowBillingForm(false)}
-                              formErrors={formErrors}
-                              setFormErrors={setFormErrors}
-                              actionLoading={loading}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <button
-                          onClick={() => setShowBillingForm(!showBillingForm)}
-                          className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+              ) : (
+                <>
+                  {billingAddresses.length > 0 ? (
+                    <div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
+                        <select
+                          value={billingAddressId ?? ''}
+                          onChange={(e) => setBillingAddressId(String(e.target.value))}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
                         >
-                          {showBillingForm ? 'Cancel' : 'Add Billing Address'}
+                          {billingAddresses.map((address) => (
+                            <option key={address.id} value={String(address.id)}>
+                              {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => setShowBillingForm(true)}
+                          className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                          disabled={loading}
+                        >
+                          Add New Address
                         </button>
-                        {showBillingForm && (
+                        <button
+                          onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
+                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                        </button>
+                      </div>
+                      
+                      {showBillingForm && (
+                        <div className="mt-4">
                           <BillingAddressForm
                             address={{ state: billingForm, setState: setBillingForm }}
                             onSubmit={handleBillingSubmit}
@@ -1677,12 +1655,31 @@ const handleApplyCoupon = async (e) => {
                             setFormErrors={setFormErrors}
                             actionLoading={loading}
                           />
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={() => setShowBillingForm(!showBillingForm)}
+                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                      >
+                        {showBillingForm ? 'Cancel' : 'Add Billing Address'}
+                      </button>
+                      {showBillingForm && (
+                        <BillingAddressForm
+                          address={{ state: billingForm, setState: setBillingForm }}
+                          onSubmit={handleBillingSubmit}
+                          onCancel={() => setShowBillingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                        />
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             
             {/* Order Note */}
