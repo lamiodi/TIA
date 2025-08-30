@@ -1380,9 +1380,6 @@ const handleApplyCoupon = async (e) => {
         </Link>
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Checkout</h2>
         
-        {/* Guest Checkout Form */}
-        {isGuest && showGuestForm && <GuestCheckoutForm />}
-        
         {/* Debug Panel - Remove in production */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -1476,7 +1473,13 @@ const handleApplyCoupon = async (e) => {
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+          {/* Left Column - Guest Checkout Form */}
+          <div className="lg:col-span-1">
+            {isGuest && showGuestForm && <GuestCheckoutForm />}
+          </div>
+          
+          {/* Middle Column - Checkout Forms */}
+          <div className="lg:col-span-1 space-y-8">
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
               
@@ -1769,6 +1772,7 @@ const handleApplyCoupon = async (e) => {
             </div>
           </div>
           
+          {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>

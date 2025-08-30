@@ -13,13 +13,13 @@ const NewReleaseGrid = () => {
   const { user } = useContext(AuthContext);
   const { currency, exchangeRate, country, loading: contextLoading } = useContext(CurrencyContext);
   const navigate = useNavigate();
-
+  
   // Show toast notification
   const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   }, []);
-
+  
   const fetchNewReleases = useCallback(async () => {
     try {
       setLoading(true);
@@ -45,72 +45,15 @@ const NewReleaseGrid = () => {
       setLoading(false);
     }
   }, []);
-
+  
   useEffect(() => {
     fetchNewReleases();
   }, [fetchNewReleases]);
-
-  const handleAddToCart = useCallback(async (variantId, productName) => {
-    if (!user) {
-      console.log('User not logged in, redirecting to /login');
-      navigate('/login', { state: { from: { pathname: '/cart' } } });
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No JWT token found');
-      }
-      
-      // Use requestIdleCallback for non-critical work
-      const addToCart = async () => {
-        const response = await fetch(`${API_BASE_URL}/api/cart`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            variant_id: parseInt(variantId),
-            size_id: 1,
-            quantity: 1,
-            color_name: 'Default',
-            size_name: 'M',
-          }),
-        });
-        
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Failed to add item to cart');
-        }
-        
-        // Use requestAnimationFrame for UI updates
-        requestAnimationFrame(() => {
-          showToast(`${productName} added to cart!`);
-          window.dispatchEvent(new Event('cartUpdated'));
-        });
-      };
-      
-      // Use setTimeout to break up the task
-      setTimeout(addToCart, 0);
-      
-    } catch (err) {
-      console.error('Add to cart error:', {
-        message: err.message,
-        status: err.response?.status,
-      });
-      requestAnimationFrame(() => {
-        showToast(`Failed to add ${productName} to cart: ${err.message}`, 'error');
-      });
-    }
-  }, [user, navigate, showToast]);
-
+  
   const handleImageError = useCallback((e) => {
     e.target.src = 'https://via.placeholder.com/300x300?text=No+Image';
   }, []);
-
+  
   if (loading || contextLoading) {
     return (
       <div 
@@ -141,7 +84,7 @@ const NewReleaseGrid = () => {
       </div>
     );
   }
-
+  
   if (error) {
     return (
       <div 
@@ -168,7 +111,7 @@ const NewReleaseGrid = () => {
       </div>
     );
   }
-
+  
   return (
     <div 
       className="typography flex flex-col container-padding space-y-1 lg:py-8 mb-4"
@@ -199,7 +142,6 @@ const NewReleaseGrid = () => {
               <ProductCard
                 key={product.variantId}
                 product={product}
-                onAddToCart={handleAddToCart}
                 onImageError={handleImageError}
                 priority={index < 3} // Prioritize loading first 3 images
               />
@@ -220,7 +162,7 @@ const NewReleaseGrid = () => {
   );
 };
 
-const ProductCard = ({ product, onAddToCart, onImageError, priority }) => {
+const ProductCard = ({ product, onImageError, priority }) => {
   const { name, price, image, productId, variantId } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -279,12 +221,8 @@ const ProductCard = ({ product, onAddToCart, onImageError, priority }) => {
       <div className="p-3 sm:p-4 pt-1">
         <Link to={`/product/${productId}?variant=${variantId}`}>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              onAddToCart(variantId, displayName);
-            }}
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-Jost"
-            aria-label={`Add ${displayName} to cart`}
+            aria-label={`Buy ${displayName} now`}
           >
             <svg 
               className="w-4 h-4" 
