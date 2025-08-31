@@ -310,22 +310,38 @@ export const createTemporaryUser = async (req, res) => {
     
     const password = generateRandomPassword();
     
-    // Check if user already exists and get user details
-    const [existingUser] = await sql`
+    // First, check if there's an existing temporary user with the same email OR phone number
+    const [existingTemporaryUser] = await sql`
       SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
       FROM users 
-      WHERE email = ${email} OR phone_number = ${phone_number}
+      WHERE (email = ${email} OR phone_number = ${phone_number}) AND is_temporary = TRUE
     `;
     
-    if (existingUser) {
-      // Return detailed information about the existing user
+    if (existingTemporaryUser) {
+      // Return the existing temporary user's ID
+      return res.status(200).json({
+        user: existingTemporaryUser,
+        message: 'Existing temporary account found',
+        isExisting: true
+      });
+    }
+    
+    // Then check if there's a permanent user with the same email OR phone number
+    const [existingPermanentUser] = await sql`
+      SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
+      FROM users 
+      WHERE (email = ${email} OR phone_number = ${phone_number}) AND is_temporary = FALSE
+    `;
+    
+    if (existingPermanentUser) {
+      // Return information about the existing permanent user
       return res.status(400).json({ 
         error: 'An account with this email or phone number already exists',
         existingUser: {
-          id: existingUser.id,
-          is_temporary: existingUser.is_temporary,
-          email: existingUser.email,
-          phone_number: existingUser.phone_number
+          id: existingPermanentUser.id,
+          is_temporary: existingPermanentUser.is_temporary,
+          email: existingPermanentUser.email,
+          phone_number: existingPermanentUser.phone_number
         }
       });
     }
@@ -335,7 +351,7 @@ export const createTemporaryUser = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    // Create the user
+    // Create the temporary user
     const [newUser] = await sql`
       INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary, first_order)
       VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, ${true}, ${false})
@@ -345,7 +361,8 @@ export const createTemporaryUser = async (req, res) => {
     // Return user data without token
     res.status(201).json({
       user: newUser,
-      message: 'Temporary account created successfully'
+      message: 'Temporary account created successfully',
+      isExisting: false
     });
   } catch (err) {
     console.error('Error creating temporary user:', err);
