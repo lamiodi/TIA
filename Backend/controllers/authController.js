@@ -338,7 +338,7 @@ export const createTemporaryUser = async (req, res) => {
     // Create the user
     const [newUser] = await sql`
       INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary, first_order)
-      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, ${true}, ${true})
+      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, ${true}, ${false})
       RETURNING id, first_name, last_name, email, phone_number, is_temporary, first_order
     `;
     
