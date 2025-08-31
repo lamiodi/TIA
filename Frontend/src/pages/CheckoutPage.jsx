@@ -1,5 +1,5 @@
 // src/pages/CheckoutPage.jsx
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
@@ -72,7 +72,7 @@ const CheckoutPage = () => {
     state: '',
     zip_code: '',
     country: 'Nigeria',
-    phone_number: '',
+    phone_number: '', // Will be removed for guest users
   });
   const [billingForm, setBillingForm] = useState({
     full_name: '',
@@ -115,6 +115,21 @@ const CheckoutPage = () => {
   
   // State to track which form needs to be filled
   const [requiredForm, setRequiredForm] = useState(null); // 'guest', 'shipping', 'billing'
+  
+  // Optimized form handlers using useCallback to prevent cursor issues
+  const handleGuestNameChange = useCallback((e) => {
+    setGuestForm(prev => ({...prev, name: e.target.value}));
+    setExistingUserType(null);
+  }, []);
+  
+  const handleGuestEmailChange = useCallback((e) => {
+    setGuestForm(prev => ({...prev, email: e.target.value}));
+    setExistingUserType(null);
+  }, []);
+  
+  const handleGuestPhoneChange = useCallback((e) => {
+    setGuestForm(prev => ({...prev, phone_number: e.target.value}));
+  }, []);
   
   const decodeToken = (token) => {
     try {
@@ -511,6 +526,9 @@ const CheckoutPage = () => {
       return;
     }
     
+    const addressCountry = shippingForm.country;
+    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+    
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method');
       return;
@@ -523,9 +541,6 @@ const CheckoutPage = () => {
     }
     
     try {
-      const addressCountry = shippingForm.country;
-      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-      
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
       
       // Calculate amounts in NGN
@@ -704,7 +719,8 @@ const CheckoutPage = () => {
     }
   };
   
-  const handleShippingSubmit = async (data) => {
+  // Optimized handleShippingSubmit to not handle phone number for guest users
+  const handleShippingSubmit = useCallback(async (data) => {
     try {
       setLoading(true);
       
@@ -718,7 +734,8 @@ const CheckoutPage = () => {
         const billingAddress = {
           full_name: guestForm.name || billingForm.full_name,
           email: guestForm.email || billingForm.email,
-          phone_number: data.phone_number,
+          // For guest users, use the phone number from guest form instead of shipping form
+          phone_number: isGuest ? guestForm.phone_number : data.phone_number,
           address_line_1: data.address_line_1,
           address_line_2: data.address_line_2,
           city: data.city,
@@ -740,7 +757,7 @@ const CheckoutPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [billingAddressOption, billingForm.full_name, billingForm.email, guestForm.email, guestForm.name, guestForm.phone_number, isGuest]);
   
   const handleBillingSubmit = async (data) => {
     try {
@@ -804,8 +821,8 @@ const CheckoutPage = () => {
     }
   };
   
-  // Copy shipping address to billing address
-  const copyShippingToBilling = () => {
+  // Optimized copyShippingToBilling to not copy phone number for guest users
+  const copyShippingToBilling = useCallback(() => {
     if (!shippingForm.address_line_1) {
       toast.error('Please add a shipping address first');
       return;
@@ -815,7 +832,8 @@ const CheckoutPage = () => {
     const billingAddress = {
       full_name: guestForm.name || billingForm.full_name,
       email: guestForm.email || billingForm.email,
-      phone_number: shippingForm.phone_number,
+      // For guest users, use the phone number from guest form instead of shipping form
+      phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
       address_line_1: shippingForm.address_line_1,
       address_line_2: shippingForm.address_line_2,
       city: shippingForm.city,
@@ -827,7 +845,7 @@ const CheckoutPage = () => {
     // Update billing form state
     setBillingForm(billingAddress);
     toast.success('Billing address updated to match shipping address');
-  };
+  }, [billingForm.full_name, billingForm.email, guestForm.email, guestForm.name, guestForm.phone_number, isGuest, shippingForm]);
   
   useEffect(() => {
     const script = document.createElement('script');
@@ -961,7 +979,8 @@ const CheckoutPage = () => {
       const billingAddress = {
         full_name: guestForm.name || billingForm.full_name,
         email: guestForm.email || billingForm.email,
-        phone_number: shippingForm.phone_number,
+        // For guest users, use the phone number from guest form instead of shipping form
+        phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
         address_line_1: shippingForm.address_line_1,
         address_line_2: shippingForm.address_line_2,
         city: shippingForm.city,
@@ -972,7 +991,7 @@ const CheckoutPage = () => {
       
       setBillingForm(billingAddress);
     }
-  }, [shippingForm, billingAddressOption]);
+  }, [shippingForm, billingAddressOption, guestForm.name, guestForm.email, guestForm.phone_number, isGuest, billingForm.full_name, billingForm.email]);
   
   useEffect(() => {
     if (shippingAddresses.length > 0 && !shippingAddressId) {
@@ -1126,7 +1145,7 @@ const CheckoutPage = () => {
     );
   }
   
-  // Guest Checkout Form Component
+  // Guest Checkout Form Component with optimized handlers
   const GuestCheckoutForm = () => (
     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
@@ -1197,7 +1216,7 @@ const CheckoutPage = () => {
           <input
             type="text"
             value={guestForm.name}
-            onChange={(e) => setGuestForm({...guestForm, name: e.target.value})}
+            onChange={handleGuestNameChange}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1215,10 +1234,7 @@ const CheckoutPage = () => {
           <input
             type="email"
             value={guestForm.email}
-            onChange={(e) => {
-              setGuestForm({...guestForm, email: e.target.value});
-              setExistingUserType(null); // Reset existing user type when email changes
-            }}
+            onChange={handleGuestEmailChange}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1236,7 +1252,7 @@ const CheckoutPage = () => {
           <input
             type="tel"
             value={guestForm.phone_number}
-            onChange={(e) => setGuestForm({...guestForm, phone_number: e.target.value})}
+            onChange={handleGuestPhoneChange}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1449,6 +1465,7 @@ const CheckoutPage = () => {
                         formErrors={formErrors}
                         setFormErrors={setFormErrors}
                         actionLoading={loading}
+                        isGuest={isGuest} // Pass isGuest prop to conditionally show phone number
                       />
                     </div>
                   )}
@@ -1469,6 +1486,7 @@ const CheckoutPage = () => {
                       formErrors={formErrors}
                       setFormErrors={setFormErrors}
                       actionLoading={loading}
+                      isGuest={isGuest} // Pass isGuest prop to conditionally show phone number
                     />
                   )}
                 </div>
