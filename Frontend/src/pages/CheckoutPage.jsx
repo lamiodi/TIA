@@ -1,5 +1,6 @@
 // src/pages/CheckoutPage.jsx
-import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+
+import { useState, useEffect, useContext, useMemo, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
@@ -18,7 +19,8 @@ import PaystackPop from '@paystack/inline-js';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
 
-const CheckoutPage = () => {
+// Memoize the entire CheckoutPage component to prevent unnecessary re-renders
+const CheckoutPage = memo(() => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
   const { user: hookUser, refreshUser, refreshCount } = useUserManager();
@@ -115,21 +117,6 @@ const CheckoutPage = () => {
   
   // State to track which form needs to be filled
   const [requiredForm, setRequiredForm] = useState(null); // 'guest', 'shipping', 'billing'
-  
-  // Optimized form handlers using useCallback to prevent cursor issues
-  const handleGuestNameChange = useCallback((e) => {
-    setGuestForm(prev => ({...prev, name: e.target.value}));
-    setExistingUserType(null);
-  }, []);
-  
-  const handleGuestEmailChange = useCallback((e) => {
-    setGuestForm(prev => ({...prev, email: e.target.value}));
-    setExistingUserType(null);
-  }, []);
-  
-  const handleGuestPhoneChange = useCallback((e) => {
-    setGuestForm(prev => ({...prev, phone_number: e.target.value}));
-  }, []);
   
   const decodeToken = (token) => {
     try {
@@ -720,7 +707,7 @@ const CheckoutPage = () => {
   };
   
   // Optimized handleShippingSubmit to not handle phone number for guest users
-  const handleShippingSubmit = useCallback(async (data) => {
+  const handleShippingSubmit = async (data) => {
     try {
       setLoading(true);
       
@@ -757,7 +744,7 @@ const CheckoutPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [billingAddressOption, billingForm.full_name, billingForm.email, guestForm.email, guestForm.name, guestForm.phone_number, isGuest]);
+  };
   
   const handleBillingSubmit = async (data) => {
     try {
@@ -822,7 +809,7 @@ const CheckoutPage = () => {
   };
   
   // Optimized copyShippingToBilling to not copy phone number for guest users
-  const copyShippingToBilling = useCallback(() => {
+  const copyShippingToBilling = () => {
     if (!shippingForm.address_line_1) {
       toast.error('Please add a shipping address first');
       return;
@@ -845,7 +832,7 @@ const CheckoutPage = () => {
     // Update billing form state
     setBillingForm(billingAddress);
     toast.success('Billing address updated to match shipping address');
-  }, [billingForm.full_name, billingForm.email, guestForm.email, guestForm.name, guestForm.phone_number, isGuest, shippingForm]);
+  };
   
   useEffect(() => {
     const script = document.createElement('script');
@@ -1145,8 +1132,8 @@ const CheckoutPage = () => {
     );
   }
   
-  // Guest Checkout Form Component with optimized handlers
-  const GuestCheckoutForm = () => (
+  // Memoize the GuestCheckoutForm to prevent unnecessary re-renders
+  const GuestCheckoutForm = useMemo(() => (
     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
         <User className="h-5 w-5 mr-2" />
@@ -1216,7 +1203,10 @@ const CheckoutPage = () => {
           <input
             type="text"
             value={guestForm.name}
-            onChange={handleGuestNameChange}
+            onChange={(e) => {
+              setGuestForm(prev => ({...prev, name: e.target.value}));
+              setExistingUserType(null);
+            }}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1234,7 +1224,10 @@ const CheckoutPage = () => {
           <input
             type="email"
             value={guestForm.email}
-            onChange={handleGuestEmailChange}
+            onChange={(e) => {
+              setGuestForm(prev => ({...prev, email: e.target.value}));
+              setExistingUserType(null);
+            }}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1252,7 +1245,7 @@ const CheckoutPage = () => {
           <input
             type="tel"
             value={guestForm.phone_number}
-            onChange={handleGuestPhoneChange}
+            onChange={(e) => setGuestForm(prev => ({...prev, phone_number: e.target.value}))}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1283,7 +1276,7 @@ const CheckoutPage = () => {
         )}
       </div>
     </div>
-  );
+  ), [existingUserType, guestForm, guestFormErrors, requiredForm, navigate]);
   
   return (
     <div 
@@ -1400,7 +1393,7 @@ const CheckoutPage = () => {
           {/* Left Column - Forms */}
           <div className="lg:col-span-7 space-y-8">
             {/* Guest Checkout Form */}
-            {isGuest && showGuestForm && <GuestCheckoutForm />}
+            {isGuest && showGuestForm && GuestCheckoutForm}
             
             {/* Shipping Address Form */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2128,6 +2121,6 @@ const CheckoutPage = () => {
       <Footer />
     </div>
   );
-};
+});
 
 export default CheckoutPage;
