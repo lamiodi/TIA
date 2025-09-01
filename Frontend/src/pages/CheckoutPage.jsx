@@ -5,8 +5,6 @@ import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import BillingAddressForm from '../components/BillingAddressForm';
-import ShippingAddressForm from '../components/ShippingAddressForm';
 import WhatsAppChatWidget from '../components/WhatsAppChatWidget';
 import { useAuth } from '../context/AuthContext';
 import { useUserManager } from '../hooks/useUserManager';
@@ -14,15 +12,16 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-// Memoized GuestCheckoutForm component to prevent unnecessary re-renders
-const GuestCheckoutForm = React.memo(({ 
-  guestForm, 
-  guestFormErrors, 
+
+// Unified Guest Checkout Form component
+const UnifiedGuestCheckoutForm = React.memo(({ 
+  formData, 
+  formErrors, 
   existingUserType, 
-  requiredForm,
-  onGuestFormChange,
+  onFormChange,
   onLoginRedirect 
 }) => (
   <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
@@ -70,101 +69,408 @@ const GuestCheckoutForm = React.memo(({
       </div>
     )}
     
-    {requiredForm === 'guest' && (
-      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+    <div className="space-y-6">
+      {/* Personal Information Section */}
+      <div>
+        <h4 className="text-lg font-medium text-Primarycolor mb-3 font-Manrope">Personal Information</h4>
+        <div className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-red-800 font-Jost">
-              Please fill in your details to continue
-            </p>
-            <p className="text-xs mt-1 text-red-700 font-Jost">
-              All fields marked with * are required
-            </p>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => onFormChange('name', e.target.value)}
+              className={`w-full p-2 border rounded-md font-Jost ${
+                formErrors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter your full name"
+            />
+            {formErrors.name && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.name}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => onFormChange('email', e.target.value)}
+              className={`w-full p-2 border rounded-md font-Jost ${
+                formErrors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter your email address"
+            />
+            {formErrors.email && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.email}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Phone Number *
+            </label>
+            <input
+              type="tel"
+              value={formData.phone_number}
+              onChange={(e) => onFormChange('phone_number', e.target.value)}
+              className={`w-full p-2 border rounded-md font-Jost ${
+                formErrors.phone_number ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter your phone number"
+            />
+            {formErrors.phone_number && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.phone_number}</p>
+            )}
           </div>
         </div>
       </div>
-    )}
-    
-    <div className="space-y-4">
+      
+      {/* Shipping Address Section */}
       <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Full Name *
-        </label>
-        <input
-          type="text"
-          value={guestForm.name}
-          onChange={(e) => onGuestFormChange('name', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your full name"
-          key="guest-name-input"
-        />
-        {guestFormErrors.name && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
-        )}
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Email Address *
-        </label>
-        <input
-          type="email"
-          value={guestForm.email}
-          onChange={(e) => onGuestFormChange('email', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your email address"
-          key="guest-email-input"
-        />
-        {guestFormErrors.email && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
-        )}
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Phone Number *
-        </label>
-        <input
-          type="tel"
-          value={guestForm.phone_number}
-          onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your phone number"
-          key="guest-phone-input"
-        />
-        {guestFormErrors.phone_number && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
-        )}
-      </div>
-      
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-xs text-blue-700 font-Jost">
-          <strong>Note:</strong> A temporary account will be created with your information. 
-          You'll receive an email with instructions to set a password and access your order history.
-        </p>
-      </div>
-      
-      {existingUserType === 'permanent' && (
-        <div className="mt-3 text-center">
-          <button
-            type="button"
-            onClick={onLoginRedirect}
-            className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
-          >
-            Log in to your existing account
-          </button>
+        <h4 className="text-lg font-medium text-Primarycolor mb-3 font-Manrope">Shipping Address</h4>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Address Title
+            </label>
+            <input
+              type="text"
+              value={formData.shipping_title}
+              onChange={(e) => onFormChange('shipping_title', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="e.g., Home, Office"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Address Line 1 *
+            </label>
+            <input
+              type="text"
+              value={formData.shipping_address_line_1}
+              onChange={(e) => onFormChange('shipping_address_line_1', e.target.value)}
+              className={`w-full p-2 border rounded-md font-Jost ${
+                formErrors.shipping_address_line_1 ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Street address, P.O. box, company name"
+            />
+            {formErrors.shipping_address_line_1 && (
+              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.shipping_address_line_1}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Address Line 2
+            </label>
+            <input
+              type="text"
+              value={formData.shipping_address_line_2}
+              onChange={(e) => onFormChange('shipping_address_line_2', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="Apartment, suite, unit, building, floor, etc."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+              Landmark
+            </label>
+            <input
+              type="text"
+              value={formData.shipping_landmark}
+              onChange={(e) => onFormChange('shipping_landmark', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+              placeholder="Nearby landmark (optional)"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                City *
+              </label>
+              <input
+                type="text"
+                value={formData.shipping_city}
+                onChange={(e) => onFormChange('shipping_city', e.target.value)}
+                className={`w-full p-2 border rounded-md font-Jost ${
+                  formErrors.shipping_city ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="City"
+              />
+              {formErrors.shipping_city && (
+                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.shipping_city}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                State
+              </label>
+              <input
+                type="text"
+                value={formData.shipping_state}
+                onChange={(e) => onFormChange('shipping_state', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                placeholder="State"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                value={formData.shipping_zip_code}
+                onChange={(e) => onFormChange('shipping_zip_code', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                placeholder="ZIP code"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Country *
+              </label>
+              <select
+                value={formData.shipping_country}
+                onChange={(e) => onFormChange('shipping_country', e.target.value)}
+                className={`w-full p-2 border rounded-md font-Jost ${
+                  formErrors.shipping_country ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select Country</option>
+                <option value="Nigeria">Nigeria</option>
+                <option value="United States">United States</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Canada">Canada</option>
+              </select>
+              {formErrors.shipping_country && (
+                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.shipping_country}</p>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
+      
+      {/* Billing Address Section */}
+      <div>
+        <h4 className="text-lg font-medium text-Primarycolor mb-3 font-Manrope">Billing Address</h4>
+        
+        <div className="mb-4">
+          <div className="flex items-center space-x-6">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="billingAddressOption"
+                value="same"
+                checked={formData.billingAddressOption === 'same'}
+                onChange={() => onFormChange('billingAddressOption', 'same')}
+                className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+              />
+              <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="billingAddressOption"
+                value="different"
+                checked={formData.billingAddressOption === 'different'}
+                onChange={() => onFormChange('billingAddressOption', 'different')}
+                className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+              />
+              <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+            </label>
+          </div>
+        </div>
+        
+        {formData.billingAddressOption === 'different' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                value={formData.billing_full_name}
+                onChange={(e) => onFormChange('billing_full_name', e.target.value)}
+                className={`w-full p-2 border rounded-md font-Jost ${
+                  formErrors.billing_full_name ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Full name"
+              />
+              {formErrors.billing_full_name && (
+                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.billing_full_name}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.billing_email}
+                onChange={(e) => onFormChange('billing_email', e.target.value)}
+                className={`w-full p-2 border rounded-md font-Jost ${
+                  formErrors.billing_email ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Email address"
+              />
+              {formErrors.billing_email && (
+                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.billing_email}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={formData.billing_phone_number}
+                onChange={(e) => onFormChange('billing_phone_number', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                placeholder="Phone number"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Address Line 1 *
+              </label>
+              <input
+                type="text"
+                value={formData.billing_address_line_1}
+                onChange={(e) => onFormChange('billing_address_line_1', e.target.value)}
+                className={`w-full p-2 border rounded-md font-Jost ${
+                  formErrors.billing_address_line_1 ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Street address, P.O. box, company name"
+              />
+              {formErrors.billing_address_line_1 && (
+                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.billing_address_line_1}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                Address Line 2
+              </label>
+              <input
+                type="text"
+                value={formData.billing_address_line_2}
+                onChange={(e) => onFormChange('billing_address_line_2', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                placeholder="Apartment, suite, unit, building, floor, etc."
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  value={formData.billing_city}
+                  onChange={(e) => onFormChange('billing_city', e.target.value)}
+                  className={`w-full p-2 border rounded-md font-Jost ${
+                    formErrors.billing_city ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="City"
+                />
+                {formErrors.billing_city && (
+                  <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.billing_city}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                  State
+                </label>
+                <input
+                  type="text"
+                  value={formData.billing_state}
+                  onChange={(e) => onFormChange('billing_state', e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                  placeholder="State"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                  ZIP Code
+                </label>
+                <input
+                  type="text"
+                  value={formData.billing_zip_code}
+                  onChange={(e) => onFormChange('billing_zip_code', e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                  placeholder="ZIP code"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                  Country *
+                </label>
+                <select
+                  value={formData.billing_country}
+                  onChange={(e) => onFormChange('billing_country', e.target.value)}
+                  className={`w-full p-2 border rounded-md font-Jost ${
+                    formErrors.billing_country ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select Country</option>
+                  <option value="Nigeria">Nigeria</option>
+                  <option value="United States">United States</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Canada">Canada</option>
+                </select>
+                {formErrors.billing_country && (
+                  <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.billing_country}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+    
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+      <p className="text-xs text-blue-700 font-Jost">
+        <strong>Note:</strong> A temporary account will be created with your information. 
+        You'll receive an email with instructions to set a password and access your order history.
+      </p>
+    </div>
+    
+    {existingUserType === 'permanent' && (
+      <div className="mt-3 text-center">
+        <button
+          type="button"
+          onClick={onLoginRedirect}
+          className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
+        >
+          Log in to your existing account
+        </button>
+      </div>
+    )}
   </div>
 ));
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -187,11 +493,16 @@ const CheckoutPage = () => {
   }
   
   const { 
-    currency = 'NGN', 
-    exchangeRate = 1, 
-    country = 'Nigeria', 
-    contextLoading = false 
+    currency: ctxCurrency, 
+    exchangeRate: ctxExchangeRate, 
+    country: ctxCountry, 
+    contextLoading: ctxContextLoading
   } = currencyContext || {};
+  
+  const currency = typeof ctxCurrency === 'string' ? ctxCurrency : 'NGN';
+  const exchangeRate = typeof ctxExchangeRate === 'number' ? ctxExchangeRate : 1;
+  const country = typeof ctxCountry === 'string' ? ctxCountry : 'Nigeria';
+  const contextLoading = typeof ctxContextLoading === 'boolean' ? ctxContextLoading : false;
   
   const navigate = useNavigate();
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
@@ -207,8 +518,6 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showShippingForm, setShowShippingForm] = useState(false);
-  const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     title: '',
@@ -219,7 +528,7 @@ const CheckoutPage = () => {
     state: '',
     zip_code: '',
     country: 'Nigeria',
-    phone_number: '', // Will be removed for guest users
+    phone_number: '',
   });
   const [billingForm, setBillingForm] = useState({
     full_name: '',
@@ -232,6 +541,38 @@ const CheckoutPage = () => {
     zip_code: '',
     country: 'Nigeria',
   });
+  
+  // New state for unified guest form
+  const [unifiedGuestForm, setUnifiedGuestForm] = useState({
+    // Personal details
+    name: '',
+    email: '',
+    phone_number: '',
+    
+    // Shipping address
+    shipping_title: '',
+    shipping_address_line_1: '',
+    shipping_address_line_2: '',
+    shipping_landmark: '',
+    shipping_city: '',
+    shipping_state: '',
+    shipping_zip_code: '',
+    shipping_country: 'Nigeria',
+    
+    // Billing address
+    billingAddressOption: 'same', // 'same' or 'different'
+    billing_full_name: '',
+    billing_email: '',
+    billing_phone_number: '',
+    billing_address_line_1: '',
+    billing_address_line_2: '',
+    billing_city: '',
+    billing_state: '',
+    billing_zip_code: '',
+    billing_country: 'Nigeria',
+  });
+  
+  const [unifiedGuestFormErrors, setUnifiedGuestFormErrors] = useState({});
   
   // New state for billing address option
   const [billingAddressOption, setBillingAddressOption] = useState('same'); // 'same' or 'different'
@@ -250,31 +591,15 @@ const CheckoutPage = () => {
   
   // Guest user states
   const [isGuest, setIsGuest] = useState(false);
-  const [guestForm, setGuestForm] = useState({
-    name: '',
-    email: '',
-    phone_number: ''
-  });
-  const [showGuestForm, setShowGuestForm] = useState(true);
-  const [guestFormErrors, setGuestFormErrors] = useState({});
   const [createdUserId, setCreatedUserId] = useState(null);
   const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
   
   // State to track which form needs to be filled
   const [requiredForm, setRequiredForm] = useState(null); // 'guest', 'shipping', 'billing'
   
-  // State to track if guest form has been submitted
-  const [guestFormSubmitted, setGuestFormSubmitted] = useState(false);
-  
-  // State to track if shipping address has been submitted
-  const [shippingFormSubmitted, setShippingFormSubmitted] = useState(false);
-  
-  // State to track if billing address has been submitted
-  const [billingFormSubmitted, setBillingFormSubmitted] = useState(false);
-  
   // Memoize functions to prevent unnecessary re-renders
-  const handleGuestFormChange = useCallback((field, value) => {
-    setGuestForm(prev => ({...prev, [field]: value}));
+  const handleUnifiedGuestFormChange = useCallback((field, value) => {
+    setUnifiedGuestForm(prev => ({...prev, [field]: value}));
     if (field === 'name' || field === 'email') {
       setExistingUserType(null);
     }
@@ -291,6 +616,66 @@ const CheckoutPage = () => {
   const handleLoginRedirect = useCallback(() => {
     navigate('/login', { state: { from: '/checkout' } });
   }, [navigate]);
+  
+  // Fixed isPlaceOrderDisabled useMemo
+  const isPlaceOrderDisabled = useMemo(() => {
+    try {
+      // Basic checks
+      if (loading) return true;
+      
+      if (isGuest) {
+        // For guest users, check if the unified form is filled
+        const hasPersonalDetails = unifiedGuestForm.name && 
+                                  unifiedGuestForm.email && 
+                                  unifiedGuestForm.phone_number;
+        
+        const hasShippingAddress = unifiedGuestForm.shipping_address_line_1 && 
+                                  unifiedGuestForm.shipping_city && 
+                                  unifiedGuestForm.shipping_country;
+        
+        let hasBillingAddress = false;
+        if (unifiedGuestForm.billingAddressOption === 'same') {
+          hasBillingAddress = hasShippingAddress;
+        } else {
+          hasBillingAddress = unifiedGuestForm.billing_full_name && 
+                             unifiedGuestForm.billing_email && 
+                             unifiedGuestForm.billing_address_line_1 && 
+                             unifiedGuestForm.billing_city && 
+                             unifiedGuestForm.billing_country;
+        }
+        
+        if (!hasPersonalDetails || !hasShippingAddress || !hasBillingAddress) return true;
+      } else {
+        // For authenticated users, check if we have addresses
+        const hasShippingAddress = shippingForm?.address_line_1 || shippingAddressId;
+        if (!hasShippingAddress) return true;
+        
+        const hasBillingAddress = billingForm?.address_line_1 || billingAddressId;
+        if (!hasBillingAddress) return true;
+      }
+      
+      // Check shipping method if in Nigeria
+      const addressCountry = isGuest ? unifiedGuestForm.shipping_country : (shippingForm?.country || country);
+      const isNigeria = addressCountry?.toLowerCase() === 'nigeria';
+      if (isNigeria && !shippingMethod) return true;
+      
+      // All checks passed, button should be enabled
+      return false;
+    } catch (error) {
+      console.error('Error in isPlaceOrderDisabled:', error);
+      return true; // Disable button if there's an error
+    }
+  }, [
+    loading,
+    isGuest,
+    unifiedGuestForm,
+    shippingForm,
+    billingForm,
+    shippingAddressId,
+    billingAddressId,
+    country,
+    shippingMethod
+  ]);
   
   const decodeToken = (token) => {
     try {
@@ -359,26 +744,33 @@ const CheckoutPage = () => {
     refreshUserDataOnMount();
   }, [user, userDataRefreshed]);
   
-  // Update the useEffect that calculates the first order discount
+  // Fixed first order discount useEffect
   useEffect(() => {
-    const currentSubtotal = cart.subtotal; // Always in NGN
-    console.log('Calculating first order discount:', {
-      userFirstOrder: user?.first_order,
-      currentSubtotal,
-      userDataRefreshed,
-      refreshCount
-    });
-    
-    // Make sure user exists and first_order is true
-    if (user && user.first_order === true && currentSubtotal > 0) {
-      const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
-      setFirstOrderDiscount(discountAmount);
-      console.log('Applied first order discount:', discountAmount);
-    } else {
+    try {
+      const currentSubtotal = cart?.subtotal || 0;
+      
+      console.log('Calculating first order discount:', {
+        userFirstOrder: user?.first_order,
+        currentSubtotal,
+        userDataRefreshed,
+        refreshCount,
+        userExists: !!user
+      });
+      
+      // Make sure user exists and first_order is true
+      if (user && user.first_order === true && currentSubtotal > 0) {
+        const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
+        setFirstOrderDiscount(discountAmount);
+        console.log('Applied first order discount:', discountAmount);
+      } else {
+        setFirstOrderDiscount(0);
+        console.log('No first order discount applied. User:', user ? 'exists' : 'missing', 'First order:', user?.first_order);
+      }
+    } catch (error) {
+      console.error('Error calculating first order discount:', error);
       setFirstOrderDiscount(0);
-      console.log('No first order discount applied. User:', user ? 'exists' : 'missing', 'First order:', user?.first_order);
     }
-  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
+  }, [user?.first_order, cart?.subtotal, userDataRefreshed, refreshCount, user]);
   
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
@@ -483,31 +875,60 @@ const CheckoutPage = () => {
     }
   };
   
-  // Validate guest form
-  const validateGuestForm = () => {
+  // Function to validate the unified guest form
+  const validateUnifiedGuestForm = () => {
     const errors = {};
-    if (!guestForm.name.trim()) {
+    
+    // Validate personal details
+    if (!unifiedGuestForm.name.trim()) {
       errors.name = 'Name is required';
     }
-    if (!guestForm.email.trim()) {
+    if (!unifiedGuestForm.email.trim()) {
       errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(unifiedGuestForm.email)) {
       errors.email = 'Email is invalid';
     }
-    if (!guestForm.phone_number.trim()) {
+    if (!unifiedGuestForm.phone_number.trim()) {
       errors.phone_number = 'Phone number is required';
     }
     
-    if (Object.keys(errors).length > 0) {
-      setGuestFormErrors(errors);
-      return false;
+    // Validate shipping address
+    if (!unifiedGuestForm.shipping_address_line_1.trim()) {
+      errors.shipping_address_line_1 = 'Address line 1 is required';
+    }
+    if (!unifiedGuestForm.shipping_city.trim()) {
+      errors.shipping_city = 'City is required';
+    }
+    if (!unifiedGuestForm.shipping_country.trim()) {
+      errors.shipping_country = 'Country is required';
     }
     
-    setGuestFormErrors({});
-    return true;
+    // Validate billing address
+    if (unifiedGuestForm.billingAddressOption === 'different') {
+      if (!unifiedGuestForm.billing_full_name.trim()) {
+        errors.billing_full_name = 'Full name is required';
+      }
+      if (!unifiedGuestForm.billing_email.trim()) {
+        errors.billing_email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(unifiedGuestForm.billing_email)) {
+        errors.billing_email = 'Email is invalid';
+      }
+      if (!unifiedGuestForm.billing_address_line_1.trim()) {
+        errors.billing_address_line_1 = 'Address line 1 is required';
+      }
+      if (!unifiedGuestForm.billing_city.trim()) {
+        errors.billing_city = 'City is required';
+      }
+      if (!unifiedGuestForm.billing_country.trim()) {
+        errors.billing_country = 'Country is required';
+      }
+    }
+    
+    setUnifiedGuestFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
   
-  // Validate shipping address
+  // Validate shipping address for authenticated users
   const validateShippingAddress = () => {
     if (!shippingForm.address_line_1.trim()) {
       setError('Please add a shipping address');
@@ -517,7 +938,7 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Validate billing address
+  // Validate billing address for authenticated users
   const validateBillingAddress = () => {
     if (!billingForm.address_line_1.trim()) {
       setError('Please add a billing address');
@@ -527,18 +948,13 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Updated processGuestForm function
-  const processGuestForm = async () => {
-    if (!validateGuestForm()) {
-      setRequiredForm('guest');
-      return false;
-    }
-    
+  // New function to create temporary user and return ID
+  const createTemporaryUserAndGetId = async () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
-        name: guestForm.name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number
+        name: unifiedGuestForm.name,
+        email: unifiedGuestForm.email,
+        phone_number: unifiedGuestForm.phone_number
       });
       
       const { user, isExisting } = response.data;
@@ -547,8 +963,6 @@ const CheckoutPage = () => {
       // Update all state at once
       setCreatedUserId(userId);
       setIsGuest(false);
-      setShowGuestForm(false);
-      setGuestFormSubmitted(true);
       
       if (isExisting) {
         setExistingUserType('temporary');
@@ -558,30 +972,15 @@ const CheckoutPage = () => {
         toast.success('Account created successfully!');
       }
       
-      // Update shipping and billing forms with guest information
-      setShippingForm(prev => ({
-        ...prev,
-        phone_number: guestForm.phone_number
-      }));
-      
-      setBillingForm(prev => ({
-        ...prev,
-        full_name: guestForm.name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number
-      }));
-      
-      // Return the user ID to use in processOrder
       return userId;
     } catch (err) {
-      console.error('Error in guest submission:', err);
+      console.error('Error creating temporary user:', err);
       
       // Check if the error is because the user already exists
       if (err.response?.status === 400 && 
           (err.response?.data?.error?.includes('already exists') || 
            err.response?.data?.message?.includes('already registered'))) {
         
-        // Check if the error response includes existingUser data
         if (err.response?.data?.existingUser) {
           const { existingUser } = err.response.data;
           
@@ -597,7 +996,6 @@ const CheckoutPage = () => {
             toast.error('A temporary account with this email and phone number already exists. Please use a different email or phone number or log in if you have a password.');
           }
         } else {
-          // Fallback if existingUser is not included in the response
           setExistingUserType('permanent');
           setError('An account with this email and phone number already exists. Please log in to continue.');
           toast.error('An account with this email and phone number already exists. Please log in to continue.');
@@ -616,56 +1014,118 @@ const CheckoutPage = () => {
         toast.error(errorMessage);
       }
       
-      return false;
+      return null;
     }
   };
   
-  // Modified processOrder to accept guestUserId parameter
-  const processOrder = async (guestUserId = null) => {
-    // Use the provided guestUserId if available, otherwise fall back to state
-    const userId = guestUserId || createdUserId || getUserId();
-    
-    // Skip guest form check if we have a guestUserId
-    if (!guestUserId && isGuest && !guestFormSubmitted) {
-      setError('Please complete the guest form to continue');
-      setRequiredForm('guest');
-      return;
-    }
-    
-    if (!shippingForm.address_line_1) {
-      setError('Please add a shipping address');
-      setRequiredForm('shipping');
-      return;
-    }
-    
-    if (!billingForm.address_line_1) {
-      setError('Please add a billing address');
-      setRequiredForm('billing');
-      return;
-    }
-    
-    const addressCountry = shippingForm.country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-    
-    if (isNigeria && !shippingMethod) {
-      setError('Please select a shipping method');
-      return;
-    }
-    
-    if (!cart?.items?.length) {
-      setError('Cart is empty');
-      toast.error('Cart is empty');
-      return;
-    }
-    
+  // New function to save addresses to database
+  const saveAddressesToDatabase = async (userId) => {
     try {
+      let shippingAddressData;
+      let billingAddressData;
+      
+      if (isGuest) {
+        // For guest users, use data from the unified form
+        shippingAddressData = {
+          title: unifiedGuestForm.shipping_title,
+          address_line_1: unifiedGuestForm.shipping_address_line_1,
+          address_line_2: unifiedGuestForm.shipping_address_line_2,
+          landmark: unifiedGuestForm.shipping_landmark,
+          city: unifiedGuestForm.shipping_city,
+          state: unifiedGuestForm.shipping_state,
+          zip_code: unifiedGuestForm.shipping_zip_code,
+          country: unifiedGuestForm.shipping_country,
+          phone_number: unifiedGuestForm.phone_number,
+        };
+        
+        if (unifiedGuestForm.billingAddressOption === 'same') {
+          // Use shipping address for billing
+          billingAddressData = {
+            full_name: unifiedGuestForm.name,
+            email: unifiedGuestForm.email,
+            phone_number: unifiedGuestForm.phone_number,
+            address_line_1: unifiedGuestForm.shipping_address_line_1,
+            address_line_2: unifiedGuestForm.shipping_address_line_2,
+            city: unifiedGuestForm.shipping_city,
+            state: unifiedGuestForm.shipping_state,
+            zip_code: unifiedGuestForm.shipping_zip_code,
+            country: unifiedGuestForm.shipping_country,
+          };
+        } else {
+          // Use separate billing address
+          billingAddressData = {
+            full_name: unifiedGuestForm.billing_full_name,
+            email: unifiedGuestForm.billing_email,
+            phone_number: unifiedGuestForm.billing_phone_number,
+            address_line_1: unifiedGuestForm.billing_address_line_1,
+            address_line_2: unifiedGuestForm.billing_address_line_2,
+            city: unifiedGuestForm.billing_city,
+            state: unifiedGuestForm.billing_state,
+            zip_code: unifiedGuestForm.billing_zip_code,
+            country: unifiedGuestForm.billing_country,
+          };
+        }
+      } else {
+        // For authenticated users, use existing form data
+        shippingAddressData = shippingForm;
+        billingAddressData = billingForm;
+      }
+      
+      // Save shipping address
+      const shippingResponse = await axios.post(`${API_BASE_URL}/api/addresses`, {
+        user_id: userId,
+        ...shippingAddressData
+      });
+      
+      // Update the shipping address ID with the newly created address
+      const newShippingAddressId = shippingResponse.data.id;
+      setShippingAddressId(String(newShippingAddressId));
+      
+      // Save billing address
+      const billingResponse = await axios.post(`${API_BASE_URL}/api/billing-addresses`, {
+        user_id: userId,
+        ...billingAddressData
+      });
+      
+      // Update the billing address ID with the newly created address
+      const newBillingAddressId = billingResponse.data.id;
+      setBillingAddressId(String(newBillingAddressId));
+      
+      toast.success('Addresses saved successfully');
+    } catch (err) {
+      console.error('Error saving addresses:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
+      setError(`Failed to save addresses: ${errorMessage}`);
+      toast.error(`Failed to save addresses: ${errorMessage}`);
+      throw err; // Re-throw to stop order processing
+    }
+  };
+  
+  // Updated processOrder function that takes a user ID
+  const processOrderWithUserId = async (userId) => {
+    try {
+      const addressCountry = isGuest ? unifiedGuestForm.shipping_country : shippingForm.country;
+      const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+      
+      if (isNigeria && !shippingMethod) {
+        setError('Please select a shipping method');
+        setRequiredForm('shipping');
+        return;
+      }
+      
+      if (!cart?.items?.length) {
+        setError('Cart is empty');
+        toast.error('Cart is empty');
+        return;
+      }
+      
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
       
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = true; // Always true for new users
+      const baseFirstOrderDiscount = user?.first_order ? (baseSubtotal * 0.05) : 0;
       const baseCouponDiscount = couponDiscount;
-      const baseTotalDiscount = Number((baseFirstOrderDiscount ? (baseSubtotal * 0.05) : 0 + baseCouponDiscount).toFixed(2));
+      const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
       const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
       const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
@@ -674,12 +1134,9 @@ const CheckoutPage = () => {
       
       const orderData = {
         user_id: userId,
-        // For guests, we send shipping_data and billing_data
-        // For authenticated users, we send address_id and billing_address_id
-        shipping_data: !isAuthenticated() ? shippingForm : null,
-        billing_data: !isAuthenticated() ? billingForm : null,
-        address_id: isAuthenticated() ? parseInt(shippingAddressId) : null,
-        billing_address_id: isAuthenticated() ? parseInt(billingAddressId) : null,
+        // Send address IDs since we've saved them to the database
+        address_id: parseInt(shippingAddressId),
+        billing_address_id: parseInt(billingAddressId),
         cart_id: isAuthenticated() ? cart.cartId : null,
         total: baseTotal,
         discount: baseFinalDiscount,
@@ -734,7 +1191,7 @@ const CheckoutPage = () => {
       const paymentData = {
         order_id: orderId,
         reference: orderData.reference,
-        email: billingForm.email || guestForm.email || user.email,
+        email: isGuest ? unifiedGuestForm.email : (billingForm.email || user.email),
         amount: Math.round(paymentAmount * 100), // Convert to kobo
         currency: paymentCurrency,
         callback_url: callbackUrl,
@@ -806,141 +1263,52 @@ const CheckoutPage = () => {
     setRequiredForm(null);
     
     try {
-      let guestUserId = null;
-      
-      // Step 1: Process guest form if needed
-      if (isGuest && !guestFormSubmitted) {
-        guestUserId = await processGuestForm();
-        if (!guestUserId) {
+      // Step 1: Validate forms based on user type
+      if (isGuest) {
+        // Validate unified guest form
+        if (!validateUnifiedGuestForm()) {
+          setRequiredForm('guest');
+          setLoading(false);
+          return;
+        }
+      } else {
+        // For authenticated users, validate shipping and billing addresses
+        if (!validateShippingAddress()) {
+          setLoading(false);
+          return;
+        }
+        
+        if (!validateBillingAddress()) {
           setLoading(false);
           return;
         }
       }
       
-      // Step 2: Validate shipping address
-      if (!validateShippingAddress()) {
-        setLoading(false);
-        return;
+      // Step 2: Get or create user ID
+      let userId = null;
+      
+      if (isGuest) {
+        // Create temporary user and get user ID
+        userId = await createTemporaryUserAndGetId();
+        if (!userId) {
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Use existing user ID
+        userId = getUserId();
       }
       
-      // Step 3: Validate billing address
-      if (!validateBillingAddress()) {
-        setLoading(false);
-        return;
-      }
+      // Step 3: Save addresses to database
+      await saveAddressesToDatabase(userId);
       
-      // Step 4: Process the order with the guest user ID if available
-      await processOrder(guestUserId);
+      // Step 4: Process the order with the user ID
+      await processOrderWithUserId(userId);
     } catch (err) {
       console.error('Error in place order:', err);
       setLoading(false);
     }
   };
- 
-  
- // Optimized handleShippingSubmit to not handle phone number for guest users
-const handleShippingSubmit = async (data) => {
-  try {
-    setLoading(true);
-    
-    // Update shipping form state
-    setShippingForm(data);
-    setShowShippingForm(false);
-    setShippingFormSubmitted(true);
-    
-    // For guest users, we need to update the shipping address ID as well
-    if (!isAuthenticated() && createdUserId) {
-      // For guest users who have been created, we need to save the address to the backend
-      try {
-        const response = await axios.post(`${API_BASE_URL}/api/addresses`, {
-          user_id: createdUserId,
-          ...data
-        });
-        
-        // Update the shipping address ID with the newly created address
-        const newAddressId = response.data.id;
-        setShippingAddressId(String(newAddressId));
-        
-        // Add the new address to the shippingAddresses array
-        setShippingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
-      } catch (err) {
-        console.error('Error saving shipping address for guest user:', err);
-        // Even if saving fails, we still have the form data, so we can continue
-      }
-    }
-    
-    // If billing address option is 'same', update billing address to match
-    if (billingAddressOption === 'same') {
-      // Create a billing address object from the shipping address
-      const billingAddress = {
-        full_name: guestForm.name || billingForm.full_name,
-        email: guestForm.email || billingForm.email,
-        // For guest users, use the phone number from guest form instead of shipping form
-        phone_number: isGuest ? guestForm.phone_number : data.phone_number,
-        address_line_1: data.address_line_1,
-        address_line_2: data.address_line_2,
-        city: data.city,
-        state: data.state,
-        zip_code: data.zip_code,
-        country: data.country,
-      };
-      
-      // Update billing form state
-      setBillingForm(billingAddress);
-      setBillingFormSubmitted(true);
-    }
-    
-    setSuccess('Shipping address added successfully.');
-    toast.success('Shipping address added');
-  } catch (err) {
-    const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-    setError(`Failed to add shipping address: ${errorMessage}`);
-    toast.error(`Failed to add shipping address: ${errorMessage}`);
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleBillingSubmit = async (data) => {
-  try {
-    setLoading(true);
-    
-    // Update billing form state
-    setBillingForm(data);
-    setShowBillingForm(false);
-    setBillingFormSubmitted(true);
-    
-    // For guest users, we need to update the billing address ID as well
-    if (!isAuthenticated() && createdUserId) {
-      // For guest users who have been created, we need to save the address to the backend
-      try {
-        const response = await axios.post(`${API_BASE_URL}/api/billing-addresses`, {
-          user_id: createdUserId,
-          ...data
-        });
-        
-        // Update the billing address ID with the newly created address
-        const newAddressId = response.data.id;
-        setBillingAddressId(String(newAddressId));
-        
-        // Add the new address to the billingAddresses array
-        setBillingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
-      } catch (err) {
-        console.error('Error saving billing address for guest user:', err);
-        // Even if saving fails, we still have the form data, so we can continue
-      }
-    }
-    
-    setSuccess('Billing address added successfully.');
-    toast.success('Billing address added');
-  } catch (err) {
-    const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-    setError(`Failed to add billing address: ${errorMessage}`);
-    toast.error(`Failed to add billing address: ${errorMessage}`);
-  } finally {
-    setLoading(false);
-  }
-};
   
   const handleDeleteAddress = async (type, addressId) => {
     if (!isAuthenticated() && !createdUserId) {
@@ -985,33 +1353,6 @@ const handleBillingSubmit = async (data) => {
     }
   };
   
-  // Optimized copyShippingToBilling to not copy phone number for guest users
-  const copyShippingToBilling = () => {
-    if (!shippingForm.address_line_1) {
-      toast.error('Please add a shipping address first');
-      return;
-    }
-    
-    // Create a billing address object from the shipping address
-    const billingAddress = {
-      full_name: guestForm.name || billingForm.full_name,
-      email: guestForm.email || billingForm.email,
-      // For guest users, use the phone number from guest form instead of shipping form
-      phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
-      address_line_1: shippingForm.address_line_1,
-      address_line_2: shippingForm.address_line_2,
-      city: shippingForm.city,
-      state: shippingForm.state,
-      zip_code: shippingForm.zip_code,
-      country: shippingForm.country,
-    };
-    
-    // Update billing form state
-    setBillingForm(billingAddress);
-    setBillingFormSubmitted(true);
-    toast.success('Billing address updated to match shipping address');
-  };
-  
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://js.paystack.co/v1/inline.js';
@@ -1039,7 +1380,6 @@ const handleBillingSubmit = async (data) => {
         }
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
         setIsGuest(true);
-        setShowGuestForm(true);
         setLoading(false);
         return;
       }
@@ -1090,6 +1430,18 @@ const handleBillingSubmit = async (data) => {
           setShippingAddresses(shippingData);
           if (shippingData.length > 0) {
             setShippingAddressId(String(shippingData[0].id));
+            // Pre-fill the shipping form with the first address
+            setShippingForm({
+              title: shippingData[0].title || '',
+              address_line_1: shippingData[0].address_line_1 || '',
+              address_line_2: shippingData[0].address_line_2 || '',
+              landmark: shippingData[0].landmark || '',
+              city: shippingData[0].city || '',
+              state: shippingData[0].state || '',
+              zip_code: shippingData[0].zip_code || '',
+              country: shippingData[0].country || 'Nigeria',
+              phone_number: shippingData[0].phone_number || '',
+            });
           }
         } catch (err) {
           console.error('Error fetching shipping addresses:', err);
@@ -1115,6 +1467,18 @@ const handleBillingSubmit = async (data) => {
           setBillingAddresses(billingData);
           if (billingData.length > 0) {
             setBillingAddressId(String(billingData[0].id));
+            // Pre-fill the billing form with the first address
+            setBillingForm({
+              full_name: billingData[0].full_name || '',
+              email: billingData[0].email || '',
+              phone_number: billingData[0].phone_number || '',
+              address_line_1: billingData[0].address_line_1 || '',
+              address_line_2: billingData[0].address_line_2 || '',
+              city: billingData[0].city || '',
+              state: billingData[0].state || '',
+              zip_code: billingData[0].zip_code || '',
+              country: billingData[0].country || 'Nigeria',
+            });
           }
         } catch (err) {
           console.error('Error fetching billing addresses:', err);
@@ -1136,28 +1500,6 @@ const handleBillingSubmit = async (data) => {
       fetchCartAndAddresses();
     }
   }, [user, authLoading, contextLoading, navigate, createdUserId]);
-  
-  // Update billing address when shipping address changes if option is 'same'
-  useEffect(() => {
-    if (billingAddressOption === 'same' && shippingForm.address_line_1) {
-      // Update billing form to match shipping form
-      const billingAddress = {
-        full_name: guestForm.name || billingForm.full_name,
-        email: guestForm.email || billingForm.email,
-        // For guest users, use the phone number from guest form instead of shipping form
-        phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
-        address_line_1: shippingForm.address_line_1,
-        address_line_2: shippingForm.address_line_2,
-        city: shippingForm.city,
-        state: shippingForm.state,
-        zip_code: shippingForm.zip_code,
-        country: shippingForm.country,
-      };
-      
-      setBillingForm(billingAddress);
-      setBillingFormSubmitted(true);
-    }
-  }, [shippingForm, billingAddressOption, guestForm.name, guestForm.email, guestForm.phone_number, isGuest, billingForm.full_name, billingForm.email]);
   
   useEffect(() => {
     if (shippingAddresses.length > 0 && !shippingAddressId) {
@@ -1315,28 +1657,21 @@ const handleBillingSubmit = async (data) => {
   const debugButtonDisabled = () => {
     console.log('Button disabled check:', {
       loading,
+      isGuest,
+      hasPersonalDetails: unifiedGuestForm.name && unifiedGuestForm.email && unifiedGuestForm.phone_number,
+      hasShippingAddress: unifiedGuestForm.shipping_address_line_1 && unifiedGuestForm.shipping_city && unifiedGuestForm.shipping_country,
+      billingAddressOption: unifiedGuestForm.billingAddressOption,
+      hasBillingAddress: unifiedGuestForm.billingAddressOption === 'same' || 
+                         (unifiedGuestForm.billing_full_name && unifiedGuestForm.billing_email && unifiedGuestForm.billing_address_line_1 && unifiedGuestForm.billing_city && unifiedGuestForm.billing_country),
       shippingFormAddressLine1: !!shippingForm.address_line_1,
       shippingAddressId: !!shippingAddressId,
       billingFormAddressLine1: !!billingForm.address_line_1,
       billingAddressId: !!billingAddressId,
       isNigeria,
       shippingMethod: !!shippingMethod,
-      isGuest,
-      createdUserId: !!createdUserId,
-      guestFormSubmitted,
-      shippingFormSubmitted,
-      billingFormSubmitted
+      createdUserId: !!createdUserId
     });
   };
-  
-  // Calculate if the place order button should be disabled
-  const isPlaceOrderDisabled = useMemo(() => {
-    return loading || 
-      (!shippingForm.address_line_1 && !shippingAddressId) || 
-      (!billingForm.address_line_1 && !billingAddressId) || 
-      (isNigeria && !shippingMethod) || 
-      (isGuest && !createdUserId && !guestFormSubmitted);
-  }, [loading, shippingForm.address_line_1, shippingAddressId, billingForm.address_line_1, billingAddressId, isNigeria, shippingMethod, isGuest, createdUserId, guestFormSubmitted]);
   
   return (
     <div 
@@ -1366,9 +1701,6 @@ const handleBillingSubmit = async (data) => {
               First Order (DB): {user?.first_order?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
-              Guest Form Submitted: {guestFormSubmitted?.toString()}<br />
-              Shipping Form Submitted: {shippingFormSubmitted?.toString()}<br />
-              Billing Form Submitted: {billingFormSubmitted?.toString()}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
             </p>
             <button 
@@ -1461,235 +1793,68 @@ const handleBillingSubmit = async (data) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Forms */}
           <div className="lg:col-span-7 space-y-8">
-            {/* Guest Checkout Form */}
-            {isGuest && showGuestForm && (
-              <GuestCheckoutForm
-                guestForm={guestForm}
-                guestFormErrors={guestFormErrors}
+            {/* Unified Guest Checkout Form */}
+            {isGuest && (
+              <UnifiedGuestCheckoutForm
+                formData={unifiedGuestForm}
+                formErrors={unifiedGuestFormErrors}
                 existingUserType={existingUserType}
-                requiredForm={requiredForm}
-                onGuestFormChange={handleGuestFormChange}
+                onFormChange={handleUnifiedGuestFormChange}
                 onLoginRedirect={handleLoginRedirect}
               />
             )}
             
-            {/* Shipping Address Form */}
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
-              
-              {requiredForm === 'shipping' && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-red-800 font-Jost">
-                        Please add a shipping address
-                      </p>
-                      <p className="text-xs mt-1 text-red-700 font-Jost">
-                        This information is required to deliver your order
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Show shipping address if it exists in the form */}
-              {shippingForm.address_line_1 && !showShippingForm && (
-                <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
-                      <div className="text-sm text-Accent font-Jost">
-                        <p>{shippingForm.title || 'Default'}</p>
-                        <p>{shippingForm.address_line_1}</p>
-                        {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
-                        <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                        <p>{shippingForm.country}</p>
-                        {shippingForm.phone_number && <p>Phone: {shippingForm.phone_number}</p>}
+            {/* Authenticated User Forms */}
+            {!isGuest && (
+              <>
+                {/* Shipping Address Form */}
+                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+                  
+                  {requiredForm === 'shipping' && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800 font-Jost">
+                            Please add a shipping address
+                          </p>
+                          <p className="text-xs mt-1 text-red-700 font-Jost">
+                            This information is required to deliver your order
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowShippingForm(true)}
-                        className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                        disabled={loading}
-                      >
-                        Edit
-                      </button>
-                      {shippingAddressId && (
-                        <button
-                          onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
-                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                          disabled={loading}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {isAuthenticated() && shippingAddresses.length > 0 && !shippingForm.address_line_1 ? (
-                <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
-                    <select
-                      value={shippingAddressId ?? ''}
-                      onChange={(e) => setShippingAddressId(String(e.target.value))}
-                      className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-                    >
-                      {shippingAddresses.map((address) => (
-                        <option key={address.id} value={String(address.id)}>
-                          {address.title}, {address.address_line_1}, {address.city}, {address.country}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  )}
                   
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => setShowShippingForm(true)}
-                      className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
-                    >
-                      Add New Address
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
-                      className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                      disabled={loading}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                    </button>
-                  </div>
-                  
-                  {showShippingForm && (
-                    <div className="mt-4">
-                      <ShippingAddressForm
-                        address={{ state: shippingForm, setState: setShippingForm }}
-                        onSubmit={handleShippingSubmit}
-                        onCancel={() => setShowShippingForm(false)}
-                        formErrors={formErrors}
-                        setFormErrors={setFormErrors}
-                        actionLoading={loading}
-                        isGuest={isGuest} // Pass isGuest prop to conditionally show phone number
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  {!shippingForm.address_line_1 && (
-                    <button
-                      onClick={() => setShowShippingForm(!showShippingForm)}
-                      className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                    >
-                      {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
-                    </button>
-                  )}
-                  {showShippingForm && (
-                    <ShippingAddressForm
-                      address={{ state: shippingForm, setState: setShippingForm }}
-                      onSubmit={handleShippingSubmit}
-                      onCancel={() => setShowShippingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                      isGuest={isGuest} // Pass isGuest prop to conditionally show phone number
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {/* Billing Address Form */}
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
-              
-              {/* Billing Address Option Selector */}
-              <div className="mb-6">
-                <div className="flex items-center space-x-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingAddressOption"
-                      value="same"
-                      checked={billingAddressOption === 'same'}
-                      onChange={() => setBillingAddressOption('same')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                    />
-                    <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="billingAddressOption"
-                      value="different"
-                      checked={billingAddressOption === 'different'}
-                      onChange={() => setBillingAddressOption('different')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                    />
-                    <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
-                  </label>
-                </div>
-              </div>
-              
-              {requiredForm === 'billing' && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-red-800 font-Jost">
-                        Please add a billing address
-                      </p>
-                      <p className="text-xs mt-1 text-red-700 font-Jost">
-                        This information is required to process your payment
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {billingAddressOption === 'same' ? (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="flex items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                      {shippingForm.address_line_1 ? (
-                        <div className="text-sm text-Accent font-Jost">
-                          <p>{shippingForm.address_line_1}</p>
-                          {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
-                          <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                          <p>{shippingForm.country}</p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={copyShippingToBilling}
-                      className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
-                      title="Copy shipping address to billing address"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {isAuthenticated() && billingAddresses.length > 0 ? (
+                  {shippingAddresses.length > 0 ? (
                     <div>
                       <div className="mb-4">
-                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
                         <select
-                          value={billingAddressId ?? ''}
-                          onChange={(e) => setBillingAddressId(String(e.target.value))}
+                          value={shippingAddressId ?? ''}
+                          onChange={(e) => {
+                            setShippingAddressId(String(e.target.value));
+                            const selectedAddress = shippingAddresses.find(addr => String(addr.id) === String(e.target.value));
+                            if (selectedAddress) {
+                              setShippingForm({
+                                title: selectedAddress.title || '',
+                                address_line_1: selectedAddress.address_line_1 || '',
+                                address_line_2: selectedAddress.address_line_2 || '',
+                                landmark: selectedAddress.landmark || '',
+                                city: selectedAddress.city || '',
+                                state: selectedAddress.state || '',
+                                zip_code: selectedAddress.zip_code || '',
+                                country: selectedAddress.country || 'Nigeria',
+                                phone_number: selectedAddress.phone_number || '',
+                              });
+                            }
+                          }}
                           className="w-full p-2 border border-gray-300 rounded-md font-Jost"
                         >
-                          {billingAddresses.map((address) => (
+                          {shippingAddresses.map((address) => (
                             <option key={address.id} value={String(address.id)}>
-                              {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
+                              {address.title}, {address.address_line_1}, {address.city}, {address.country}
                             </option>
                           ))}
                         </select>
@@ -1697,57 +1862,470 @@ const handleBillingSubmit = async (data) => {
                       
                       <div className="flex gap-2 mt-4">
                         <button
-                          onClick={() => setShowBillingForm(true)}
+                          onClick={() => {
+                            setShippingForm({
+                              title: '',
+                              address_line_1: '',
+                              address_line_2: '',
+                              landmark: '',
+                              city: '',
+                              state: '',
+                              zip_code: '',
+                              country: 'Nigeria',
+                              phone_number: '',
+                            });
+                          }}
                           className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
                           disabled={loading}
                         >
                           Add New Address
                         </button>
-                        <button
-                          onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
-                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
-                          disabled={loading}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete Address
-                        </button>
+                        {shippingAddressId && (
+                          <button
+                            onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
+                            className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                          </button>
+                        )}
                       </div>
-                      
-                      {showBillingForm && (
-                        <div className="mt-4">
-                          <BillingAddressForm
-                            address={{ state: billingForm, setState: setBillingForm }}
-                            onSubmit={handleBillingSubmit}
-                            onCancel={() => setShowBillingForm(false)}
-                            formErrors={formErrors}
-                            setFormErrors={setFormErrors}
-                            actionLoading={loading}
-                          />
-                        </div>
-                      )}
                     </div>
                   ) : (
-                    <div>
-                      <button
-                        onClick={() => setShowBillingForm(!showBillingForm)}
-                        className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                      >
-                        {showBillingForm ? 'Cancel' : 'Add Billing Address'}
-                      </button>
-                      {showBillingForm && (
-                        <BillingAddressForm
-                          address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
-                          onCancel={() => setShowBillingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Address Title
+                        </label>
+                        <input
+                          type="text"
+                          value={shippingForm.title}
+                          onChange={(e) => setShippingForm({...shippingForm, title: e.target.value})}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                          placeholder="e.g., Home, Office"
                         />
-                      )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Address Line 1 *
+                        </label>
+                        <input
+                          type="text"
+                          value={shippingForm.address_line_1}
+                          onChange={(e) => setShippingForm({...shippingForm, address_line_1: e.target.value})}
+                          className={`w-full p-2 border rounded-md font-Jost ${
+                            formErrors.address_line_1 ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Street address, P.O. box, company name"
+                        />
+                        {formErrors.address_line_1 && (
+                          <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.address_line_1}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Address Line 2
+                        </label>
+                        <input
+                          type="text"
+                          value={shippingForm.address_line_2}
+                          onChange={(e) => setShippingForm({...shippingForm, address_line_2: e.target.value})}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                          placeholder="Apartment, suite, unit, building, floor, etc."
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Landmark
+                        </label>
+                        <input
+                          type="text"
+                          value={shippingForm.landmark}
+                          onChange={(e) => setShippingForm({...shippingForm, landmark: e.target.value})}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                          placeholder="Nearby landmark (optional)"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                            City *
+                          </label>
+                          <input
+                            type="text"
+                            value={shippingForm.city}
+                            onChange={(e) => setShippingForm({...shippingForm, city: e.target.value})}
+                            className={`w-full p-2 border rounded-md font-Jost ${
+                              formErrors.city ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="City"
+                          />
+                          {formErrors.city && (
+                            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.city}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                            State
+                          </label>
+                          <input
+                            type="text"
+                            value={shippingForm.state}
+                            onChange={(e) => setShippingForm({...shippingForm, state: e.target.value})}
+                            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                            placeholder="State"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                            ZIP Code
+                          </label>
+                          <input
+                            type="text"
+                            value={shippingForm.zip_code}
+                            onChange={(e) => setShippingForm({...shippingForm, zip_code: e.target.value})}
+                            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                            placeholder="ZIP code"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                            Country *
+                          </label>
+                          <select
+                            value={shippingForm.country}
+                            onChange={(e) => setShippingForm({...shippingForm, country: e.target.value})}
+                            className={`w-full p-2 border rounded-md font-Jost ${
+                              formErrors.country ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          >
+                            <option value="">Select Country</option>
+                            <option value="Nigeria">Nigeria</option>
+                            <option value="United States">United States</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="Canada">Canada</option>
+                          </select>
+                          {formErrors.country && (
+                            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.country}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={shippingForm.phone_number}
+                          onChange={(e) => setShippingForm({...shippingForm, phone_number: e.target.value})}
+                          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                          placeholder="Phone number"
+                        />
+                      </div>
                     </div>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+                
+                {/* Billing Address Form */}
+                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+                  
+                  {/* Billing Address Option Selector */}
+                  <div className="mb-6">
+                    <div className="flex items-center space-x-6">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="billingAddressOption"
+                          value="same"
+                          checked={billingAddressOption === 'same'}
+                          onChange={() => setBillingAddressOption('same')}
+                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                        />
+                        <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="billingAddressOption"
+                          value="different"
+                          checked={billingAddressOption === 'different'}
+                          onChange={() => setBillingAddressOption('different')}
+                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                        />
+                        <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {requiredForm === 'billing' && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800 font-Jost">
+                            Please add a billing address
+                          </p>
+                          <p className="text-xs mt-1 text-red-700 font-Jost">
+                            This information is required to process your payment
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {billingAddressOption === 'same' ? (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-start">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                          {shippingForm.address_line_1 ? (
+                            <div className="text-sm text-Accent font-Jost">
+                              <p>{shippingForm.address_line_1}</p>
+                              {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
+                              <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                              <p>{shippingForm.country}</p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {billingAddresses.length > 0 ? (
+                        <div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Billing Address</label>
+                            <select
+                              value={billingAddressId ?? ''}
+                              onChange={(e) => {
+                                setBillingAddressId(String(e.target.value));
+                                const selectedAddress = billingAddresses.find(addr => String(addr.id) === String(e.target.value));
+                                if (selectedAddress) {
+                                  setBillingForm({
+                                    full_name: selectedAddress.full_name || '',
+                                    email: selectedAddress.email || '',
+                                    phone_number: selectedAddress.phone_number || '',
+                                    address_line_1: selectedAddress.address_line_1 || '',
+                                    address_line_2: selectedAddress.address_line_2 || '',
+                                    city: selectedAddress.city || '',
+                                    state: selectedAddress.state || '',
+                                    zip_code: selectedAddress.zip_code || '',
+                                    country: selectedAddress.country || 'Nigeria',
+                                  });
+                                }
+                              }}
+                              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                            >
+                              {billingAddresses.map((address) => (
+                                <option key={address.id} value={String(address.id)}>
+                                  {address.full_name}, {address.address_line_1}, {address.city}, {address.country}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="flex gap-2 mt-4">
+                            <button
+                              onClick={() => {
+                                setBillingForm({
+                                  full_name: '',
+                                  email: '',
+                                  phone_number: '',
+                                  address_line_1: '',
+                                  address_line_2: '',
+                                  city: '',
+                                  state: '',
+                                  zip_code: '',
+                                  country: 'Nigeria',
+                                });
+                              }}
+                              className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                              disabled={loading}
+                            >
+                              Add New Address
+                            </button>
+                            {billingAddressId && (
+                              <button
+                                onClick={() => handleDeleteAddress('billing-addresses', billingAddressId)}
+                                className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete Address
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                              Full Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={billingForm.full_name}
+                              onChange={(e) => setBillingForm({...billingForm, full_name: e.target.value})}
+                              className={`w-full p-2 border rounded-md font-Jost ${
+                                formErrors.full_name ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="Full name"
+                            />
+                            {formErrors.full_name && (
+                              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.full_name}</p>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                              Email *
+                            </label>
+                            <input
+                              type="email"
+                              value={billingForm.email}
+                              onChange={(e) => setBillingForm({...billingForm, email: e.target.value})}
+                              className={`w-full p-2 border rounded-md font-Jost ${
+                                formErrors.email ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="Email address"
+                            />
+                            {formErrors.email && (
+                              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.email}</p>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              value={billingForm.phone_number}
+                              onChange={(e) => setBillingForm({...billingForm, phone_number: e.target.value})}
+                              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                              placeholder="Phone number"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                              Address Line 1 *
+                            </label>
+                            <input
+                              type="text"
+                              value={billingForm.address_line_1}
+                              onChange={(e) => setBillingForm({...billingForm, address_line_1: e.target.value})}
+                              className={`w-full p-2 border rounded-md font-Jost ${
+                                formErrors.address_line_1 ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="Street address, P.O. box, company name"
+                            />
+                            {formErrors.address_line_1 && (
+                              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.address_line_1}</p>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                              Address Line 2
+                            </label>
+                            <input
+                              type="text"
+                              value={billingForm.address_line_2}
+                              onChange={(e) => setBillingForm({...billingForm, address_line_2: e.target.value})}
+                              className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                              placeholder="Apartment, suite, unit, building, floor, etc."
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                                City *
+                              </label>
+                              <input
+                                type="text"
+                                value={billingForm.city}
+                                onChange={(e) => setBillingForm({...billingForm, city: e.target.value})}
+                                className={`w-full p-2 border rounded-md font-Jost ${
+                                  formErrors.city ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                                placeholder="City"
+                              />
+                              {formErrors.city && (
+                                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.city}</p>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                                State
+                              </label>
+                              <input
+                                type="text"
+                                value={billingForm.state}
+                                onChange={(e) => setBillingForm({...billingForm, state: e.target.value})}
+                                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                                placeholder="State"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                                ZIP Code
+                              </label>
+                              <input
+                                type="text"
+                                value={billingForm.zip_code}
+                                onChange={(e) => setBillingForm({...billingForm, zip_code: e.target.value})}
+                                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                                placeholder="ZIP code"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+                                Country *
+                              </label>
+                              <select
+                                value={billingForm.country}
+                                onChange={(e) => setBillingForm({...billingForm, country: e.target.value})}
+                                className={`w-full p-2 border rounded-md font-Jost ${
+                                  formErrors.country ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                              >
+                                <option value="">Select Country</option>
+                                <option value="Nigeria">Nigeria</option>
+                                <option value="United States">United States</option>
+                                <option value="United Kingdom">United Kingdom</option>
+                                <option value="Canada">Canada</option>
+                              </select>
+                              {formErrors.country && (
+                                <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.country}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
             
             {/* Order Note */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2239,4 +2817,5 @@ const handleBillingSubmit = async (data) => {
     </div>
   );
 };
+
 export default CheckoutPage;
