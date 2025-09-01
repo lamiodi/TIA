@@ -14,8 +14,10 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
+
 // Memoized GuestCheckoutForm component to prevent unnecessary re-renders
 const GuestCheckoutForm = React.memo(({ 
   guestForm, 
@@ -165,6 +167,7 @@ const GuestCheckoutForm = React.memo(({
     </div>
   </div>
 ));
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -536,10 +539,13 @@ const CheckoutPage = () => {
       });
       
       const { user, isExisting } = response.data;
-      setCreatedUserId(user.id);
+      const userId = user.id;
+      
+      // Update all state at once
+      setCreatedUserId(userId);
       setIsGuest(false);
       setShowGuestForm(false);
-      setGuestFormSubmitted(true); // Mark guest form as submitted
+      setGuestFormSubmitted(true);
       
       if (isExisting) {
         setExistingUserType('temporary');
@@ -562,7 +568,8 @@ const CheckoutPage = () => {
         phone_number: guestForm.phone_number
       }));
       
-      return true;
+      // Return the user ID to use in processOrder
+      return userId;
     } catch (err) {
       console.error('Error in guest submission:', err);
       
@@ -610,9 +617,13 @@ const CheckoutPage = () => {
     }
   };
   
-  const processOrder = async () => {
-    // Check if guest form has been submitted for guest users
-    if (isGuest && !guestFormSubmitted) {
+  // Modified processOrder to accept guestUserId parameter
+  const processOrder = async (guestUserId = null) => {
+    // Use the provided guestUserId if available, otherwise fall back to state
+    const userId = guestUserId || createdUserId || getUserId();
+    
+    // Skip guest form check if we have a guestUserId
+    if (!guestUserId && isGuest && !guestFormSubmitted) {
       setError('Please complete the guest form to continue');
       setRequiredForm('guest');
       return;
@@ -657,8 +668,6 @@ const CheckoutPage = () => {
       const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
       const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
       const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
-      
-      const userId = createdUserId || getUserId();
       
       const orderData = {
         user_id: userId,
@@ -794,10 +803,12 @@ const CheckoutPage = () => {
     setRequiredForm(null);
     
     try {
+      let guestUserId = null;
+      
       // Step 1: Process guest form if needed
       if (isGuest && !guestFormSubmitted) {
-        const guestFormValid = await processGuestForm();
-        if (!guestFormValid) {
+        guestUserId = await processGuestForm();
+        if (!guestUserId) {
           setLoading(false);
           return;
         }
@@ -815,8 +826,8 @@ const CheckoutPage = () => {
         return;
       }
       
-      // Step 4: Process the order
-      await processOrder();
+      // Step 4: Process the order with the guest user ID if available
+      await processOrder(guestUserId);
     } catch (err) {
       console.error('Error in place order:', err);
       setLoading(false);
@@ -2103,4 +2114,5 @@ const CheckoutPage = () => {
     </div>
   );
 };
+
 export default CheckoutPage;
