@@ -40,70 +40,87 @@ export const getSkuPrefixes = async (req, res) => {
 };
 
 // POST to create a single bundle
-export const createBundle = async (req, res) => {
+export const createTemporaryUser = async (req, res) => {
   try {
-    const files = req.files;
-    const {
-      name,
-      description,
-      bundle_price,
-      sku_prefix,
-      bundle_type,
-      product_id
-    } = JSON.parse(req.body.data);
-
-    if (!name || !bundle_price || !sku_prefix || !bundle_type || !files?.length || !product_id) {
-      return res.status(400).json({ error: 'Missing required fields or images.' });
+    const { name, email, phone_number } = req.body;
+    
+    // Validate input
+    if (!name || !email || !phone_number) {
+      return res.status(400).json({ error: 'Name, email, and phone number are required' });
     }
-
-    const requiredCount = bundle_type === '3-in-1' ? 3 : 5;
-
-    // Get all eligible variants under this SKU prefix and product
-    const variants = await sql`
-      SELECT pv.id AS variant_id, vs.size_id
-      FROM product_variants pv
-      JOIN variant_sizes vs ON pv.id = vs.variant_id
-      WHERE pv.product_id = ${product_id} AND pv.sku LIKE ${sku_prefix + '%'} AND vs.stock_quantity > 0
+    
+    // Split name into first and last name
+    const nameParts = name.trim().split(' ');
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.slice(1).join(' ') || '';
+    
+    // Check if there's an existing temporary user with the same email AND phone number
+    const [existingTemporaryUser] = await sql`
+      SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
+      FROM users 
+      WHERE email = ${email} AND phone_number = ${phone_number} AND is_temporary = TRUE
     `;
-
-    if (variants.length < requiredCount) {
-      return res.status(400).json({ error: 'Not enough stock to create this bundle.' });
+    
+    if (existingTemporaryUser) {
+      // Return the existing temporary user's ID
+      return res.status(200).json({
+        user: existingTemporaryUser,
+        message: 'Existing temporary account found',
+        isExisting: true
+      });
     }
-
-    // Insert the bundle
-    const bundleRes = await sql`
-      INSERT INTO bundles (name, description, bundle_price, bundle_type, sku_prefix, product_id)
-      VALUES (${name}, ${description || ''}, ${bundle_price}, ${bundle_type}, ${sku_prefix}, ${product_id})
-      RETURNING id
+    
+    // Check if there's a permanent user with the same email AND phone number
+    const [existingPermanentUser] = await sql`
+      SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
+      FROM users 
+      WHERE email = ${email} AND phone_number = ${phone_number} AND is_temporary = FALSE
     `;
-    const bundleId = bundleRes[0].id;
-
-    // Add bundle items
-    const selected = variants.slice(0, requiredCount);
-    for (const v of selected) {
-      await sql`
-        INSERT INTO bundle_items (bundle_id, variant_id)
-        VALUES (${bundleId}, ${v.variant_id})
-      `;
+    
+    if (existingPermanentUser) {
+      // Return information about the existing permanent user
+      return res.status(400).json({ 
+        error: 'An account with this email and phone number already exists',
+        existingUser: {
+          id: existingPermanentUser.id,
+          is_temporary: existingPermanentUser.is_temporary,
+          email: existingPermanentUser.email,
+          phone_number: existingPermanentUser.phone_number
+        }
+      });
     }
-
-    // Upload images
-    for (const file of files) {
-      try {
-        const uploaded = await cloudinary.uploader.upload(file.path);
-        await sql`
-          INSERT INTO bundle_images (bundle_id, image_url)
-          VALUES (${bundleId}, ${uploaded.secure_url})
-        `;
-        fs.unlinkSync(file.path);
-      } catch (imgErr) {
-        console.error('Image upload error:', imgErr);
+    
+    // Generate a random password (but we won't send it to the user)
+    const generateRandomPassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-    }
-
-    res.status(201).json({ message: 'Bundle created successfully.' });
+      return password;
+    };
+    
+    const password = generateRandomPassword();
+    
+    // Hash the password - bcrypt is already imported at the top
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Create the temporary user
+    const [newUser] = await sql`
+      INSERT INTO users (first_name, last_name, email, phone_number, password, is_temporary, first_order)
+      VALUES (${first_name}, ${last_name}, ${email}, ${phone_number}, ${hashedPassword}, ${true}, ${false})
+      RETURNING id, first_name, last_name, email, phone_number, is_temporary, first_order
+    `;
+    
+    // Return user data without token
+    res.status(201).json({
+      user: newUser,
+      message: 'Temporary account created successfully',
+      isExisting: false
+    });
   } catch (err) {
-    console.error('Bundle creation error:', err);
-    res.status(500).json({ error: 'Failed to create bundle' });
+    console.error('Error creating temporary user:', err);
+    res.status(500).json({ error: 'Failed to create temporary account' });
   }
 };
