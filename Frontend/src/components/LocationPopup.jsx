@@ -1,7 +1,9 @@
 "use client"
+
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react"
 import ReactFlagsSelect from "react-flags-select"
 import { CurrencyContext } from "../pages/CurrencyContext"
+
 const styles = {
   popup: {
     background: "rgba(255,255,255,0.9)",
@@ -9,14 +11,17 @@ const styles = {
     WebkitBackdropFilter: "blur(12px)",
   },
 }
+
 const countryCurrencyMap = {
   NG: { currency: "NGN", name: "Nigeria" },
   US: { currency: "USD", name: "United States" },
   GB: { currency: "USD", name: "United Kingdom" },
   default: { currency: "USD", name: "International" },
 }
+
 const exchangeRateCache = new Map()
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 const LocationPopup = React.memo(() => {
   const [showPopup, setShowPopup] = useState(true)
   const [selectedCountry, setSelectedCountry] = useState("NG")
@@ -24,12 +29,14 @@ const LocationPopup = React.memo(() => {
   const [isVisible, setIsVisible] = useState(false)
   const popupRef = useRef(null)
   const { setCurrency, setCountry, setExchangeRate } = useContext(CurrencyContext)
+
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setIsVisible(true), 50) // Reduced delay
       return () => clearTimeout(timer)
     }
   }, [showPopup])
+
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === "Escape" && showPopup) {
@@ -38,32 +45,41 @@ const LocationPopup = React.memo(() => {
     },
     [showPopup],
   )
+
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
+
   useEffect(() => {
     if (showPopup && popupRef.current) {
       popupRef.current.focus()
     }
   }, [showPopup])
+
   const handleClose = useCallback(() => {
     setIsVisible(false)
     setTimeout(() => setShowPopup(false), 200) // Reduced animation time
   }, [])
+
   const fetchExchangeRate = useCallback(async (currency) => {
     const cacheKey = `${currency}_NGN`
     const cached = exchangeRateCache.get(cacheKey)
+
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.rate
     }
+
     try {
       const apiKey = import.meta.env.VITE_EXCHANGERATE_API_KEY
       if (!apiKey) throw new Error("API key missing")
+
       const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/NGN`)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
       const data = await response.json()
       const rate = currency === "NGN" ? 1 : data.conversion_rates.USD || 0.00065311
+
       exchangeRateCache.set(cacheKey, { rate, timestamp: Date.now() })
       return rate
     } catch (err) {
@@ -71,14 +87,18 @@ const LocationPopup = React.memo(() => {
       return currency === "NGN" ? 1 : 0.00065311
     }
   }, [])
+
   const handleCountryChange = useCallback(
     async (code) => {
       setIsFetching(true)
       const { currency, name } = countryCurrencyMap[code] || countryCurrencyMap.default
+
       setSelectedCountry(code)
       localStorage.setItem("selectedCountry", code)
+
       setCurrency(currency)
       setCountry(name)
+
       const rate = await fetchExchangeRate(currency)
       setExchangeRate(rate)
       localStorage.setItem(
@@ -89,27 +109,31 @@ const LocationPopup = React.memo(() => {
           currency,
         }),
       )
+
       setIsFetching(false)
       handleClose()
     },
     [setCurrency, setCountry, setExchangeRate, fetchExchangeRate, handleClose],
   )
+
   const overlayClasses = useMemo(
     () =>
-      `fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm transition-all duration-300 ${
+      `fixed inset-0 z-50 flex items-end justify-center md:justify-start backdrop-blur-sm transition-all duration-300 ${
         isVisible ? "bg-black/40 opacity-100" : "bg-black/0 opacity-0"
       }`,
     [isVisible],
   )
+
   const popupClasses = useMemo(
     () =>
-      `bg-white/80 backdrop-blur-md shadow-2xl rounded-xl overflow-hidden transition-all duration-300 transform w-full max-w-xs mx-4 my-6 md:my-2 border border-white/20 ${
+      `bg-white/80 backdrop-blur-md shadow-2xl rounded-xl overflow-hidden transition-all duration-300 transform w-full max-w-xs mx-4 my-4 md:m-6 border border-white/20 ${
         isVisible
-          ? "translate-y-0 opacity-100 scale-100"
-          : "translate-y-full opacity-0 scale-95"
+          ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
+          : "translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 scale-95"
       }`,
     [isVisible],
   )
+
   return (
     <>
       {showPopup && (
@@ -130,7 +154,8 @@ const LocationPopup = React.memo(() => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="p-3 border-b border-white/30 bg-white/50">
+
+            <div className="p-4 border-b border-white/30 bg-white/50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg">
                   <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -143,7 +168,8 @@ const LocationPopup = React.memo(() => {
                 </div>
               </div>
             </div>
-            <div className="p-3 space-y-3 bg-white/30">
+
+            <div className="p-2 space-y-4 bg-white/30">
               {/* Country Selector */}
               <div className="relative">
                 <ReactFlagsSelect
@@ -175,8 +201,9 @@ const LocationPopup = React.memo(() => {
                   </div>
                 )}
               </div>
-              <div className="bg-white/20 rounded-lg p-3 border border-white/20">
-                <p className="text-xs text-gray-600 font-semibold mb-2 flex items-center gap-2">
+
+              <div className="bg-white/20 rounded-lg p-1 border border-white/20">
+                <p className="text-xs text-gray-600 font-semibold mb-1 flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -201,7 +228,8 @@ const LocationPopup = React.memo(() => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-900 rounded-lg p-3 border border-white/30">
+
+              <div className="bg-gray-900 rounded-lg p-4 border border-white/30">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,16 +251,17 @@ const LocationPopup = React.memo(() => {
                 <p className="text-sm text-white font-medium mb-1">Login for 10% off Your Next Order</p>
                 <p className="text-xs text-white/70">Valid for new customers only</p>
               </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={handleClose}
-                  className="flex-1 px-4 py-2.5 text-gray-600 bg-white/60 rounded-lg font-semibold text-sm hover:bg-white/80 hover:text-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/40"
+                  className="flex-1 px-4 py-3 text-gray-600 bg-white/60 rounded-lg font-semibold text-sm hover:bg-white/80 hover:text-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/40"
                 >
                   Skip for now
                 </button>
                 <button
                   onClick={() => handleCountryChange(selectedCountry)}
-                  className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-900/50 shadow-lg"
+                  className="flex-1 px-4 py-3 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-900/50 shadow-lg"
                   disabled={isFetching}
                 >
                   <span className="flex items-center justify-center gap-2">
@@ -267,6 +296,7 @@ const LocationPopup = React.memo(() => {
                   </span>
                 </button>
               </div>
+
               <div className="pt-3 border-t border-white/30 flex justify-center">
                 <div className="flex items-center gap-2 text-xs text-gray-600">
                   <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -279,6 +309,7 @@ const LocationPopup = React.memo(() => {
                   <span className="font-semibold">Secure & Trusted Platform</span>
                 </div>
               </div>
+
               <div className="flex justify-center gap-1.5 pt-2">
                 <div className="w-2 h-1 bg-blue-500 rounded-full"></div>
                 <div className="w-6 h-1 bg-blue-500/30 rounded-full"></div>
@@ -291,5 +322,7 @@ const LocationPopup = React.memo(() => {
     </>
   )
 })
+
 LocationPopup.displayName = "LocationPopup"
+
 export default LocationPopup

@@ -15,7 +15,6 @@ import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 // Removed memo wrapper from CheckoutPage component
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
@@ -305,29 +304,6 @@ const CheckoutPage = () => {
     }
   };
   
-  // Check for existing temporary user
-  const checkForExistingGuestUser = async (email, phone_number) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/check-temp-user`, {
-        email,
-        phone_number
-      });
-      
-      if (response.data.exists) {
-        setCreatedUserId(response.data.user.id);
-        setIsGuest(false);
-        setShowGuestForm(false);
-        setExistingUserType('temporary');
-        toast.success('Welcome back! We found your temporary account.');
-        return response.data.user.id;
-      }
-      return null;
-    } catch (err) {
-      console.error('Error checking for existing temporary user:', err);
-      return null;
-    }
-  };
-  
   // Create temporary user
   const createTemporaryUser = async (name, email, phone_number) => {
     try {
@@ -402,20 +378,12 @@ const CheckoutPage = () => {
     }
     
     try {
-      // First check if there's an existing temporary user
-      let userId = await checkForExistingGuestUser(
-        guestForm.email, 
+      // Create a temporary user - the createTemporaryUser function will handle checking for existing users
+      const userId = await createTemporaryUser(
+        guestForm.name,
+        guestForm.email,
         guestForm.phone_number
       );
-      
-      if (!userId) {
-        // If no existing user, create a new temporary user
-        userId = await createTemporaryUser(
-          guestForm.name,
-          guestForm.email,
-          guestForm.phone_number
-        );
-      }
       
       // Update shipping and billing forms with guest information
       setShippingForm(prev => ({
@@ -441,17 +409,7 @@ const CheckoutPage = () => {
         
         // Try to determine if it's a temporary or permanent user
         try {
-          // First check if it's a temporary user
-          const existingUserId = await checkForExistingGuestUser(
-            guestForm.email, 
-            guestForm.phone_number
-          );
-          
-          if (existingUserId) {
-            return true;
-          }
-          
-          // If not a temporary user, try to login with a dummy password to see if it's a permanent account
+          // Try to login with a dummy password to see if it's a permanent account
           const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
             email: guestForm.email,
             password: 'dummy_password_for_check' // Using a dummy password
@@ -2119,5 +2077,4 @@ const CheckoutPage = () => {
     </div>
   );
 };
-
 export default CheckoutPage;
