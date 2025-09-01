@@ -310,11 +310,11 @@ export const createTemporaryUser = async (req, res) => {
     
     const password = generateRandomPassword();
     
-    // First, check if there's an existing temporary user with the same email OR phone number
+    // First, check if there's an existing temporary user with the same email (only)
     const [existingTemporaryUser] = await sql`
       SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
       FROM users 
-      WHERE (email = ${email} OR phone_number = ${phone_number}) AND is_temporary = TRUE
+      WHERE email = ${email} AND is_temporary = TRUE
     `;
     
     if (existingTemporaryUser) {
@@ -326,17 +326,17 @@ export const createTemporaryUser = async (req, res) => {
       });
     }
     
-    // Then check if there's a permanent user with the same email OR phone number
+    // Then check if there's a permanent user with the same email (only)
     const [existingPermanentUser] = await sql`
       SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
       FROM users 
-      WHERE (email = ${email} OR phone_number = ${phone_number}) AND is_temporary = FALSE
+      WHERE email = ${email} AND is_temporary = FALSE
     `;
     
     if (existingPermanentUser) {
       // Return information about the existing permanent user
       return res.status(400).json({ 
-        error: 'An account with this email or phone number already exists',
+        error: 'An account with this email already exists',
         existingUser: {
           id: existingPermanentUser.id,
           is_temporary: existingPermanentUser.is_temporary,
