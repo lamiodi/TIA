@@ -1260,6 +1260,22 @@ const CheckoutPage = () => {
     );
   }
   
+  // Debug information to help identify why the button is disabled
+  const debugButtonDisabled = () => {
+    console.log('Button disabled check:', {
+      loading,
+      shippingFormAddressLine1: !!shippingForm.address_line_1,
+      shippingAddressId: !!shippingAddressId,
+      billingFormAddressLine1: !!billingForm.address_line_1,
+      billingAddressId: !!billingAddressId,
+      isNigeria,
+      shippingMethod: !!shippingMethod,
+      isGuest,
+      createdUserId: !!createdUserId,
+      guestFormSubmitted
+    });
+  };
+  
   return (
     <div 
       className="min-h-screen bg-gray-100 typography"
@@ -1296,6 +1312,12 @@ const CheckoutPage = () => {
               className="mt-2 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
             >
               Refresh User Data
+            </button>
+            <button 
+              onClick={debugButtonDisabled}
+              className="mt-2 ml-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+            >
+              Debug Button
             </button>
           </div>
         )}
@@ -2082,7 +2104,12 @@ const CheckoutPage = () => {
                 <button
                   onClick={handlePlaceOrder}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || (!shippingForm.address_line_1 && !shippingAddressId) || (!billingForm.address_line_1 && !billingAddressId) || (isNigeria && !shippingMethod) || (isGuest && !guestFormSubmitted)}
+                  disabled={loading || 
+                    (!shippingForm.address_line_1 && !shippingAddressId) || 
+                    (!billingForm.address_line_1 && !billingAddressId) || 
+                    (isNigeria && !shippingMethod) || 
+                    (isGuest && !createdUserId && !guestFormSubmitted)
+                  }
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
