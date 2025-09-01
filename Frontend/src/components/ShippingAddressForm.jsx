@@ -8,8 +8,7 @@ const ShippingAddressForm = ({
   onCancel, 
   formErrors, 
   setFormErrors, 
-  actionLoading,
-  isGuest // Add this prop
+  actionLoading
 }) => {
   const { state: shippingForm, setState: setShippingForm } = address;
   const [formData, setFormData] = useState({
@@ -21,7 +20,7 @@ const ShippingAddressForm = ({
     state: shippingForm.state || '',
     zip_code: shippingForm.zip_code || '',
     country: shippingForm.country || 'Nigeria',
-    phone_number: shippingForm.phone_number || '', // Will be hidden for guest users
+    phone_number: shippingForm.phone_number || '',
   });
 
   useEffect(() => {
@@ -58,11 +57,7 @@ const ShippingAddressForm = ({
     if (!formData.address_line_1.trim()) errors.address_line_1 = 'Address line 1 is required';
     if (!formData.city.trim()) errors.city = 'City is required';
     if (!formData.country.trim()) errors.country = 'Country is required';
-    
-    // Only validate phone number if user is not a guest
-    if (!isGuest && !formData.phone_number.trim()) {
-      errors.phone_number = 'Phone number is required';
-    }
+    if (!formData.phone_number.trim()) errors.phone_number = 'Phone number is required';
     
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -97,28 +92,25 @@ const ShippingAddressForm = ({
           )}
         </div>
         
-        {/* Only show phone number field if user is not a guest */}
-        {!isGuest && (
-          <div>
-            <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-              <Phone className="h-4 w-4 mr-1" />
-              Phone Number *
-            </label>
-            <input
-              type="tel"
-              name="phone_number"
-              value={formData.phone_number}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md font-Jost ${
-                formErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Enter your phone number"
-            />
-            {formErrors.phone_number && (
-              <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.phone_number}</p>
-            )}
-          </div>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
+            <Phone className="h-4 w-4 mr-1" />
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            name="phone_number"
+            value={formData.phone_number}
+            onChange={handleChange}
+            className={`w-full p-2 border rounded-md font-Jost ${
+              formErrors.phone_number ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Enter your phone number"
+          />
+          {formErrors.phone_number && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.phone_number}</p>
+          )}
+        </div>
       </div>
       
       <div>
