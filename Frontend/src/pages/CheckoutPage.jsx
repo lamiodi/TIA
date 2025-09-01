@@ -266,6 +266,9 @@ const CheckoutPage = () => {
   // State to track which form needs to be filled
   const [requiredForm, setRequiredForm] = useState(null); // 'guest', 'shipping', 'billing'
   
+  // State to track if guest form has been submitted
+  const [guestFormSubmitted, setGuestFormSubmitted] = useState(false);
+  
   // Memoize functions to prevent unnecessary re-renders
   const handleGuestFormChange = useCallback((field, value) => {
     setGuestForm(prev => ({...prev, [field]: value}));
@@ -539,6 +542,7 @@ const CheckoutPage = () => {
       setCreatedUserId(user.id);
       setIsGuest(false);
       setShowGuestForm(false);
+      setGuestFormSubmitted(true); // Mark guest form as submitted
       
       if (isExisting) {
         setExistingUserType('temporary');
@@ -610,7 +614,8 @@ const CheckoutPage = () => {
   };
   
   const processOrder = async () => {
-    if (!createdUserId && !isAuthenticated()) {
+    // Check if guest form has been submitted for guest users
+    if (isGuest && !guestFormSubmitted) {
       setError('Please complete the guest form to continue');
       setRequiredForm('guest');
       return;
@@ -793,7 +798,7 @@ const CheckoutPage = () => {
     
     try {
       // Step 1: Process guest form if needed
-      if (isGuest && showGuestForm) {
+      if (isGuest && !guestFormSubmitted) {
         const guestFormValid = await processGuestForm();
         if (!guestFormValid) {
           setLoading(false);
@@ -1275,6 +1280,7 @@ const CheckoutPage = () => {
               First Order (DB): {user?.first_order?.toString()}<br />
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
+              Guest Form Submitted: {guestFormSubmitted?.toString()}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
             </p>
             <button 
@@ -1488,7 +1494,7 @@ const CheckoutPage = () => {
                       name="billingAddressOption"
                       value="different"
                       checked={billingAddressOption === 'different'}
-                      onChange={() => setBillingAddressOption('different')}
+                      onChange={() => setBillingAddressOption('different'}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
                     />
                     <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
@@ -1914,7 +1920,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bank"
                       checked={paymentMethod === 'bank'}
-                      onChange={() => setPaymentMethod('bank')}
+                      onChange={() => setPaymentMethod('bank'}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
@@ -1929,7 +1935,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bitcoin"
                       checked={paymentMethod === 'bitcoin'}
-                      onChange={() => setPaymentMethod('bitcoin')}
+                      onChange={() => setPaymentMethod('bitcoin'}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <div className="flex items-center">
@@ -2068,7 +2074,7 @@ const CheckoutPage = () => {
                 <button
                   onClick={handlePlaceOrder}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || (!shippingForm.address_line_1 && !shippingAddressId) || (!billingForm.address_line_1 && !billingAddressId) || (isNigeria && !shippingMethod)}
+                  disabled={loading || (!shippingForm.address_line_1 && !shippingAddressId) || (!billingForm.address_line_1 && !billingAddressId) || (isNigeria && !shippingMethod) || (isGuest && !guestFormSubmitted)}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
