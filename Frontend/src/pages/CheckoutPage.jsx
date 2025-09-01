@@ -14,10 +14,8 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 // Memoized GuestCheckoutForm component to prevent unnecessary re-renders
 const GuestCheckoutForm = React.memo(({ 
   guestForm, 
@@ -167,7 +165,6 @@ const GuestCheckoutForm = React.memo(({
     </div>
   </div>
 ));
-
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -1494,7 +1491,7 @@ const CheckoutPage = () => {
                       name="billingAddressOption"
                       value="different"
                       checked={billingAddressOption === 'different'}
-                      onChange={() => setBillingAddressOption('different'}
+                      onChange={() => setBillingAddressOption('different')}  {/* Fixed the missing closing parenthesis */}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
                     />
                     <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
@@ -1920,7 +1917,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bank"
                       checked={paymentMethod === 'bank'}
-                      onChange={() => setPaymentMethod('bank'}
+                      onChange={() => setPaymentMethod('bank')}  {/* Fixed the missing closing parenthesis */}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
@@ -1935,7 +1932,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bitcoin"
                       checked={paymentMethod === 'bitcoin'}
-                      onChange={() => setPaymentMethod('bitcoin'}
+                      onChange={() => setPaymentMethod('bitcoin')}  {/* Fixed the missing closing parenthesis */}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <div className="flex items-center">
@@ -2106,5 +2103,4 @@ const CheckoutPage = () => {
     </div>
   );
 };
-
 export default CheckoutPage;
