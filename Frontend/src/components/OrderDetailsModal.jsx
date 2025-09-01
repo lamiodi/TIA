@@ -1,7 +1,7 @@
 import { 
   XCircle, User, Mail, Phone, Calendar, Globe, MapPin, Package, CreditCard, 
   ChevronRight as ChevronRightIcon, ChevronLeft as ChevronLeftIcon, 
-  Printer, CheckCircle, Send, Trash2, Truck
+  Printer, CheckCircle, Send, Trash2, Truck, FileText
 } from 'lucide-react';
 
 const OrderDetailsModal = ({
@@ -178,6 +178,7 @@ const OrderDetailsModal = ({
                   </div>
                 </div>
               </div>
+              
               {/* Order Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -244,6 +245,19 @@ const OrderDetailsModal = ({
                   </div>
                 </div>
               </div>
+              
+              {/* Order Note */}
+              {orderData.note && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <FileText className="w-5 h-5 mr-2" /> Order Note
+                  </h3>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{orderData.note}</p>
+                  </div>
+                </div>
+              )}
+              
               {/* Shipping Address */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -271,6 +285,7 @@ const OrderDetailsModal = ({
                   <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">Shipping address not available.</div>
                 )}
               </div>
+              
               {/* Billing Address */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -298,6 +313,7 @@ const OrderDetailsModal = ({
                   <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">Billing address not available.</div>
                 )}
               </div>
+              
               {/* Packing Checklist */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">

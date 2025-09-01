@@ -1,4 +1,5 @@
-import { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+"use client"
+import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react"
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
@@ -100,7 +101,6 @@ const GuestCheckoutForm = React.memo(({
             guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your full name"
-          // Add key to prevent recreation
           key="guest-name-input"
         />
         {guestFormErrors.name && (
@@ -120,7 +120,6 @@ const GuestCheckoutForm = React.memo(({
             guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your email address"
-          // Add key to prevent recreation
           key="guest-email-input"
         />
         {guestFormErrors.email && (
@@ -140,7 +139,6 @@ const GuestCheckoutForm = React.memo(({
             guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your phone number"
-          // Add key to prevent recreation
           key="guest-phone-input"
         />
         {guestFormErrors.phone_number && (
@@ -479,35 +477,6 @@ const CheckoutPage = () => {
     }
   };
   
-  // Create temporary user
-  const createTemporaryUser = async (name, email, phone_number) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
-        name,
-        email,
-        phone_number
-      });
-      
-      const { user, isExisting } = response.data;
-      setCreatedUserId(user.id);
-      setIsGuest(false);
-      setShowGuestForm(false);
-      
-      if (isExisting) {
-        setExistingUserType('temporary');
-        toast.success('Welcome back! We found your temporary account.');
-      } else {
-        setExistingUserType(null);
-        toast.success('Account created successfully!');
-      }
-      
-      return user.id;
-    } catch (err) {
-      console.error('Error creating temporary user:', err);
-      throw err;
-    }
-  };
-  
   // Validate guest form
   const validateGuestForm = () => {
     const errors = {};
@@ -552,7 +521,7 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Process guest form and create temporary user if needed
+  // Updated processGuestForm function
   const processGuestForm = async () => {
     if (!validateGuestForm()) {
       setRequiredForm('guest');
@@ -560,7 +529,6 @@ const CheckoutPage = () => {
     }
     
     try {
-      // Create a temporary user - the createTemporaryUser function will handle checking for existing users
       const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
         name: guestForm.name,
         email: guestForm.email,
@@ -597,17 +565,6 @@ const CheckoutPage = () => {
     } catch (err) {
       console.error('Error in guest submission:', err);
       
-      // Log more detailed error information
-      if (err.response) {
-        console.error('Error response data:', err.response.data);
-        console.error('Error response status:', err.response.status);
-        console.error('Error response headers:', err.response.headers);
-      } else if (err.request) {
-        console.error('Error request:', err.request);
-      } else {
-        console.error('Error message:', err.message);
-      }
-      
       // Check if the error is because the user already exists
       if (err.response?.status === 400 && 
           (err.response?.data?.error?.includes('already exists') || 
@@ -620,22 +577,26 @@ const CheckoutPage = () => {
           if (existingUser.is_temporary === false) {
             // It's a permanent user
             setExistingUserType('permanent');
-            setError('An account with this email already exists. Please log in to continue.');
-            toast.error('An account with this email already exists. Please log in to continue.');
+            setError('An account with this email and phone number already exists. Please log in to continue.');
+            toast.error('An account with this email and phone number already exists. Please log in to continue.');
           } else {
             // It's a temporary user
             setExistingUserType('temporary');
-            setError('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
-            toast.error('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
+            setError('A temporary account with this email and phone number already exists. Please use a different email or phone number or log in if you have a password.');
+            toast.error('A temporary account with this email and phone number already exists. Please use a different email or phone number or log in if you have a password.');
           }
         } else {
           // Fallback if existingUser is not included in the response
           setExistingUserType('permanent');
-          setError('An account with this email already exists. Please log in to continue.');
-          toast.error('An account with this email already exists. Please log in to continue.');
+          setError('An account with this email and phone number already exists. Please log in to continue.');
+          toast.error('An account with this email and phone number already exists. Please log in to continue.');
         }
+      } else if (err.response?.status === 500) {
+        // Handle server error specifically
+        setError('Server error occurred while creating your account. Please try again later.');
+        toast.error('Server error occurred while creating your account. Please try again later.');
       } else {
-        // Some other error occurred - provide more detailed error message
+        // Some other error occurred
         const errorMessage = err.response?.data?.error || 
                             err.response?.data?.message || 
                             err.message || 
@@ -2091,7 +2052,7 @@ const CheckoutPage = () => {
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                       <div>
-                      <p className="text-sm font-medium text-yellow-800 font-Jost">
+                        <p className="text-sm font-medium text-yellow-800 font-Jost">
                           Please complete the required information
                         </p>
                         <p className="text-xs mt-1 text-yellow-700 font-Jost">
@@ -2139,4 +2100,5 @@ const CheckoutPage = () => {
     </div>
   );
 };
+
 export default CheckoutPage;
