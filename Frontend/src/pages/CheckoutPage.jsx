@@ -836,110 +836,111 @@ const CheckoutPage = () => {
       setLoading(false);
     }
   };
+ 
   
-  // Optimized handleShippingSubmit to not handle phone number for guest users
-  const handleShippingSubmit = async (data) => {
-    try {
-      setLoading(true);
-      
-      // Update shipping form state
-      setShippingForm(data);
-      setShowShippingForm(false);
-      setShippingFormSubmitted(true);
-      
-      // For guest users, we need to update the shipping address ID as well
-      if (!isAuthenticated() && createdUserId) {
-        // For guest users who have been created, we need to save the address to the backend
-        try {
-          const response = await axios.post(`${API_BASE_URL}/api/addresses`, {
-            user_id: createdUserId,
-            ...data
-          });
-          
-          // Update the shipping address ID with the newly created address
-          const newAddressId = response.data.id;
-          setShippingAddressId(String(newAddressId));
-          
-          // Add the new address to the shippingAddresses array
-          setShippingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
-        } catch (err) {
-          console.error('Error saving shipping address for guest user:', err);
-          // Even if saving fails, we still have the form data, so we can continue
-        }
-      }
-      
-      // If billing address option is 'same', update billing address to match
-      if (billingAddressOption === 'same') {
-        // Create a billing address object from the shipping address
-        const billingAddress = {
-          full_name: guestForm.name || billingForm.full_name,
-          email: guestForm.email || billingForm.email,
-          // For guest users, use the phone number from guest form instead of shipping form
-          phone_number: isGuest ? guestForm.phone_number : data.phone_number,
-          address_line_1: data.address_line_1,
-          address_line_2: data.address_line_2,
-          city: data.city,
-          state: data.state,
-          zip_code: data.zip_code,
-          country: data.country,
-        };
+ // Optimized handleShippingSubmit to not handle phone number for guest users
+const handleShippingSubmit = async (data) => {
+  try {
+    setLoading(true);
+    
+    // Update shipping form state
+    setShippingForm(data);
+    setShowShippingForm(false);
+    setShippingFormSubmitted(true);
+    
+    // For guest users, we need to update the shipping address ID as well
+    if (!isAuthenticated() && createdUserId) {
+      // For guest users who have been created, we need to save the address to the backend
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/addresses`, {
+          user_id: createdUserId,
+          ...data
+        });
         
-        // Update billing form state
-        setBillingForm(billingAddress);
-        setBillingFormSubmitted(true);
+        // Update the shipping address ID with the newly created address
+        const newAddressId = response.data.id;
+        setShippingAddressId(String(newAddressId));
+        
+        // Add the new address to the shippingAddresses array
+        setShippingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
+      } catch (err) {
+        console.error('Error saving shipping address for guest user:', err);
+        // Even if saving fails, we still have the form data, so we can continue
       }
-      
-      setSuccess('Shipping address added successfully.');
-      toast.success('Shipping address added');
-    } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add shipping address: ${errorMessage}`);
-      toast.error(`Failed to add shipping address: ${errorMessage}`);
-    } finally {
-      setLoading(false);
     }
-  };
-  
-  const handleBillingSubmit = async (data) => {
-    try {
-      setLoading(true);
+    
+    // If billing address option is 'same', update billing address to match
+    if (billingAddressOption === 'same') {
+      // Create a billing address object from the shipping address
+      const billingAddress = {
+        full_name: guestForm.name || billingForm.full_name,
+        email: guestForm.email || billingForm.email,
+        // For guest users, use the phone number from guest form instead of shipping form
+        phone_number: isGuest ? guestForm.phone_number : data.phone_number,
+        address_line_1: data.address_line_1,
+        address_line_2: data.address_line_2,
+        city: data.city,
+        state: data.state,
+        zip_code: data.zip_code,
+        country: data.country,
+      };
       
       // Update billing form state
-      setBillingForm(data);
-      setShowBillingForm(false);
+      setBillingForm(billingAddress);
       setBillingFormSubmitted(true);
-      
-      // For guest users, we need to update the billing address ID as well
-      if (!isAuthenticated() && createdUserId) {
-        // For guest users who have been created, we need to save the address to the backend
-        try {
-          const response = await axios.post(`${API_BASE_URL}/api/billing-addresses`, {
-            user_id: createdUserId,
-            ...data
-          });
-          
-          // Update the billing address ID with the newly created address
-          const newAddressId = response.data.id;
-          setBillingAddressId(String(newAddressId));
-          
-          // Add the new address to the billingAddresses array
-          setBillingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
-        } catch (err) {
-          console.error('Error saving billing address for guest user:', err);
-          // Even if saving fails, we still have the form data, so we can continue
-        }
-      }
-      
-      setSuccess('Billing address added successfully.');
-      toast.success('Billing address added');
-    } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add billing address: ${errorMessage}`);
-      toast.error(`Failed to add billing address: ${errorMessage}`);
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    setSuccess('Shipping address added successfully.');
+    toast.success('Shipping address added');
+  } catch (err) {
+    const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
+    setError(`Failed to add shipping address: ${errorMessage}`);
+    toast.error(`Failed to add shipping address: ${errorMessage}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleBillingSubmit = async (data) => {
+  try {
+    setLoading(true);
+    
+    // Update billing form state
+    setBillingForm(data);
+    setShowBillingForm(false);
+    setBillingFormSubmitted(true);
+    
+    // For guest users, we need to update the billing address ID as well
+    if (!isAuthenticated() && createdUserId) {
+      // For guest users who have been created, we need to save the address to the backend
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/billing-addresses`, {
+          user_id: createdUserId,
+          ...data
+        });
+        
+        // Update the billing address ID with the newly created address
+        const newAddressId = response.data.id;
+        setBillingAddressId(String(newAddressId));
+        
+        // Add the new address to the billingAddresses array
+        setBillingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
+      } catch (err) {
+        console.error('Error saving billing address for guest user:', err);
+        // Even if saving fails, we still have the form data, so we can continue
+      }
+    }
+    
+    setSuccess('Billing address added successfully.');
+    toast.success('Billing address added');
+  } catch (err) {
+    const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
+    setError(`Failed to add billing address: ${errorMessage}`);
+    toast.error(`Failed to add billing address: ${errorMessage}`);
+  } finally {
+    setLoading(false);
+  }
+};
   
   const handleDeleteAddress = async (type, addressId) => {
     if (!isAuthenticated() && !createdUserId) {

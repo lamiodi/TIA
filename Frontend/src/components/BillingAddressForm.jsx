@@ -1,71 +1,40 @@
-// src/components/BillingAddressForm.jsx
-import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, User, X, Save } from 'lucide-react';
+// src/components/ShippingAddressForm.jsx
+import React from 'react';
+import { MapPin, Phone, X, Save } from 'lucide-react';
 
-const BillingAddressForm = ({ 
+const ShippingAddressForm = ({ 
   address, 
   onSubmit, 
   onCancel, 
   formErrors, 
   setFormErrors, 
   actionLoading,
-  isGuest // Add this prop to handle guest users
+  isGuest // Add this prop
 }) => {
-  const { state: billingForm, setState: setBillingForm } = address;
-  const [formData, setFormData] = useState({
-    full_name: billingForm.full_name || '',
-    email: billingForm.email || '',
-    phone_number: billingForm.phone_number || '',
-    address_line_1: billingForm.address_line_1 || '',
-    address_line_2: billingForm.address_line_2 || '',
-    city: billingForm.city || '',
-    state: billingForm.state || '',
-    zip_code: billingForm.zip_code || '',
-    country: billingForm.country || 'Nigeria',
-  });
-
-  useEffect(() => {
-    setFormData({
-      full_name: billingForm.full_name || '',
-      email: billingForm.email || '',
-      phone_number: billingForm.phone_number || '',
-      address_line_1: billingForm.address_line_1 || '',
-      address_line_2: billingForm.address_line_2 || '',
-      city: billingForm.city || '',
-      state: billingForm.state || '',
-      zip_code: billingForm.zip_code || '',
-      country: billingForm.country || 'Nigeria',
-    });
-  }, [billingForm]);
-
+  const { state: shippingForm, setState: setShippingForm } = address;
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setBillingForm(prev => ({ ...prev, [name]: value }));
+    setShippingForm(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user starts typing
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: null }));
     }
   };
-
+  
   const handleSubmit = (e) => {
     e.preventDefault();
     
     // Validate form
     const errors = {};
-    if (!formData.full_name.trim()) errors.full_name = 'Full name is required';
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email is invalid';
-    }
-    if (!formData.address_line_1.trim()) errors.address_line_1 = 'Address line 1 is required';
-    if (!formData.city.trim()) errors.city = 'City is required';
-    if (!formData.country.trim()) errors.country = 'Country is required';
+    if (!shippingForm.title?.trim()) errors.title = 'Title is required';
+    if (!shippingForm.address_line_1?.trim()) errors.address_line_1 = 'Address line 1 is required';
+    if (!shippingForm.city?.trim()) errors.city = 'City is required';
+    if (!shippingForm.country?.trim()) errors.country = 'Country is required';
     
     // Only validate phone number if user is not a guest
-    if (!isGuest && !formData.phone_number.trim()) {
+    if (!isGuest && !shippingForm.phone_number?.trim()) {
       errors.phone_number = 'Phone number is required';
     }
     
@@ -76,50 +45,29 @@ const BillingAddressForm = ({
     
     // Submit form
     if (onSubmit) {
-      onSubmit(formData);
+      onSubmit(shippingForm);
     }
   };
-
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-            <User className="h-4 w-4 mr-1" />
-            Full Name *
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Title *
           </label>
           <input
             type="text"
-            name="full_name"
-            value={formData.full_name}
+            name="title"
+            value={shippingForm.title || ''}
             onChange={handleChange}
             className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.full_name ? 'border-red-500' : 'border-gray-300'
+              formErrors.title ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="e.g., John Doe"
+            placeholder="e.g., Home, Office"
           />
-          {formErrors.full_name && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.full_name}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-            <Mail className="h-4 w-4 mr-1" />
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., john@example.com"
-          />
-          {formErrors.email && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.email}</p>
+          {formErrors.title && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.title}</p>
           )}
         </div>
         
@@ -133,7 +81,7 @@ const BillingAddressForm = ({
             <input
               type="tel"
               name="phone_number"
-              value={formData.phone_number}
+              value={shippingForm.phone_number || ''}
               onChange={handleChange}
               className={`w-full p-2 border rounded-md font-Jost ${
                 formErrors.phone_number ? 'border-red-500' : 'border-gray-300'
@@ -155,7 +103,7 @@ const BillingAddressForm = ({
         <input
           type="text"
           name="address_line_1"
-          value={formData.address_line_1}
+          value={shippingForm.address_line_1 || ''}
           onChange={handleChange}
           className={`w-full p-2 border rounded-md font-Jost ${
             formErrors.address_line_1 ? 'border-red-500' : 'border-gray-300'
@@ -174,10 +122,24 @@ const BillingAddressForm = ({
         <input
           type="text"
           name="address_line_2"
-          value={formData.address_line_2}
+          value={shippingForm.address_line_2 || ''}
           onChange={handleChange}
           className="w-full p-2 border border-gray-300 rounded-md font-Jost"
           placeholder="Apartment, suite, unit, building, floor, etc."
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+          Landmark
+        </label>
+        <input
+          type="text"
+          name="landmark"
+          value={shippingForm.landmark || ''}
+          onChange={handleChange}
+          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+          placeholder="Nearby landmark (optional)"
         />
       </div>
       
@@ -189,7 +151,7 @@ const BillingAddressForm = ({
           <input
             type="text"
             name="city"
-            value={formData.city}
+            value={shippingForm.city || ''}
             onChange={handleChange}
             className={`w-full p-2 border rounded-md font-Jost ${
               formErrors.city ? 'border-red-500' : 'border-gray-300'
@@ -208,7 +170,7 @@ const BillingAddressForm = ({
           <input
             type="text"
             name="state"
-            value={formData.state}
+            value={shippingForm.state || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded-md font-Jost"
             placeholder="State/Province/Region"
@@ -222,7 +184,7 @@ const BillingAddressForm = ({
           <input
             type="text"
             name="zip_code"
-            value={formData.zip_code}
+            value={shippingForm.zip_code || ''}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded-md font-Jost"
             placeholder="ZIP/Postal code"
@@ -236,7 +198,7 @@ const BillingAddressForm = ({
         </label>
         <select
           name="country"
-          value={formData.country}
+          value={shippingForm.country || 'Nigeria'}
           onChange={handleChange}
           className={`w-full p-2 border rounded-md font-Jost ${
             formErrors.country ? 'border-red-500' : 'border-gray-300'
@@ -289,4 +251,4 @@ const BillingAddressForm = ({
   );
 };
 
-export default BillingAddressForm;
+export default ShippingAddressForm;
