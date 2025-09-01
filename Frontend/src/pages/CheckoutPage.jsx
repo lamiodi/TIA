@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from 'react';
+import { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
@@ -13,8 +13,10 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
+
 // Removed memo wrapper from CheckoutPage component
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
@@ -113,6 +115,22 @@ const CheckoutPage = () => {
   
   // State to track which form needs to be filled
   const [requiredForm, setRequiredForm] = useState(null); // 'guest', 'shipping', 'billing'
+  
+  // Memoize functions to prevent unnecessary re-renders
+  const handleGuestFormChange = useCallback((field, value) => {
+    setGuestForm(prev => ({...prev, [field]: value}));
+    if (field === 'name' || field === 'email') {
+      setExistingUserType(null);
+    }
+  }, []);
+  
+  const handleOrderNoteChange = useCallback((e) => {
+    setOrderNote(e.target.value);
+  }, []);
+  
+  const handleCouponCodeChange = useCallback((e) => {
+    setCouponCode(e.target.value.toUpperCase());
+  }, []);
   
   const decodeToken = (token) => {
     try {
@@ -313,12 +331,19 @@ const CheckoutPage = () => {
         phone_number
       });
       
-      const { user } = response.data;
+      const { user, isExisting } = response.data;
       setCreatedUserId(user.id);
       setIsGuest(false);
       setShowGuestForm(false);
-      setExistingUserType('temporary');
-      toast.success('Account created successfully!');
+      
+      if (isExisting) {
+        setExistingUserType('temporary');
+        toast.success('Welcome back! We found your temporary account.');
+      } else {
+        setExistingUserType(null);
+        toast.success('Account created successfully!');
+      }
+      
       return user.id;
     } catch (err) {
       console.error('Error creating temporary user:', err);
@@ -379,11 +404,24 @@ const CheckoutPage = () => {
     
     try {
       // Create a temporary user - the createTemporaryUser function will handle checking for existing users
-      const userId = await createTemporaryUser(
-        guestForm.name,
-        guestForm.email,
-        guestForm.phone_number
-      );
+      const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
+        name: guestForm.name,
+        email: guestForm.email,
+        phone_number: guestForm.phone_number
+      });
+      
+      const { user, isExisting } = response.data;
+      setCreatedUserId(user.id);
+      setIsGuest(false);
+      setShowGuestForm(false);
+      
+      if (isExisting) {
+        setExistingUserType('temporary');
+        toast.success('Welcome back! We found your temporary account.');
+      } else {
+        setExistingUserType(null);
+        toast.success('Account created successfully!');
+      }
       
       // Update shipping and billing forms with guest information
       setShippingForm(prev => ({
@@ -407,36 +445,26 @@ const CheckoutPage = () => {
           (err.response?.data?.error?.includes('already exists') || 
            err.response?.data?.message?.includes('already registered'))) {
         
-        // Try to determine if it's a temporary or permanent user
-        try {
-          // Try to login with a dummy password to see if it's a permanent account
-          const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-            email: guestForm.email,
-            password: 'dummy_password_for_check' // Using a dummy password
-          });
+        // Check if the error response includes existingUser data
+        if (err.response?.data?.existingUser) {
+          const { existingUser } = err.response.data;
           
-          // If login succeeds, it's a permanent user
-          if (loginResponse.data.token) {
+          if (existingUser.is_temporary === false) {
+            // It's a permanent user
             setExistingUserType('permanent');
             setError('An account with this email already exists. Please log in to continue.');
             toast.error('An account with this email already exists. Please log in to continue.');
-          }
-        } catch (loginErr) {
-          // If login fails with 401, it might be a temporary user
-          if (loginErr.response?.status === 401) {
-            // Assume it's a temporary user
+          } else {
+            // It's a temporary user
             setExistingUserType('temporary');
-            
-            // We don't have a direct way to get the temporary user ID,
-            // so we'll show a message to the user
             setError('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
             toast.error('A temporary account with this email already exists. Please use a different email or log in if you have a password.');
-          } else {
-            // Some other error occurred
-            const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to create account';
-            setError(errorMessage);
-            toast.error(errorMessage);
           }
+        } else {
+          // Fallback if existingUser is not included in the response
+          setExistingUserType('permanent');
+          setError('An account with this email already exists. Please log in to continue.');
+          toast.error('An account with this email already exists. Please log in to continue.');
         }
       } else {
         // Some other error occurred
@@ -1158,10 +1186,7 @@ const CheckoutPage = () => {
           <input
             type="text"
             value={guestForm.name}
-            onChange={(e) => {
-              setGuestForm(prev => ({...prev, name: e.target.value}));
-              setExistingUserType(null);
-            }}
+            onChange={(e) => handleGuestFormChange('name', e.target.value)}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1179,10 +1204,7 @@ const CheckoutPage = () => {
           <input
             type="email"
             value={guestForm.email}
-            onChange={(e) => {
-              setGuestForm(prev => ({...prev, email: e.target.value}));
-              setExistingUserType(null);
-            }}
+            onChange={(e) => handleGuestFormChange('email', e.target.value)}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1200,7 +1222,7 @@ const CheckoutPage = () => {
           <input
             type="tel"
             value={guestForm.phone_number}
-            onChange={(e) => setGuestForm(prev => ({...prev, phone_number: e.target.value}))}
+            onChange={(e) => handleGuestFormChange('phone_number', e.target.value)}
             className={`w-full p-2 border rounded-md font-Jost ${
               guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -1592,7 +1614,7 @@ const CheckoutPage = () => {
               <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
               <textarea
                 value={orderNote}
-                onChange={(e) => setOrderNote(e.target.value)}
+                onChange={handleOrderNoteChange}
                 maxLength={500}
                 placeholder="Add a note to your order (e.g., special instructions)"
                 className="w-full p-2 border border-gray-300 rounded-md font-Jost"
@@ -1833,7 +1855,7 @@ const CheckoutPage = () => {
                     <input
                       type="text"
                       value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      onChange={handleCouponCodeChange}
                       placeholder="Enter coupon code"
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
                       disabled={couponLoading}
@@ -2077,4 +2099,5 @@ const CheckoutPage = () => {
     </div>
   );
 };
+
 export default CheckoutPage;
