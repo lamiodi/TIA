@@ -14,10 +14,8 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 // Memoized GuestCheckoutForm component to prevent unnecessary re-renders
 const GuestCheckoutForm = React.memo(({ 
   guestForm, 
@@ -167,7 +165,6 @@ const GuestCheckoutForm = React.memo(({
     </div>
   </div>
 ));
-
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -268,6 +265,12 @@ const CheckoutPage = () => {
   
   // State to track if guest form has been submitted
   const [guestFormSubmitted, setGuestFormSubmitted] = useState(false);
+  
+  // State to track if shipping address has been submitted
+  const [shippingFormSubmitted, setShippingFormSubmitted] = useState(false);
+  
+  // State to track if billing address has been submitted
+  const [billingFormSubmitted, setBillingFormSubmitted] = useState(false);
   
   // Memoize functions to prevent unnecessary re-renders
   const handleGuestFormChange = useCallback((field, value) => {
@@ -842,6 +845,28 @@ const CheckoutPage = () => {
       // Update shipping form state
       setShippingForm(data);
       setShowShippingForm(false);
+      setShippingFormSubmitted(true);
+      
+      // For guest users, we need to update the shipping address ID as well
+      if (!isAuthenticated() && createdUserId) {
+        // For guest users who have been created, we need to save the address to the backend
+        try {
+          const response = await axios.post(`${API_BASE_URL}/api/addresses`, {
+            user_id: createdUserId,
+            ...data
+          });
+          
+          // Update the shipping address ID with the newly created address
+          const newAddressId = response.data.id;
+          setShippingAddressId(String(newAddressId));
+          
+          // Add the new address to the shippingAddresses array
+          setShippingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
+        } catch (err) {
+          console.error('Error saving shipping address for guest user:', err);
+          // Even if saving fails, we still have the form data, so we can continue
+        }
+      }
       
       // If billing address option is 'same', update billing address to match
       if (billingAddressOption === 'same') {
@@ -861,6 +886,7 @@ const CheckoutPage = () => {
         
         // Update billing form state
         setBillingForm(billingAddress);
+        setBillingFormSubmitted(true);
       }
       
       setSuccess('Shipping address added successfully.');
@@ -881,6 +907,28 @@ const CheckoutPage = () => {
       // Update billing form state
       setBillingForm(data);
       setShowBillingForm(false);
+      setBillingFormSubmitted(true);
+      
+      // For guest users, we need to update the billing address ID as well
+      if (!isAuthenticated() && createdUserId) {
+        // For guest users who have been created, we need to save the address to the backend
+        try {
+          const response = await axios.post(`${API_BASE_URL}/api/billing-addresses`, {
+            user_id: createdUserId,
+            ...data
+          });
+          
+          // Update the billing address ID with the newly created address
+          const newAddressId = response.data.id;
+          setBillingAddressId(String(newAddressId));
+          
+          // Add the new address to the billingAddresses array
+          setBillingAddresses(prev => [...prev, { ...data, id: newAddressId }]);
+        } catch (err) {
+          console.error('Error saving billing address for guest user:', err);
+          // Even if saving fails, we still have the form data, so we can continue
+        }
+      }
       
       setSuccess('Billing address added successfully.');
       toast.success('Billing address added');
@@ -959,6 +1007,7 @@ const CheckoutPage = () => {
     
     // Update billing form state
     setBillingForm(billingAddress);
+    setBillingFormSubmitted(true);
     toast.success('Billing address updated to match shipping address');
   };
   
@@ -1105,6 +1154,7 @@ const CheckoutPage = () => {
       };
       
       setBillingForm(billingAddress);
+      setBillingFormSubmitted(true);
     }
   }, [shippingForm, billingAddressOption, guestForm.name, guestForm.email, guestForm.phone_number, isGuest, billingForm.full_name, billingForm.email]);
   
@@ -1272,9 +1322,20 @@ const CheckoutPage = () => {
       shippingMethod: !!shippingMethod,
       isGuest,
       createdUserId: !!createdUserId,
-      guestFormSubmitted
+      guestFormSubmitted,
+      shippingFormSubmitted,
+      billingFormSubmitted
     });
   };
+  
+  // Calculate if the place order button should be disabled
+  const isPlaceOrderDisabled = useMemo(() => {
+    return loading || 
+      (!shippingForm.address_line_1 && !shippingAddressId) || 
+      (!billingForm.address_line_1 && !billingAddressId) || 
+      (isNigeria && !shippingMethod) || 
+      (isGuest && !createdUserId && !guestFormSubmitted);
+  }, [loading, shippingForm.address_line_1, shippingAddressId, billingForm.address_line_1, billingAddressId, isNigeria, shippingMethod, isGuest, createdUserId, guestFormSubmitted]);
   
   return (
     <div 
@@ -1305,6 +1366,8 @@ const CheckoutPage = () => {
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
               Guest Form Submitted: {guestFormSubmitted?.toString()}<br />
+              Shipping Form Submitted: {shippingFormSubmitted?.toString()}<br />
+              Billing Form Submitted: {billingFormSubmitted?.toString()}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
             </p>
             <button 
@@ -1429,7 +1492,44 @@ const CheckoutPage = () => {
                 </div>
               )}
               
-              {isAuthenticated() && shippingAddresses.length > 0 ? (
+              {/* Show shipping address if it exists in the form */}
+              {shippingForm.address_line_1 && !showShippingForm && (
+                <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
+                      <div className="text-sm text-Accent font-Jost">
+                        <p>{shippingForm.title || 'Default'}</p>
+                        <p>{shippingForm.address_line_1}</p>
+                        {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
+                        <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                        <p>{shippingForm.country}</p>
+                        {shippingForm.phone_number && <p>Phone: {shippingForm.phone_number}</p>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowShippingForm(true)}
+                        className="text-Primarycolor hover:text-gray-800 text-sm flex items-center font-Jost"
+                        disabled={loading}
+                      >
+                        Edit
+                      </button>
+                      {shippingAddressId && (
+                        <button
+                          onClick={() => handleDeleteAddress('addresses', shippingAddressId)}
+                          className="text-red-600 hover:text-red-800 text-sm flex items-center font-Jost"
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {isAuthenticated() && shippingAddresses.length > 0 && !shippingForm.address_line_1 ? (
                 <div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-Accent mb-1 font-Jost">Select Shipping Address</label>
@@ -1479,12 +1579,14 @@ const CheckoutPage = () => {
                 </div>
               ) : (
                 <div>
-                  <button
-                    onClick={() => setShowShippingForm(!showShippingForm)}
-                    className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
-                  >
-                    {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
-                  </button>
+                  {!shippingForm.address_line_1 && (
+                    <button
+                      onClick={() => setShowShippingForm(!showShippingForm)}
+                      className="text-Accent hover:text-Primarycolor text-sm mb-4 font-Jost"
+                    >
+                      {showShippingForm ? 'Cancel' : 'Add Shipping Address'}
+                    </button>
+                  )}
                   {showShippingForm && (
                     <ShippingAddressForm
                       address={{ state: shippingForm, setState: setShippingForm }}
@@ -2104,12 +2206,7 @@ const CheckoutPage = () => {
                 <button
                   onClick={handlePlaceOrder}
                   className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || 
-                    (!shippingForm.address_line_1 && !shippingAddressId) || 
-                    (!billingForm.address_line_1 && !billingAddressId) || 
-                    (isNigeria && !shippingMethod) || 
-                    (isGuest && !createdUserId && !guestFormSubmitted)
-                  }
+                  disabled={isPlaceOrderDisabled}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
@@ -2141,5 +2238,4 @@ const CheckoutPage = () => {
     </div>
   );
 };
-
 export default CheckoutPage;
