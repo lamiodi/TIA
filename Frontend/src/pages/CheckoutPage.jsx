@@ -17,7 +17,159 @@ import PaystackPop from '@paystack/inline-js';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
 
-// Removed memo wrapper from CheckoutPage component
+// Memoized GuestCheckoutForm component to prevent unnecessary re-renders
+const GuestCheckoutForm = React.memo(({ 
+  guestForm, 
+  guestFormErrors, 
+  existingUserType, 
+  requiredForm,
+  onGuestFormChange,
+  onLoginRedirect 
+}) => (
+  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
+      <User className="h-5 w-5 mr-2" />
+      Guest Checkout
+    </h3>
+    <p className="text-sm text-Accent mb-4 font-Jost">
+      Enter your details to create a temporary account and complete your purchase.
+    </p>
+    
+    {existingUserType && (
+      <div className={`mb-4 p-3 rounded-lg ${
+        existingUserType === 'temporary' 
+          ? 'bg-blue-50 border border-blue-200' 
+          : 'bg-yellow-50 border border-yellow-200'
+      }`}>
+        <div className="flex items-start">
+          {existingUserType === 'temporary' ? (
+            <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+          )}
+          <div>
+            <p className={`text-sm font-medium ${
+              existingUserType === 'temporary' 
+                ? 'text-blue-800' 
+                : 'text-yellow-800'
+            } font-Jost`}>
+              {existingUserType === 'temporary' 
+                ? 'A temporary account with this email already exists' 
+                : 'An account with this email already exists'}
+            </p>
+            <p className={`text-xs mt-1 ${
+              existingUserType === 'temporary' 
+                ? 'text-blue-700' 
+                : 'text-yellow-700'
+            } font-Jost`}>
+              {existingUserType === 'temporary' 
+                ? 'Please use a different email or log in if you have a password.' 
+                : 'Please log in to continue with your existing account.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {requiredForm === 'guest' && (
+      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-start">
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800 font-Jost">
+              Please fill in your details to continue
+            </p>
+            <p className="text-xs mt-1 text-red-700 font-Jost">
+              All fields marked with * are required
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+          Full Name *
+        </label>
+        <input
+          type="text"
+          value={guestForm.name}
+          onChange={(e) => onGuestFormChange('name', e.target.value)}
+          className={`w-full p-2 border rounded-md font-Jost ${
+            guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="Enter your full name"
+          // Add key to prevent recreation
+          key="guest-name-input"
+        />
+        {guestFormErrors.name && (
+          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
+        )}
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+          Email Address *
+        </label>
+        <input
+          type="email"
+          value={guestForm.email}
+          onChange={(e) => onGuestFormChange('email', e.target.value)}
+          className={`w-full p-2 border rounded-md font-Jost ${
+            guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="Enter your email address"
+          // Add key to prevent recreation
+          key="guest-email-input"
+        />
+        {guestFormErrors.email && (
+          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
+        )}
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+          Phone Number *
+        </label>
+        <input
+          type="tel"
+          value={guestForm.phone_number}
+          onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
+          className={`w-full p-2 border rounded-md font-Jost ${
+            guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder="Enter your phone number"
+          // Add key to prevent recreation
+          key="guest-phone-input"
+        />
+        {guestFormErrors.phone_number && (
+          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
+        )}
+      </div>
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p className="text-xs text-blue-700 font-Jost">
+          <strong>Note:</strong> A temporary account will be created with your information. 
+          You'll receive an email with instructions to set a password and access your order history.
+        </p>
+      </div>
+      
+      {existingUserType === 'permanent' && (
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={onLoginRedirect}
+            className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
+          >
+            Log in to your existing account
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+));
+
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -132,6 +284,10 @@ const CheckoutPage = () => {
     setCouponCode(e.target.value.toUpperCase());
   }, []);
   
+  const handleLoginRedirect = useCallback(() => {
+    navigate('/login', { state: { from: '/checkout' } });
+  }, [navigate]);
+  
   const decodeToken = (token) => {
     try {
       const base64Url = token.split('.')[1];
@@ -209,13 +365,14 @@ const CheckoutPage = () => {
       refreshCount
     });
     
-    if (user?.first_order && currentSubtotal > 0) {
+    // Make sure user exists and first_order is true
+    if (user && user.first_order === true && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
       console.log('Applied first order discount:', discountAmount);
     } else {
       setFirstOrderDiscount(0);
-      console.log('No first order discount applied');
+      console.log('No first order discount applied. User:', user ? 'exists' : 'missing', 'First order:', user?.first_order);
     }
   }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
   
@@ -440,6 +597,17 @@ const CheckoutPage = () => {
     } catch (err) {
       console.error('Error in guest submission:', err);
       
+      // Log more detailed error information
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        console.error('Error response headers:', err.response.headers);
+      } else if (err.request) {
+        console.error('Error request:', err.request);
+      } else {
+        console.error('Error message:', err.message);
+      }
+      
       // Check if the error is because the user already exists
       if (err.response?.status === 400 && 
           (err.response?.data?.error?.includes('already exists') || 
@@ -467,8 +635,11 @@ const CheckoutPage = () => {
           toast.error('An account with this email already exists. Please log in to continue.');
         }
       } else {
-        // Some other error occurred
-        const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to create account';
+        // Some other error occurred - provide more detailed error message
+        const errorMessage = err.response?.data?.error || 
+                            err.response?.data?.message || 
+                            err.message || 
+                            'Failed to create account';
         setError(errorMessage);
         toast.error(errorMessage);
       }
@@ -1115,146 +1286,6 @@ const CheckoutPage = () => {
     );
   }
   
-  // Removed useMemo wrapper from GuestCheckoutForm component
-  const GuestCheckoutForm = () => (
-    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
-      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
-        <User className="h-5 w-5 mr-2" />
-        Guest Checkout
-      </h3>
-      <p className="text-sm text-Accent mb-4 font-Jost">
-        Enter your details to create a temporary account and complete your purchase.
-      </p>
-      
-      {existingUserType && (
-        <div className={`mb-4 p-3 rounded-lg ${
-          existingUserType === 'temporary' 
-            ? 'bg-blue-50 border border-blue-200' 
-            : 'bg-yellow-50 border border-yellow-200'
-        }`}>
-          <div className="flex items-start">
-            {existingUserType === 'temporary' ? (
-              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-            )}
-            <div>
-              <p className={`text-sm font-medium ${
-                existingUserType === 'temporary' 
-                  ? 'text-blue-800' 
-                  : 'text-yellow-800'
-              } font-Jost`}>
-                {existingUserType === 'temporary' 
-                  ? 'A temporary account with this email already exists' 
-                  : 'An account with this email already exists'}
-              </p>
-              <p className={`text-xs mt-1 ${
-                existingUserType === 'temporary' 
-                  ? 'text-blue-700' 
-                  : 'text-yellow-700'
-              } font-Jost`}>
-                {existingUserType === 'temporary' 
-                  ? 'Please use a different email or log in if you have a password.' 
-                  : 'Please log in to continue with your existing account.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {requiredForm === 'guest' && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-red-800 font-Jost">
-                Please fill in your details to continue
-              </p>
-              <p className="text-xs mt-1 text-red-700 font-Jost">
-                All fields marked with * are required
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-            Full Name *
-          </label>
-          <input
-            type="text"
-            value={guestForm.name}
-            onChange={(e) => handleGuestFormChange('name', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your full name"
-          />
-          {guestFormErrors.name && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-            Email Address *
-          </label>
-          <input
-            type="email"
-            value={guestForm.email}
-            onChange={(e) => handleGuestFormChange('email', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your email address"
-          />
-          {guestFormErrors.email && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-            Phone Number *
-          </label>
-          <input
-            type="tel"
-            value={guestForm.phone_number}
-            onChange={(e) => handleGuestFormChange('phone_number', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your phone number"
-          />
-          {guestFormErrors.phone_number && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
-          )}
-        </div>
-        
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-700 font-Jost">
-            <strong>Note:</strong> A temporary account will be created with your information. 
-            You'll receive an email with instructions to set a password and access your order history.
-          </p>
-        </div>
-        
-        {existingUserType === 'permanent' && (
-          <div className="mt-3 text-center">
-            <button
-              type="button"
-              onClick={() => navigate('/login', { state: { from: '/checkout' } })}
-              className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
-            >
-              Log in to your existing account
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-  
   return (
     <div 
       className="min-h-screen bg-gray-100 typography"
@@ -1370,7 +1401,16 @@ const CheckoutPage = () => {
           {/* Left Column - Forms */}
           <div className="lg:col-span-7 space-y-8">
             {/* Guest Checkout Form */}
-            {isGuest && showGuestForm && <GuestCheckoutForm />}
+            {isGuest && showGuestForm && (
+              <GuestCheckoutForm
+                guestForm={guestForm}
+                guestFormErrors={guestFormErrors}
+                existingUserType={existingUserType}
+                requiredForm={requiredForm}
+                onGuestFormChange={handleGuestFormChange}
+                onLoginRedirect={handleLoginRedirect}
+              />
+            )}
             
             {/* Shipping Address Form */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2051,7 +2091,7 @@ const CheckoutPage = () => {
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-yellow-800 font-Jost">
+                      <p className="text-sm font-medium text-yellow-800 font-Jost">
                           Please complete the required information
                         </p>
                         <p className="text-xs mt-1 text-yellow-700 font-Jost">
@@ -2099,5 +2139,4 @@ const CheckoutPage = () => {
     </div>
   );
 };
-
 export default CheckoutPage;
