@@ -33,7 +33,6 @@ export const createOrder = async (req, res) => {
     converted_total,
     tax,
   } = req.body;
-  
   console.log('📥 Create order request:', {
     user_id,
     cart_id,
@@ -73,46 +72,8 @@ export const createOrder = async (req, res) => {
       let address;
       let billingAddress;
       
-      // Handle addresses - either use existing IDs or create new ones
-      if (address_id && billing_address_id) {
-        // Validate existing addresses
-        [address] = await sql`
-          SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
-          WHERE id = ${address_id} AND user_id = ${user_id}
-        `;
-        
-        // If address has deleted_at column, check it's null
-        if (address && 'deleted_at' in address) {
-          [address] = await sql`
-            SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
-            WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
-          `;
-        }
-        
-        if (!address) {
-          console.error('Validation failed: Shipping address not found');
-          throw new Error('Shipping address not found');
-        }
-        
-        [billingAddress] = await sql`
-          SELECT id FROM billing_addresses 
-          WHERE id = ${billing_address_id} AND user_id = ${user_id}
-        `;
-        
-        // If billingAddress has deleted_at column, check it's null
-        if (billingAddress && 'deleted_at' in billingAddress) {
-          [billingAddress] = await sql`
-            SELECT id FROM billing_addresses 
-            WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
-          `;
-        }
-        
-        if (!billingAddress) {
-          console.error('Validation failed: Billing address not found');
-          throw new Error('Billing address not found');
-        }
-      } else if (shipping_data && billing_data) {
-        // Create new addresses
+      if (shipping_data && billing_data) { // Guest mode: create addresses
+        // Create shipping address
         const [newAddress] = await sql`
           INSERT INTO addresses (
             user_id, title, address_line_1, landmark, city, state, zip_code, country, created_at
@@ -132,6 +93,7 @@ export const createOrder = async (req, res) => {
         finalAddressId = newAddress.id;
         address = newAddress;
         
+        // Create billing address
         const [newBillingAddress] = await sql`
           INSERT INTO billing_addresses (
             user_id, full_name, email, phone_number, address_line_1, city, state, zip_code, country, created_at
@@ -144,7 +106,44 @@ export const createOrder = async (req, res) => {
         finalBillingAddressId = newBillingAddress.id;
         billingAddress = newBillingAddress;
       } else {
-        throw new Error('Either address IDs or address data must be provided');
+        // Logged-in mode: validate existing addresses
+        // Validate shipping address - handle both cases
+        [address] = await sql`
+          SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
+          WHERE id = ${address_id} AND user_id = ${user_id}
+        `;
+        
+        // If address has deleted_at column, check it's null
+        if (address && 'deleted_at' in address) {
+          [address] = await sql`
+            SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
+            WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!address) {
+          console.error('Validation failed: Shipping address not found');
+          throw new Error('Shipping address not found');
+        }
+        
+        // Validate billing address - handle both cases
+        [billingAddress] = await sql`
+          SELECT id FROM billing_addresses 
+          WHERE id = ${billing_address_id} AND user_id = ${user_id}
+        `;
+        
+        // If billingAddress has deleted_at column, check it's null
+        if (billingAddress && 'deleted_at' in billingAddress) {
+          [billingAddress] = await sql`
+            SELECT id FROM billing_addresses 
+            WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+          `;
+        }
+        
+        if (!billingAddress) {
+          console.error('Validation failed: Billing address not found');
+          throw new Error('Billing address not found');
+        }
       }
       
       // For guest users, cart_id might be null initially
@@ -509,6 +508,7 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const verifyOrderByReference = async (req, res) => {
   try {
     const { reference } = req.params;

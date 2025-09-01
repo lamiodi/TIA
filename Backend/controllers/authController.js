@@ -314,26 +314,6 @@ export const createTemporaryUser = async (req, res) => {
       });
     }
     
-    // Check if there's a permanent user with the same email AND phone number
-    const [existingPermanentUser] = await sql`
-      SELECT id, first_name, last_name, email, phone_number, is_temporary, first_order 
-      FROM users 
-      WHERE email = ${email} AND phone_number = ${phone_number} AND is_temporary = FALSE
-    `;
-    
-    if (existingPermanentUser) {
-      // Return information about the existing permanent user
-      return res.status(400).json({ 
-        error: 'An account with this email and phone number already exists',
-        existingUser: {
-          id: existingPermanentUser.id,
-          is_temporary: existingPermanentUser.is_temporary,
-          email: existingPermanentUser.email,
-          phone_number: existingPermanentUser.phone_number
-        }
-      });
-    }
-    
     // Generate a random password (but we won't send it to the user)
     const generateRandomPassword = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
