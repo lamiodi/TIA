@@ -3,30 +3,21 @@ import Button from './Button';
 import { CheckCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-
 // Define API_BASE_URL with proper endpoint handling
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}` 
   : 'https://tia-backend-r331.onrender.com';
-
 const api = axios.create({ baseURL: API_BASE_URL });
-
 const CtaSlideshow = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, success, error
   const [message, setMessage] = useState('');
-
   const ctaimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112992/ctaimage_md7l1k.png";
-
 const Newsletterimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756114935/Newsletterimage_uxjkup.webp";
-
 const bundleImage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112980/bundleImage_wonzss.png";
-
 const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1756116485/tinywow_change_bg_photo_83585550_jtewv2.png";
-
-
   
   // Auto-advance slides
   useEffect(() => {
@@ -403,14 +394,14 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
       {/* Navigation Arrows */}
       <button
         onClick={handlePrevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
+        className="absolute left-4 top-1/2 -translate-y-1/2 sm:top-1/2 sm:-translate-y-1/2 bottom-16 top-auto -translate-y-0 transform bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
         aria-label="Previous slide"
       >
         <ChevronLeft className="w-6 h-6 text-white" />
       </button>
       <button
         onClick={handleNextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
+        className="absolute right-4 top-1/2 -translate-y-1/2 sm:top-1/2 sm:-translate-y-1/2 bottom-16 top-auto -translate-y-0 transform bg-white/20 backdrop-blur-sm rounded-full p-2 hover:bg-white/30 transition-colors duration-200 z-20"
         aria-label="Next slide"
       >
         <ChevronRight className="w-6 h-6 text-white" />
@@ -432,5 +423,4 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
     </div>
   );
 };
-
 export default CtaSlideshow;

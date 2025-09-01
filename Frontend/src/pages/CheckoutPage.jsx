@@ -1,6 +1,4 @@
-// src/pages/CheckoutPage.jsx
-
-import { useState, useEffect, useContext, useMemo, memo } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw } from 'lucide-react';
@@ -15,12 +13,11 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
 
-// Memoize the entire CheckoutPage component to prevent unnecessary re-renders
-const CheckoutPage = memo(() => {
+// Removed memo wrapper from CheckoutPage component
+const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
   const { user: hookUser, refreshUser, refreshCount } = useUserManager();
@@ -1132,8 +1129,8 @@ const CheckoutPage = memo(() => {
     );
   }
   
-  // Memoize the GuestCheckoutForm to prevent unnecessary re-renders
-  const GuestCheckoutForm = useMemo(() => (
+  // Removed useMemo wrapper from GuestCheckoutForm component
+  const GuestCheckoutForm = () => (
     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
         <User className="h-5 w-5 mr-2" />
@@ -1276,7 +1273,7 @@ const CheckoutPage = memo(() => {
         )}
       </div>
     </div>
-  ), [existingUserType, guestForm, guestFormErrors, requiredForm, navigate]);
+  );
   
   return (
     <div 
@@ -1393,7 +1390,7 @@ const CheckoutPage = memo(() => {
           {/* Left Column - Forms */}
           <div className="lg:col-span-7 space-y-8">
             {/* Guest Checkout Form */}
-            {isGuest && showGuestForm && GuestCheckoutForm}
+            {isGuest && showGuestForm && <GuestCheckoutForm />}
             
             {/* Shipping Address Form */}
             <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2121,6 +2118,6 @@ const CheckoutPage = memo(() => {
       <Footer />
     </div>
   );
-});
+};
 
 export default CheckoutPage;
