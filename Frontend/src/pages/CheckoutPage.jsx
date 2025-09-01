@@ -1491,7 +1491,7 @@ const CheckoutPage = () => {
                       name="billingAddressOption"
                       value="different"
                       checked={billingAddressOption === 'different'}
-                      onChange={() => setBillingAddressOption('different')}  {/* Fixed the missing closing parenthesis */}
+                      onChange={() => setBillingAddressOption('different')}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
                     />
                     <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
@@ -1917,7 +1917,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bank"
                       checked={paymentMethod === 'bank'}
-                      onChange={() => setPaymentMethod('bank')}  {/* Fixed the missing closing parenthesis */}
+                      onChange={() => setPaymentMethod('bank')}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
@@ -1932,7 +1932,7 @@ const CheckoutPage = () => {
                       name="paymentMethod"
                       value="bitcoin"
                       checked={paymentMethod === 'bitcoin'}
-                      onChange={() => setPaymentMethod('bitcoin')}  {/* Fixed the missing closing parenthesis */}
+                      onChange={() => setPaymentMethod('bitcoin')}
                       className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                     />
                     <div className="flex items-center">
