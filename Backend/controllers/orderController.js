@@ -33,7 +33,6 @@ export const createOrder = async (req, res) => {
     converted_total,
     tax,
   } = req.body;
-
   console.log('📥 Create order request:', {
     user_id,
     cart_id,
@@ -46,7 +45,6 @@ export const createOrder = async (req, res) => {
     discount,
   });
   console.log('📋 Items:', items);
-
   try {
     await sql.begin(async (sql) => {
       // Validate user - handle both cases (with and without deleted_at)
@@ -69,7 +67,6 @@ export const createOrder = async (req, res) => {
         console.error('Validation failed: User not found');
         throw new Error('User not found');
       }
-
       // Handle cart for guest users
       let finalCartId = cart_id;
       if (user.is_temporary && !cart_id) {
@@ -82,7 +79,6 @@ export const createOrder = async (req, res) => {
         finalCartId = newCart.id;
         console.log(`✅ Created new cart for guest user ${user_id}, cart_id: ${finalCartId}`);
       }
-
       let finalAddressId = address_id;
       let finalBillingAddressId = billing_address_id;
       let address;
@@ -102,7 +98,7 @@ export const createOrder = async (req, res) => {
             ${shipping_data.state || null}, 
             ${shipping_data.zip_code || null}, 
             ${shipping_data.country}, 
-            ${billing_data.phone_number || null}, -- Use phone number from billing data
+            ${billing_data.phone_number || shipping_data.phone_number || null}, -- Use phone number from billing data or shipping data
             NOW()
           )
           RETURNING id, country, address_line_1, city, state, zip_code
