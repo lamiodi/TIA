@@ -11,46 +11,46 @@ import axios from 'axios';
    const PAYSTACK_BASE_URL = 'https://api.paystack.co';
    const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
-   export const initializePayment = async (req, res) => {
-    try {
-      const { order_id, reference, email, amount, currency, callback_url } = req.body;
-  
-      // Add more validation
-      if (!order_id || !reference || !email || !amount || !currency) {
-        console.error('Missing required fields for payment initialization');
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-  
-      // Check if order exists and is in pending state
-      const orderCheck = await sql`
-        SELECT id, total, currency, payment_status, user_id
-        FROM orders
-        WHERE id = ${order_id} AND reference = ${reference} AND deleted_at IS NULL
-      `;
-  
-      if (orderCheck.length === 0) {
-        console.error(`Order not found or invalid reference: ${reference}`);
-        return res.status(404).json({ error: 'Order not found or invalid reference' });
-      }
-  
-      const order = orderCheck[0];
-      if (order.payment_status !== 'pending') {
-        console.error(`Payment already processed for order: ${reference}`);
-        return res.status(400).json({ error: 'Payment already processed or cancelled' });
-      }
-  
-      // Verify amount and currency match
-      if (order.currency !== currency || Math.abs(order.total * 100 - amount) > 1) {
-        console.error(`Invalid amount or currency. Expected: ${order.total * 100} ${order.currency}, got: ${amount} ${currency}`);
-        return res.status(400).json({ error: 'Invalid amount or currency' });
-      }
-  
-      // Rest of your code...
-    } catch (err) {
-      console.error('❌ Error initializing Paystack payment:', err.response?.data || err.message);
-      res.status(500).json({ error: 'Failed to initialize payment' });
+  export const initializePayment = async (req, res) => {
+  try {
+    const { order_id, reference, email, amount, currency, callback_url } = req.body;
+
+    // Add more validation
+    if (!order_id || !reference || !email || !amount || !currency) {
+      console.error('Missing required fields for payment initialization');
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-  };
+
+    // Check if order exists and is in pending state
+    const orderCheck = await sql`
+      SELECT id, total, currency, payment_status, user_id
+      FROM orders
+      WHERE id = ${order_id} AND reference = ${reference} AND deleted_at IS NULL
+    `;
+
+    if (orderCheck.length === 0) {
+      console.error(`Order not found or invalid reference: ${reference}`);
+      return res.status(404).json({ error: 'Order not found or invalid reference' });
+    }
+
+    const order = orderCheck[0];
+    if (order.payment_status !== 'pending') {
+      console.error(`Payment already processed for order: ${reference}`);
+      return res.status(400).json({ error: 'Payment already processed or cancelled' });
+    }
+
+    // Verify amount and currency match
+    if (order.currency !== currency || Math.abs(order.total * 100 - amount) > 1) {
+      console.error(`Invalid amount or currency. Expected: ${order.total * 100} ${order.currency}, got: ${amount} ${currency}`);
+      return res.status(400).json({ error: 'Invalid amount or currency' });
+    }
+
+    // Rest of your code...
+  } catch (err) {
+    console.error('❌ Error initializing Paystack payment:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to initialize payment' });
+  }
+};
 
    export const verifyPayment = async (req, res) => {
      try {
