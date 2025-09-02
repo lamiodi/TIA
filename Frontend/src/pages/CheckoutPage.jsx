@@ -732,6 +732,14 @@ const CheckoutPage = () => {
       const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
       const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
       
+      // Format payment method properly
+      const formattedPaymentMethod = {
+        type: paymentMethod,
+        provider: paymentMethod === 'card' ? 'paystack' : 
+                  paymentMethod === 'bank' ? 'bank_transfer' : 
+                  paymentMethod === 'bitcoin' ? 'bitcoin' : 'other'
+      };
+      
       const orderData = {
         user_id: userId,
         // For guests, we send shipping_data and billing_data
@@ -748,7 +756,7 @@ const CheckoutPage = () => {
         shipping_method_id: isNigeria ? shippingMethod?.id : null,
         shipping_cost: baseShippingCost,
         shipping_country: addressCountry,
-        payment_method: paymentMethod,
+        payment_method: formattedPaymentMethod, // Use formatted payment method
         currency: orderCurrency,
         reference: uuidv4(),
         items: cart.items.map(item => {
@@ -853,7 +861,8 @@ const CheckoutPage = () => {
       }
     } catch (err) {
       console.error('Payment processing error:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.response?.data?.message || err.message;
       setError(`Failed to process order: ${errorMessage}`);
       toast.error(`Failed to process order: ${errorMessage}`);
     }

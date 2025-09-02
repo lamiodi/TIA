@@ -41,7 +41,7 @@ const ProductGrid = () => {
       const res = await axios.get(url);
       let productsData = res.data || [];
       
-      // Only sort when filter is 'All' to show briefs first, then gymwears, then everything else
+      // Only sort when filter is 'All' to show briefs first, then everything else in original order
       if (filter === 'All') {
         // Log a sample product to understand the structure
         if (productsData.length > 0) {
@@ -69,45 +69,17 @@ const ProductGrid = () => {
                    name.includes('trunk');
           };
           
-          // Helper function to check if a product is gymwear
-          const isGymwear = (product) => {
-            if (!product) return false;
-            
-            // For bundles, check bundle_types
-            if (!product.is_product && product.bundle_types) {
-              return product.bundle_types.some(type => 
-                type.toLowerCase().includes('gym') || 
-                type.toLowerCase().includes('athletic')
-              );
-            }
-            
-            // For products, check the name
-            const name = (product.name || '').toLowerCase();
-            return name.includes('gym') || 
-                   name.includes('athletic') || 
-                   name.includes('workout') ||
-                   name.includes('training') ||
-                   name.includes('sport');
-          };
-          
           const aIsBrief = isBrief(a);
           const bIsBrief = isBrief(b);
-          const aIsGymwear = isGymwear(a);
-          const bIsGymwear = isGymwear(b);
           
           // Debug logging
           if (aIsBrief) console.log(`Product "${a.name}" identified as brief`);
           if (bIsBrief) console.log(`Product "${b.name}" identified as brief`);
-          if (aIsGymwear) console.log(`Product "${a.name}" identified as gymwear`);
-          if (bIsGymwear) console.log(`Product "${b.name}" identified as gymwear`);
           
-          // Sort briefs first, then gymwears, then everything else
+          // Sort briefs first, maintain original order for all other products
           if (aIsBrief && !bIsBrief) return -1;
           if (!aIsBrief && bIsBrief) return 1;
-          if (aIsGymwear && !bIsGymwear && !bIsBrief) return -1;
-          if (!aIsGymwear && bIsGymwear && !aIsBrief) return 1;
-          
-          return 0;
+          return 0; // Maintain original order for non-brief products
         });
         
         // Log the first few products after sorting to verify
