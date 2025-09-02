@@ -33,6 +33,7 @@ export const createOrder = async (req, res) => {
     converted_total,
     tax,
   } = req.body;
+  
   console.log('📥 Create order request:', {
     user_id,
     cart_id,
@@ -45,6 +46,7 @@ export const createOrder = async (req, res) => {
     discount,
   });
   console.log('📋 Items:', items);
+  
   try {
     await sql.begin(async (sql) => {
       // Validate user - handle both cases (with and without deleted_at)
@@ -67,6 +69,7 @@ export const createOrder = async (req, res) => {
         console.error('Validation failed: User not found');
         throw new Error('User not found');
       }
+      
       // Handle cart for guest users
       let finalCartId = cart_id;
       if (user.is_temporary && !cart_id) {
@@ -79,26 +82,27 @@ export const createOrder = async (req, res) => {
         finalCartId = newCart.id;
         console.log(`✅ Created new cart for guest user ${user_id}, cart_id: ${finalCartId}`);
       }
+      
       let finalAddressId = address_id;
       let finalBillingAddressId = billing_address_id;
       let address;
       let billingAddress;
       
       if (shipping_data && billing_data) { // Guest mode: create addresses
-        // Create shipping address with phone number
+        // Create shipping address without phone_number field
         const [newAddress] = await sql`
           INSERT INTO addresses (
-            user_id, title, address_line_1, landmark, city, state, zip_code, country, phone_number, created_at
+            user_id, title, address_line_1, address_line_2, landmark, city, state, zip_code, country, created_at
           ) VALUES (
             ${user_id}, 
             ${shipping_data.title || 'Home'}, 
             ${shipping_data.address_line_1}, 
+            ${shipping_data.address_line_2 || null},
             ${shipping_data.landmark || null}, 
             ${shipping_data.city}, 
             ${shipping_data.state || null}, 
             ${shipping_data.zip_code || null}, 
             ${shipping_data.country}, 
-            ${billing_data.phone_number || shipping_data.phone_number || null}, -- Use phone number from billing data or shipping data
             NOW()
           )
           RETURNING id, country, address_line_1, city, state, zip_code
@@ -106,13 +110,22 @@ export const createOrder = async (req, res) => {
         finalAddressId = newAddress.id;
         address = newAddress;
         
-        // Create billing address
+        // Create billing address with phone_number
         const [newBillingAddress] = await sql`
           INSERT INTO billing_addresses (
-            user_id, full_name, email, phone_number, address_line_1, city, state, zip_code, country, created_at
+            user_id, full_name, email, phone_number, address_line_1, address_line_2, city, state, zip_code, country, created_at
           ) VALUES (
-            ${user_id}, ${billing_data.full_name}, ${billing_data.email}, ${billing_data.phone_number || null}, ${billing_data.address_line_1},
-            ${billing_data.city}, ${billing_data.state || null}, ${billing_data.zip_code || null}, ${billing_data.country}, NOW()
+            ${user_id}, 
+            ${billing_data.full_name}, 
+            ${billing_data.email}, 
+            ${billing_data.phone_number || null}, 
+            ${billing_data.address_line_1},
+            ${billing_data.address_line_2 || null},
+            ${billing_data.city}, 
+            ${billing_data.state || null}, 
+            ${billing_data.zip_code || null}, 
+            ${billing_data.country}, 
+            NOW()
           )
           RETURNING id
         `;
