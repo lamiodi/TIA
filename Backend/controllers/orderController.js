@@ -10,18 +10,6 @@ const shippingOptions = [
   { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
 ];
 
-import sql from '../db/index.js';
-import dotenv from 'dotenv';
-import { Country } from 'country-state-city';
-import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
-dotenv.config();
-
-const shippingOptions = [
-  { id: 1, method: 'Delivery within Lagos', total_cost: 4000, estimated_delivery: '3–5 business days' },
-  { id: 2, method: 'GIG Logistics (Outside Lagos)', total_cost: 6000, estimated_delivery: '5–7 business days' },
-  { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
-];
-
 export const createOrder = async (req, res) => {
   const {
     user_id,
