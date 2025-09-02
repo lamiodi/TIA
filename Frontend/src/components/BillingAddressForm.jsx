@@ -1,6 +1,6 @@
-// src/components/BillingAddressForm.jsx
-import React from 'react';
-import { MapPin, Phone, Mail, User, X, Save } from 'lucide-react';
+// BillingAddressForm.jsx
+import React, { useState, useEffect } from 'react';
+import { CreditCard, Save, X, User, Mail, Smartphone } from 'lucide-react';
 
 const BillingAddressForm = ({ 
   address, 
@@ -8,249 +8,333 @@ const BillingAddressForm = ({
   onCancel, 
   formErrors, 
   setFormErrors, 
-  actionLoading
+  actionLoading,
+  isGuest = false,
+  guestData = null
 }) => {
-  const { state: billingForm, setState: setBillingForm } = address;
-  
+  const { state, setState } = address;
+  const [formData, setFormData] = useState({
+    full_name: state.full_name || (guestData ? guestData.name : ''),
+    email: state.email || (guestData ? guestData.email : ''),
+    phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
+    address_line_1: state.address_line_1 || '',
+    address_line_2: state.address_line_2 || '',
+    city: state.city || '',
+    state: state.state || '',
+    zip_code: state.zip_code || '',
+    country: state.country || 'Nigeria',
+  });
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setFormData({
+      full_name: state.full_name || (guestData ? guestData.name : ''),
+      email: state.email || (guestData ? guestData.email : ''),
+      phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
+      address_line_1: state.address_line_1 || '',
+      address_line_2: state.address_line_2 || '',
+      city: state.city || '',
+      state: state.state || '',
+      zip_code: state.zip_code || '',
+      country: state.country || 'Nigeria',
+    });
+  }, [state, guestData]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setBillingForm(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: null }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
-  
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = 'Full name is required';
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    if (!formData.phone_number.trim()) {
+      newErrors.phone_number = 'Phone number is required';
+    }
+    if (!formData.address_line_1.trim()) {
+      newErrors.address_line_1 = 'Address line 1 is required';
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!formData.state.trim()) {
+      newErrors.state = 'State is required';
+    }
+    if (!formData.country.trim()) {
+      newErrors.country = 'Country is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validate form
-    const errors = {};
-    if (!billingForm.full_name?.trim()) errors.full_name = 'Full name is required';
-    if (!billingForm.email?.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(billingForm.email)) {
-      errors.email = 'Email is invalid';
-    }
-    if (!billingForm.phone_number?.trim()) errors.phone_number = 'Phone number is required';
-    if (!billingForm.address_line_1?.trim()) errors.address_line_1 = 'Address line 1 is required';
-    if (!billingForm.city?.trim()) errors.city = 'City is required';
-    if (!billingForm.country?.trim()) errors.country = 'Country is required';
-    
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-    
-    // Submit form
-    if (onSubmit) {
-      onSubmit(billingForm);
+    if (validateForm()) {
+      setState(formData);
+      onSubmit(formData);
     }
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-            <User className="h-4 w-4 mr-1" />
-            Full Name *
-          </label>
-          <input
-            type="text"
-            name="full_name"
-            value={billingForm.full_name || ''}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.full_name ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., John Doe"
-          />
-          {formErrors.full_name && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.full_name}</p>
-          )}
+      {/* For guest users, show pre-filled contact info that can't be edited */}
+      {isGuest && (
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+          <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+            <User className="h-4 w-4 mr-2" /> Contact Information
+          </h4>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Full Name</p>
+                <p className="font-medium">{formData.full_name}</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                <Mail className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Email Address</p>
+                <p className="font-medium">{formData.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                <Smartphone className="h-4 w-4 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Phone Number</p>
+                <p className="font-medium">{formData.phone_number}</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            This information was provided during guest checkout and cannot be changed here.
+          </p>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-            <Mail className="h-4 w-4 mr-1" />
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={billingForm.email || ''}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., john@example.com"
-          />
-          {formErrors.email && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.email}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-            <Phone className="h-4 w-4 mr-1" />
-            Phone Number *
-          </label>
-          <input
-            type="tel"
-            name="phone_number"
-            value={billingForm.phone_number || ''}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your phone number"
-          />
-          {formErrors.phone_number && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.phone_number}</p>
-          )}
-        </div>
-      </div>
+      )}
+      
+      {/* For authenticated users, show editable contact fields */}
+      {!isGuest && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                name="full_name"
+                value={formData.full_name}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  errors.full_name ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Full name"
+              />
+              {errors.full_name && (
+                <p className="text-sm text-red-600 mt-1">{errors.full_name}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Email address"
+              />
+              {errors.email && (
+                <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number *
+            </label>
+            <input
+              type="tel"
+              name="phone_number"
+              value={formData.phone_number}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md ${
+                errors.phone_number ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Phone number"
+            />
+            {errors.phone_number && (
+              <p className="text-sm text-red-600 mt-1">{errors.phone_number}</p>
+            )}
+          </div>
+        </>
+      )}
       
       <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost flex items-center">
-          <MapPin className="h-4 w-4 mr-1" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Address Line 1 *
         </label>
         <input
           type="text"
           name="address_line_1"
-          value={billingForm.address_line_1 || ''}
+          value={formData.address_line_1}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            formErrors.address_line_1 ? 'border-red-500' : 'border-gray-300'
+          className={`w-full p-2 border rounded-md ${
+            errors.address_line_1 ? 'border-red-500' : 'border-gray-300'
           }`}
-          placeholder="Street address, P.O. box, company name"
+          placeholder="Street address, P.O. box"
         />
-        {formErrors.address_line_1 && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.address_line_1}</p>
+        {errors.address_line_1 && (
+          <p className="text-sm text-red-600 mt-1">{errors.address_line_1}</p>
         )}
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Address Line 2
         </label>
         <input
           type="text"
           name="address_line_2"
-          value={billingForm.address_line_2 || ''}
+          value={formData.address_line_2}
           onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+          className="w-full p-2 border border-gray-300 rounded-md"
           placeholder="Apartment, suite, unit, building, floor, etc."
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             City *
           </label>
           <input
             type="text"
             name="city"
-            value={billingForm.city || ''}
+            value={formData.city}
             onChange={handleChange}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              formErrors.city ? 'border-red-500' : 'border-gray-300'
+            className={`w-full p-2 border rounded-md ${
+              errors.city ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="City"
           />
-          {formErrors.city && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.city}</p>
+          {errors.city && (
+            <p className="text-sm text-red-600 mt-1">{errors.city}</p>
           )}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-            State
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            State *
           </label>
           <input
             type="text"
             name="state"
-            value={billingForm.state || ''}
+            value={formData.state}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-            placeholder="State/Province/Region"
+            className={`w-full p-2 border rounded-md ${
+              errors.state ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="State"
           />
+          {errors.state && (
+            <p className="text-sm text-red-600 mt-1">{errors.state}</p>
+          )}
         </div>
-        
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-            ZIP Code
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            ZIP/Postal Code
           </label>
           <input
             type="text"
             name="zip_code"
-            value={billingForm.zip_code || ''}
+            value={formData.zip_code}
             onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+            className="w-full p-2 border border-gray-300 rounded-md"
             placeholder="ZIP/Postal code"
           />
         </div>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Country *
-        </label>
-        <select
-          name="country"
-          value={billingForm.country || 'Nigeria'}
-          onChange={handleChange}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            formErrors.country ? 'border-red-500' : 'border-gray-300'
-          }`}
-        >
-          <option value="Nigeria">Nigeria</option>
-          <option value="United States">United States</option>
-          <option value="United Kingdom">United Kingdom</option>
-          <option value="Canada">Canada</option>
-          <option value="Australia">Australia</option>
-          <option value="Germany">Germany</option>
-          <option value="France">France</option>
-          <option value="Other">Other</option>
-        </select>
-        {formErrors.country && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{formErrors.country}</p>
-        )}
-      </div>
-      
-      {onSubmit && onCancel && (
-        <div className="flex justify-end space-x-3 pt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Country *
+          </label>
+          <select
+            name="country"
+            value={formData.country}
+            onChange={handleChange}
+            className={`w-full p-2 border rounded-md ${
+              errors.country ? 'border-red-500' : 'border-gray-300'
+            }`}
           >
-            <X className="h-4 w-4 mr-1" />
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={actionLoading}
-            className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
-          >
-            {actionLoading ? (
-              <>
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1" />
-                Save Address
-              </>
-            )}
-          </button>
+            <option value="Nigeria">Nigeria</option>
+            <option value="United States">United States</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Canada">Canada</option>
+            <option value="Other">Other</option>
+          </select>
+          {errors.country && (
+            <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+          )}
         </div>
-      )}
+      </div>
+      
+      <div className="flex justify-end space-x-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+        >
+          <X className="h-4 w-4 mr-1" /> Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={actionLoading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50"
+        >
+          {actionLoading ? (
+            <>
+              <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-1" /> Save Address
+            </>
+          )}
+        </button>
+      </div>
     </form>
   );
 };

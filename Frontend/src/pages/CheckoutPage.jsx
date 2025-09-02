@@ -1,4 +1,3 @@
-// CheckoutPage.jsx
 import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react"
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -18,8 +17,8 @@ import PaystackPop from '@paystack/inline-js';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
 
-// Memoized GuestCheckoutForm component to prevent unnecessary re-renders
-const GuestCheckoutForm = React.memo(({ 
+// Memoized GuestCheckoutModal component to prevent unnecessary re-renders
+const GuestCheckoutModal = React.memo(({ 
   guestForm, 
   guestFormErrors, 
   existingUserType, 
@@ -29,168 +28,180 @@ const GuestCheckoutForm = React.memo(({
   onSubmitGuestForm,
   loading
 }) => (
-  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
-    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
-      <User className="h-5 w-5 mr-2" />
-      Guest Checkout
-    </h3>
-    <p className="text-sm text-Accent mb-4 font-Jost">
-      Enter your details to create a temporary account and complete your purchase.
-    </p>
-    
-    {existingUserType && (
-      <div className={`mb-4 p-3 rounded-lg ${
-        existingUserType === 'temporary' 
-          ? 'bg-blue-50 border border-blue-200' 
-          : 'bg-yellow-50 border border-yellow-200'
-      }`}>
-        <div className="flex items-start">
-          {existingUserType === 'temporary' ? (
-            <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-          )}
-          <div>
-            <p className={`text-sm font-medium ${
-              existingUserType === 'temporary' 
-                ? 'text-blue-800' 
-                : 'text-yellow-800'
-            } font-Jost`}>
-              {existingUserType === 'temporary' 
-                ? 'A temporary account with this email already exists' 
-                : 'An account with this email already exists'}
-            </p>
-            <p className={`text-xs mt-1 ${
-              existingUserType === 'temporary' 
-                ? 'text-blue-700' 
-                : 'text-yellow-700'
-            } font-Jost`}>
-              {existingUserType === 'temporary' 
-                ? 'Please use a different email or log in if you have a password.' 
-                : 'Please log in to continue with your existing account.'}
-            </p>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg max-w-md w-full p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
+          <User className="h-5 w-5 mr-2" />
+          Guest Checkout
+        </h3>
+        <button 
+          onClick={() => {}} // Prevent closing the modal
+          className="text-gray-400 hover:text-gray-600 cursor-not-allowed"
+          title="Please complete the form to continue"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      
+      <p className="text-sm text-Accent mb-4 font-Jost">
+        Enter your details to create a temporary account and complete your purchase.
+      </p>
+      
+      {existingUserType && (
+        <div className={`mb-4 p-3 rounded-lg ${
+          existingUserType === 'temporary' 
+            ? 'bg-blue-50 border border-blue-200' 
+            : 'bg-yellow-50 border border-yellow-200'
+        }`}>
+          <div className="flex items-start">
+            {existingUserType === 'temporary' ? (
+              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+            )}
+            <div>
+              <p className={`text-sm font-medium ${
+                existingUserType === 'temporary' 
+                  ? 'text-blue-800' 
+                  : 'text-yellow-800'
+              } font-Jost`}>
+                {existingUserType === 'temporary' 
+                  ? 'A temporary account with this email already exists' 
+                  : 'An account with this email already exists'}
+              </p>
+              <p className={`text-xs mt-1 ${
+                existingUserType === 'temporary' 
+                  ? 'text-blue-700' 
+                  : 'text-yellow-700'
+              } font-Jost`}>
+                {existingUserType === 'temporary' 
+                  ? 'Please use a different email or log in if you have a password.' 
+                  : 'Please log in to continue with your existing account.'}
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
-    )}
-    
-    {requiredForm === 'guest' && (
-      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-red-800 font-Jost">
-              Please fill in your details to continue
-            </p>
-            <p className="text-xs mt-1 text-red-700 font-Jost">
-              All fields marked with * are required
-            </p>
-          </div>
-        </div>
-      </div>
-    )}
-    
-    <form onSubmit={onSubmitGuestForm} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Full Name *
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={guestForm.name}
-          onChange={(e) => onGuestFormChange('name', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your full name"
-        />
-        {guestFormErrors.name && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
-        )}
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Email Address *
-        </label>
-        <input
-          type="email"
-          name="email"
-          value={guestForm.email}
-          onChange={(e) => onGuestFormChange('email', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your email address"
-        />
-        {guestFormErrors.email && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
-        )}
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
-          Phone Number *
-        </label>
-        <input
-          type="tel"
-          name="phone_number"
-          value={guestForm.phone_number}
-          onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
-          className={`w-full p-2 border rounded-md font-Jost ${
-            guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Enter your phone number"
-        />
-        {guestFormErrors.phone_number && (
-          <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
-        )}
-      </div>
-      
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-xs text-blue-700 font-Jost">
-          <strong>Note:</strong> A temporary account will be created with your information. 
-          You'll receive an email with instructions to set a password and access your order history.
-        </p>
-      </div>
-      
-      {existingUserType === 'permanent' && (
-        <div className="mt-3 text-center">
-          <button
-            type="button"
-            onClick={onLoginRedirect}
-            className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
-          >
-            Log in to your existing account
-          </button>
         </div>
       )}
       
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onLoginRedirect}
-          className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
-        >
-          Log In Instead
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
-        >
-          {loading ? (
-            <>
-              <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
-              Creating Account...
-            </>
-          ) : (
-            'Continue to Checkout'
+      {requiredForm === 'guest' && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-800 font-Jost">
+                Please fill in your details to continue
+              </p>
+              <p className="text-xs mt-1 text-red-700 font-Jost">
+                All fields marked with * are required
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <form onSubmit={onSubmitGuestForm} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={guestForm.name}
+            onChange={(e) => onGuestFormChange('name', e.target.value)}
+            className={`w-full p-2 border rounded-md font-Jost ${
+              guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Enter your full name"
+          />
+          {guestFormErrors.name && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
           )}
-        </button>
-      </div>
-    </form>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Email Address *
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={guestForm.email}
+            onChange={(e) => onGuestFormChange('email', e.target.value)}
+            className={`w-full p-2 border rounded-md font-Jost ${
+              guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Enter your email address"
+          />
+          {guestFormErrors.email && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+            Phone Number *
+          </label>
+          <input
+            type="tel"
+            name="phone_number"
+            value={guestForm.phone_number}
+            onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
+            className={`w-full p-2 border rounded-md font-Jost ${
+              guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Enter your phone number"
+          />
+          {guestFormErrors.phone_number && (
+            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
+          )}
+        </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-700 font-Jost">
+            <strong>Note:</strong> A temporary account will be created with your information. 
+            You'll receive an email with instructions to set a password and access your order history.
+          </p>
+        </div>
+        
+        {existingUserType === 'permanent' && (
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={onLoginRedirect}
+              className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
+            >
+              Log in to your existing account
+            </button>
+          </div>
+        )}
+        
+        <div className="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={onLoginRedirect}
+            className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+          >
+            Log In Instead
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
+          >
+            {loading ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+                Creating Account...
+              </>
+            ) : (
+              'Continue to Checkout'
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 ));
 
@@ -284,7 +295,7 @@ const CheckoutPage = () => {
     email: '',
     phone_number: ''
   });
-  const [showGuestForm, setShowGuestForm] = useState(true);
+  const [showGuestModal, setShowGuestModal] = useState(true); // Changed to showGuestModal
   const [guestFormErrors, setGuestFormErrors] = useState({});
   const [createdUserId, setCreatedUserId] = useState(null);
   const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
@@ -556,7 +567,7 @@ const CheckoutPage = () => {
       // Update all state at once
       setCreatedUserId(userId);
       setIsGuest(false);
-      setShowGuestForm(false);
+      setShowGuestModal(false); // Close the modal instead of setting showGuestForm
       setGuestFormSubmitted(true);
       
       if (isExisting) {
@@ -570,6 +581,14 @@ const CheckoutPage = () => {
       // Update shipping and billing forms with guest information
       setShippingForm(prev => ({
         ...prev,
+        title: 'Home', // Add default title
+        address_line_1: '',
+        address_line_2: '',
+        landmark: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        country: 'Nigeria',
         phone_number: guestForm.phone_number
       }));
       
@@ -577,8 +596,17 @@ const CheckoutPage = () => {
         ...prev,
         full_name: guestForm.name,
         email: guestForm.email,
-        phone_number: guestForm.phone_number
+        phone_number: guestForm.phone_number,
+        address_line_1: '',
+        address_line_2: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        country: 'Nigeria',
       }));
+      
+      // Set the billing address option to 'same' by default
+      setBillingAddressOption('same');
       
       // Return the user ID to use in processOrder
       return userId;
@@ -1004,6 +1032,7 @@ const CheckoutPage = () => {
             const guestCart = JSON.parse(guestCartData);
             setCart(guestCart);
             setIsGuest(true);
+            setShowGuestModal(true); // Show the modal for guests
             setLoading(false);
             return;
           } catch (err) {
@@ -1012,7 +1041,7 @@ const CheckoutPage = () => {
         }
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
         setIsGuest(true);
-        setShowGuestForm(true);
+        setShowGuestModal(true); // Show the modal for guests
         setLoading(false);
         return;
       }
@@ -1416,693 +1445,699 @@ const CheckoutPage = () => {
           </div>
         )}
         
-        {/* Updated to two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Forms */}
-          <div className="lg:col-span-7 space-y-8">
-            {/* Guest Checkout Form */}
-            {isGuest && showGuestForm && (
-              <GuestCheckoutForm
-                guestForm={guestForm}
-                guestFormErrors={guestFormErrors}
-                existingUserType={existingUserType}
-                requiredForm={requiredForm}
-                onGuestFormChange={handleGuestFormChange}
-                onLoginRedirect={handleLoginRedirect}
-                onSubmitGuestForm={handleGuestFormSubmit}
-                loading={loading}
-              />
-            )}
-            
-            {/* Address Forms - Different for guests and logged-in users */}
-            {isGuest ? (
-              // Guest Address Forms
-              <>
-                {/* Shipping Address Form for Guests */}
-                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
-                  
-                  {requiredForm === 'shipping' && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-red-800 font-Jost">
-                            Please add a shipping address
-                          </p>
-                          <p className="text-xs mt-1 text-red-700 font-Jost">
-                            This information is required to deliver your order
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <ShippingAddressForm
-                    address={{ state: shippingForm, setState: setShippingForm }}
-                    onSubmit={handleShippingSubmit}
-                    onCancel={() => setShowShippingForm(false)}
-                    formErrors={formErrors}
-                    setFormErrors={setFormErrors}
-                    actionLoading={loading}
-                    isGuest={true}
-                  />
-                </div>
-                
-                {/* Billing Address Form for Guests */}
-                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
-                  
-                  {/* Billing Address Option Selector */}
-                  <div className="mb-6">
-                    <div className="flex items-center space-x-6">
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="radio"
-                          name="billingAddressOption"
-                          value="same"
-                          checked={billingAddressOption === 'same'}
-                          onChange={() => setBillingAddressOption('same')}
-                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                        />
-                        <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
-                      </label>
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="radio"
-                          name="billingAddressOption"
-                          value="different"
-                          checked={billingAddressOption === 'different'}
-                          onChange={() => setBillingAddressOption('different')}
-                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-                        />
-                        <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  {requiredForm === 'billing' && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-red-800 font-Jost">
-                            Please add a billing address
-                          </p>
-                          <p className="text-xs mt-1 text-red-700 font-Jost">
-                            This information is required to process your payment
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {billingAddressOption === 'same' ? (
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                          {shippingForm.address_line_1 ? (
-                            <div className="text-sm text-Accent font-Jost">
-                              <p>{shippingForm.address_line_1}</p>
-                              {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
-                              <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                              <p>{shippingForm.country}</p>
+        {/* Guest Modal */}
+        {isGuest && showGuestModal && (
+          <GuestCheckoutModal
+            guestForm={guestForm}
+            guestFormErrors={guestFormErrors}
+            existingUserType={existingUserType}
+            requiredForm={requiredForm}
+            onGuestFormChange={handleGuestFormChange}
+            onLoginRedirect={handleLoginRedirect}
+            onSubmitGuestForm={handleGuestFormSubmit}
+            loading={loading}
+          />
+        )}
+        
+        {/* Only show the checkout content if the guest form has been submitted or user is authenticated */}
+        {(!isGuest || (isGuest && guestFormSubmitted)) && (
+          <>
+            {/* Updated to two-column layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Column - Forms */}
+              <div className="lg:col-span-7 space-y-8">
+                {/* Address Forms - Different for guests and logged-in users */}
+                {isGuest ? (
+                  // Guest Address Forms
+                  <>
+                    {/* Shipping Address Form for Guests */}
+                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+                      
+                      {requiredForm === 'shipping' && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-start">
+                            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800 font-Jost">
+                                Please add a shipping address
+                              </p>
+                              <p className="text-xs mt-1 text-red-700 font-Jost">
+                                This information is required to deliver your order
+                              </p>
                             </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 font-Jost">Please enter a shipping address first</p>
-                          )}
+                          </div>
                         </div>
-                        <button
-                          onClick={copyShippingToBilling}
-                          className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
-                          title="Copy shipping address to billing address"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
+                      )}
+                      
+                      <ShippingAddressForm
+                        address={{ state: shippingForm, setState: setShippingForm }}
+                        onSubmit={handleShippingSubmit}
+                        onCancel={() => setShowShippingForm(false)}
+                        formErrors={formErrors}
+                        setFormErrors={setFormErrors}
+                        actionLoading={loading}
+                        isGuest={true}
+                        guestData={guestForm}
+                      />
+                    </div>
+                    
+                    {/* Billing Address Form for Guests */}
+                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+                      
+                      {/* Billing Address Option Selector */}
+                      <div className="mb-6">
+                        <div className="flex items-center space-x-6">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="billingAddressOption"
+                              value="same"
+                              checked={billingAddressOption === 'same'}
+                              onChange={() => setBillingAddressOption('same')}
+                              className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                            />
+                            <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="billingAddressOption"
+                              value="different"
+                              checked={billingAddressOption === 'different'}
+                              onChange={() => setBillingAddressOption('different')}
+                              className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                            />
+                            <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <BillingAddressForm
-                      address={{ state: billingForm, setState: setBillingForm }}
-                      onSubmit={handleBillingSubmit}
-                      onCancel={() => setShowBillingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                      isGuest={true}
-                      guestData={guestForm}
-                    />
-                  )}
-                </div>
-              </>
-            ) : (
-              // Logged-in User Address Management
-              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Address Management</h3>
-                
-                {shippingAddresses.length > 0 ? (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Shipping Address</h4>
-                    <div className="border rounded-lg p-4 bg-gray-50">
-                      {shippingAddresses
-                        .filter(addr => String(addr.id) === String(shippingAddressId))
-                        .map(address => (
-                          <div key={address.id}>
-                            <p className="font-medium text-Primarycolor">{address.title}</p>
-                            <p className="text-sm text-Accent">{address.address_line_1}</p>
-                            {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
-                            <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
-                            <p className="text-sm text-Accent">{address.country}</p>
-                            {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                      
+                      {requiredForm === 'billing' && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-start">
+                            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800 font-Jost">
+                                Please add a billing address
+                              </p>
+                              <p className="text-xs mt-1 text-red-700 font-Jost">
+                                This information is required to process your payment
+                              </p>
+                            </div>
                           </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800 font-Jost">No shipping addresses found. Please add a shipping address.</p>
-                  </div>
-                )}
-                
-                {billingAddresses.length > 0 ? (
-                  <div>
-                    <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Billing Address</h4>
-                    <div className="border rounded-lg p-4 bg-gray-50">
-                      {billingAddresses
-                        .filter(addr => String(addr.id) === String(billingAddressId))
-                        .map(address => (
-                          <div key={address.id}>
-                            <p className="font-medium text-Primarycolor">{address.full_name}</p>
-                            <p className="text-sm text-Accent">{address.email}</p>
-                            {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
-                            <p className="text-sm text-Accent">{address.address_line_1}</p>
-                            {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
-                            <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
-                            <p className="text-sm text-Accent">{address.country}</p>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800 font-Jost">No billing addresses found. Please add a billing address.</p>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Order Note */}
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
-              <textarea
-                value={orderNote}
-                onChange={handleOrderNoteChange}
-                maxLength={500}
-                placeholder="Add a note to your order (e.g., special instructions)"
-                className="w-full p-2 border border-gray-300 rounded-md font-Jost"
-              />
-              <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
-            </div>
-            
-            {/* Shipping Method */}
-            <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
-                <Truck className="h-5 w-5 inline mr-2" />
-                Shipping Method
-              </h3>
-              {isNigeria ? (
-                <div className="grid gap-4">
-                  {shippingOptions.map((option) => (
-                    <label
-                      key={option.id}
-                      className={`
-                        relative cursor-pointer rounded-xl border-2 transition-all duration-200
-                        ${shippingMethod?.id === option.id 
-                          ? 'border-Primarycolor bg-gradient-to-r from-gray-50 to-blue-50 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                        }
-                      `}
-                    >
-                      <div className="p-4 sm:p-5">
-                        <div className="flex items-start gap-4">
-                          <input
-                            type="radio"
-                            name="shippingMethod"
-                            value={option.id}
-                            checked={shippingMethod?.id === option.id}
-                            onChange={() => setShippingMethod(option)}
-                            className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
-                          />
-                          
-                          <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`
-                                  p-2 rounded-lg
-                                  ${shippingMethod?.id === option.id 
-                                    ? 'bg-Primarycolor text-white' 
-                                    : 'bg-gray-100 text-Accent'
-                                  }
-                                `}>
-                                  {getShippingIcon(option.icon)}
+                        </div>
+                      )}
+                      
+                      {billingAddressOption === 'same' ? (
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <div className="flex items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                              {shippingForm.address_line_1 ? (
+                                <div className="text-sm text-Accent font-Jost">
+                                  <p>{shippingForm.address_line_1}</p>
+                                  {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
+                                  <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                                  <p>{shippingForm.country}</p>
                                 </div>
-                                <div>
-                                  <h4 className="font-semibold text-Primarycolor text-sm sm:text-base font-Manrope">
-                                    {option.method}
-                                  </h4>
-                                  <p className="text-xs sm:text-sm text-Accent font-Jost">
-                                    {option.description}
-                                  </p>
+                              ) : (
+                                <p className="text-sm text-gray-500 font-Jost">Please enter a shipping address first</p>
+                              )}
+                            </div>
+                            <button
+                              onClick={copyShippingToBilling}
+                              className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                              title="Copy shipping address to billing address"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <BillingAddressForm
+                          address={{ state: billingForm, setState: setBillingForm }}
+                          onSubmit={handleBillingSubmit}
+                          onCancel={() => setShowBillingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                          isGuest={true}
+                          guestData={guestForm}
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  // Logged-in User Address Management
+                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Address Management</h3>
+                    
+                    {shippingAddresses.length > 0 ? (
+                      <div className="mb-6">
+                        <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Shipping Address</h4>
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          {shippingAddresses
+                            .filter(addr => String(addr.id) === String(shippingAddressId))
+                            .map(address => (
+                              <div key={address.id}>
+                                <p className="font-medium text-Primarycolor">{address.title}</p>
+                                <p className="text-sm text-Accent">{address.address_line_1}</p>
+                                {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
+                                <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                                <p className="text-sm text-Accent">{address.country}</p>
+                                {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800 font-Jost">No shipping addresses found. Please add a shipping address.</p>
+                      </div>
+                    )}
+                    
+                    {billingAddresses.length > 0 ? (
+                      <div>
+                        <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Billing Address</h4>
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          {billingAddresses
+                            .filter(addr => String(addr.id) === String(billingAddressId))
+                            .map(address => (
+                              <div key={address.id}>
+                                <p className="font-medium text-Primarycolor">{address.full_name}</p>
+                                <p className="text-sm text-Accent">{address.email}</p>
+                                {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                                <p className="text-sm text-Accent">{address.address_line_1}</p>
+                                {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
+                                <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                                <p className="text-sm text-Accent">{address.country}</p>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800 font-Jost">No billing addresses found. Please add a billing address.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Order Note */}
+                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
+                  <textarea
+                    value={orderNote}
+                    onChange={handleOrderNoteChange}
+                    maxLength={500}
+                    placeholder="Add a note to your order (e.g., special instructions)"
+                    className="w-full p-2 border border-gray-300 rounded-md font-Jost"
+                  />
+                  <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
+                </div>
+                
+                {/* Shipping Method */}
+                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
+                    <Truck className="h-5 w-5 inline mr-2" />
+                    Shipping Method
+                  </h3>
+                  {isNigeria ? (
+                    <div className="grid gap-4">
+                      {shippingOptions.map((option) => (
+                        <label
+                          key={option.id}
+                          className={`
+                            relative cursor-pointer rounded-xl border-2 transition-all duration-200
+                            ${shippingMethod?.id === option.id 
+                              ? 'border-Primarycolor bg-gradient-to-r from-gray-50 to-blue-50 shadow-md' 
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                            }
+                          `}
+                        >
+                          <div className="p-4 sm:p-5">
+                            <div className="flex items-start gap-4">
+                              <input
+                                type="radio"
+                                name="shippingMethod"
+                                value={option.id}
+                                checked={shippingMethod?.id === option.id}
+                                onChange={() => setShippingMethod(option)}
+                                className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
+                              />
+                              
+                              <div className="flex-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`
+                                      p-2 rounded-lg
+                                      ${shippingMethod?.id === option.id 
+                                        ? 'bg-Primarycolor text-white' 
+                                        : 'bg-gray-100 text-Accent'
+                                      }
+                                    `}>
+                                      {getShippingIcon(option.icon)}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-Primarycolor text-sm sm:text-base font-Manrope">
+                                        {option.method}
+                                      </h4>
+                                      <p className="text-xs sm:text-sm text-Accent font-Jost">
+                                        {option.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-bold text-Primarycolor text-lg font-Manrope">
+                                      {option.total_cost.toLocaleString('en-NG', {
+                                        style: 'currency',
+                                        currency: 'NGN',
+                                        minimumFractionDigits: 2,
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-Accent font-Jost">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{option.estimated_delivery}</span>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-bold text-Primarycolor text-lg font-Manrope">
-                                  {option.total_cost.toLocaleString('en-NG', {
+                            </div>
+                          </div>
+                          {shippingMethod?.id === option.id && (
+                            <div className="absolute top-3 right-3">
+                              <div className="bg-Primarycolor text-white rounded-full p-1">
+                                <CheckCircle className="h-4 w-4" />
+                              </div>
+                            </div>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <MapPin className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-Primarycolor font-Manrope">
+                            International Shipping to {addressCountry}
+                          </h4>
+                        </div>
+                      </div>
+                      <p className="text-sm text-Accent font-Jost mb-2">
+                        You will receive a separate email with payment instructions for international shipping fees.
+                        Note: Payments are processed in NGN due to current system limitations.
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-blue-600 font-Jost">
+                        <Clock className="h-3 w-3" />
+                        <span>Estimated delivery: 10-21 business days</span>
+                      </div>
+                    </div>
+                  )}
+                  {formErrors.shippingMethod && (
+                    <p className="text-sm text-red-600 mt-2 font-Jost">{formErrors.shippingMethod}</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Right Column - Order Summary */}
+              <div className="lg:col-span-5 ">
+                <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
+                  <div className="space-y-4 mb-6">
+                    {cart.items.map((cartItem, index) => {
+                      const item = cartItem.item || {};
+                      const price = Number(item.price || 0);
+                      const itemTotal = Number((price * (cartItem.quantity || 1)).toFixed(2));
+                      
+                      return (
+                        <div key={cartItem.id || index} className="group">
+                          <div className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                            <div className="relative flex-shrink-0">
+                              <img
+                                src={item.image || item.image_url || 'https://via.placeholder.com/80x80?text=No+Image'}
+                                alt={item.name || 'Product'}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
+                                onError={(e) => { 
+                                  e.target.src = 'https://via.placeholder.com/80x80?text=No+Image'; 
+                                }}
+                              />
+                              <div className="absolute -top-2 -right-2 bg-Primarycolor text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                                {cartItem.quantity || 1}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-Primarycolor text-sm sm:text-base truncate font-Manrope">
+                                {item.name || 'Unknown Item'}
+                              </h4>
+                              {item.is_product && (item.color || item.size) && (
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {item.color && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
+                                      {item.color || item.color_name}
+                                    </span>
+                                  )}
+                                  {item.size && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
+                                      {item.size || item.size_name}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {!item.is_product && Array.isArray(item.items) && item.items.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-Accent mb-1 font-Jost">Bundle includes:</p>
+                                  <div className="grid grid-cols-3 gap-1">
+                                    {item.items.map((bundleItem, idx) => (
+                                      <div key={bundleItem.id || idx} className="flex flex-col items-center">
+                                        <img
+                                          src={bundleItem.image_url || 'https://via.placeholder.com/40x40'}
+                                          alt={bundleItem.product_name}
+                                          className="w-12 h-12 object-cover rounded-md mb-1"
+                                          onError={(e) => { 
+                                            e.target.src = 'https://via.placeholder.com/40x40'; 
+                                          }}
+                                        />
+                                        <span className="text-xs text-Accent font-Jost truncate w-full text-center">
+                                          {bundleItem.color_name}
+                                        </span>
+                                        <span className="text-xs text-Accent font-Jost truncate w-full text-center">
+                                          {bundleItem.size_name}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <div className="mt-2 flex items-center justify-between">
+                                <span className="text-xs text-Accent font-Jost">
+                                  {price.toLocaleString('en-NG', {
+                                    style: 'currency',
+                                    currency: 'NGN',
+                                    minimumFractionDigits: 2,
+                                  })} each
+                                </span>
+                                <span className="font-semibold text-Primarycolor font-Manrope">
+                                  {itemTotal.toLocaleString('en-NG', {
                                     style: 'currency',
                                     currency: 'NGN',
                                     minimumFractionDigits: 2,
                                   })}
-                                </div>
+                                </span>
                               </div>
                             </div>
-                            <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-Accent font-Jost">
-                              <Clock className="h-4 w-4" />
-                              <span>{option.estimated_delivery}</span>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                      {shippingMethod?.id === option.id && (
-                        <div className="absolute top-3 right-3">
-                          <div className="bg-Primarycolor text-white rounded-full p-1">
-                            <CheckCircle className="h-4 w-4" />
-                          </div>
-                        </div>
-                      )}
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <MapPin className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-Primarycolor font-Manrope">
-                        International Shipping to {addressCountry}
-                      </h4>
-                    </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-sm text-Accent font-Jost mb-2">
-                    You will receive a separate email with payment instructions for international shipping fees.
-                    Note: Payments are processed in NGN due to current system limitations.
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-blue-600 font-Jost">
-                    <Clock className="h-3 w-3" />
-                    <span>Estimated delivery: 10-21 business days</span>
-                  </div>
-                </div>
-              )}
-              {formErrors.shippingMethod && (
-                <p className="text-sm text-red-600 mt-2 font-Jost">{formErrors.shippingMethod}</p>
-              )}
-            </div>
-          </div>
-          
-          {/* Right Column - Order Summary */}
-          <div className="lg:col-span-5 ">
-            <div className="p-6 bg-white rounded-lg shadow-md sticky top-24">
-              <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">Order Summary</h3>
-              <div className="space-y-4 mb-6">
-                {cart.items.map((cartItem, index) => {
-                  const item = cartItem.item || {};
-                  const price = Number(item.price || 0);
-                  const itemTotal = Number((price * (cartItem.quantity || 1)).toFixed(2));
                   
-                  return (
-                    <div key={cartItem.id || index} className="group">
-                      <div className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                        <div className="relative flex-shrink-0">
-                          <img
-                            src={item.image || item.image_url || 'https://via.placeholder.com/80x80?text=No+Image'}
-                            alt={item.name || 'Product'}
-                            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
-                            onError={(e) => { 
-                              e.target.src = 'https://via.placeholder.com/80x80?text=No+Image'; 
-                            }}
-                          />
-                          <div className="absolute -top-2 -right-2 bg-Primarycolor text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
-                            {cartItem.quantity || 1}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-Primarycolor text-sm sm:text-base truncate font-Manrope">
-                            {item.name || 'Unknown Item'}
-                          </h4>
-                          {item.is_product && (item.color || item.size) && (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {item.color && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
-                                  {item.color || item.color_name}
-                                </span>
-                              )}
-                              {item.size && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs text-Accent font-Jost">
-                                  {item.size || item.size_name}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {!item.is_product && Array.isArray(item.items) && item.items.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-xs text-Accent mb-1 font-Jost">Bundle includes:</p>
-                              <div className="grid grid-cols-3 gap-1">
-                                {item.items.map((bundleItem, idx) => (
-                                  <div key={bundleItem.id || idx} className="flex flex-col items-center">
-                                    <img
-                                      src={bundleItem.image_url || 'https://via.placeholder.com/40x40'}
-                                      alt={bundleItem.product_name}
-                                      className="w-12 h-12 object-cover rounded-md mb-1"
-                                      onError={(e) => { 
-                                        e.target.src = 'https://via.placeholder.com/40x40'; 
-                                      }}
-                                    />
-                                    <span className="text-xs text-Accent font-Jost truncate w-full text-center">
-                                      {bundleItem.color_name}
-                                    </span>
-                                    <span className="text-xs text-Accent font-Jost truncate w-full text-center">
-                                      {bundleItem.size_name}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-Accent font-Jost">
-                              {price.toLocaleString('en-NG', {
-                                style: 'currency',
-                                currency: 'NGN',
-                                minimumFractionDigits: 2,
-                              })} each
-                            </span>
-                            <span className="font-semibold text-Primarycolor font-Manrope">
-                              {itemTotal.toLocaleString('en-NG', {
-                                style: 'currency',
-                                currency: 'NGN',
-                                minimumFractionDigits: 2,
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Coupon Code Section */}
+                  <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center mb-3">
+                      <Gift className="h-5 w-5 text-green-600 mr-2" />
+                      <h3 className="font-medium text-gray-900 font-Jost">Have a coupon code?</h3>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Coupon Code Section */}
-              <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="flex items-center mb-3">
-                  <Gift className="h-5 w-5 text-green-600 mr-2" />
-                  <h3 className="font-medium text-gray-900 font-Jost">Have a coupon code?</h3>
-                </div>
-                
-                {appliedCoupon ? (
-                  <div className="bg-green-50 rounded-lg p-3 mb-3 border border-green-200">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
-                          <span className="font-medium text-green-800 font-Jost">{appliedCoupon.code} applied</span>
+                    
+                    {appliedCoupon ? (
+                      <div className="bg-green-50 rounded-lg p-3 mb-3 border border-green-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center">
+                              <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
+                              <span className="font-medium text-green-800 font-Jost">{appliedCoupon.code} applied</span>
+                            </div>
+                            <p className="text-sm text-green-700 font-Jost mt-1">
+                              You saved {appliedCoupon.type === 'percentage' 
+                                ? `${appliedCoupon.value}% (₦${appliedCoupon.amount.toFixed(2)})` 
+                                : `₦${appliedCoupon.amount.toFixed(2)}`}
+                            </p>
+                          </div>
+                          <button 
+                            onClick={handleRemoveCoupon}
+                            className="text-gray-400 hover:text-gray-600"
+                            aria-label="Remove coupon"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
-                        <p className="text-sm text-green-700 font-Jost mt-1">
-                          You saved {appliedCoupon.type === 'percentage' 
-                            ? `${appliedCoupon.value}% (₦${appliedCoupon.amount.toFixed(2)})` 
-                            : `₦${appliedCoupon.amount.toFixed(2)}`}
-                        </p>
                       </div>
-                      <button 
-                        onClick={handleRemoveCoupon}
-                        className="text-gray-400 hover:text-gray-600"
-                        aria-label="Remove coupon"
+                    ) : (
+                      <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={handleCouponCodeChange}
+                          placeholder="Enter coupon code"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
+                          disabled={couponLoading}
+                        />
+                        <button
+                          type="submit"
+                          disabled={couponLoading || !couponCode.trim()}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-Jost"
+                        >
+                          {couponLoading ? 'Applying...' : 'Apply'}
+                        </button>
+                      </form>
+                    )}
+                    
+                    {couponError && (
+                      <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {couponError}
+                      </div>
+                    )}
+                    
+                    {couponSuccess && !appliedCoupon && (
+                      <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {couponSuccess}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
+                    <div className="space-y-2">
+                      <label
+                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                          paymentMethod === 'card' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                        }`}
                       >
-                        <X className="h-4 w-4" />
-                      </button>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="card"
+                          checked={paymentMethod === 'card'}
+                          onChange={() => setPaymentMethod('card')}
+                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                        />
+                        <span className="text-sm text-Accent font-Jost">Card Payment</span>
+                      </label>
+                      <label
+                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                          paymentMethod === 'bank' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="bank"
+                          checked={paymentMethod === 'bank'}
+                          onChange={() => setPaymentMethod('bank')}
+                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                        />
+                        <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
+                      </label>
+                      <label
+                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                          paymentMethod === 'bitcoin' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="bitcoin"
+                          checked={paymentMethod === 'bitcoin'}
+                          onChange={() => setPaymentMethod('bitcoin')}
+                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
+                        />
+                        <div className="flex items-center">
+                          <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
+                          <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
+                        </div>
+                      </label>
                     </div>
-                  </div>
-                ) : (
-                  <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={handleCouponCodeChange}
-                      placeholder="Enter coupon code"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
-                      disabled={couponLoading}
-                    />
-                    <button
-                      type="submit"
-                      disabled={couponLoading || !couponCode.trim()}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-Jost"
-                    >
-                      {couponLoading ? 'Applying...' : 'Apply'}
-                    </button>
-                  </form>
-                )}
-                
-                {couponError && (
-                  <div className="mt-2 flex items-center text-sm text-red-600 font-Jost">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {couponError}
-                  </div>
-                )}
-                
-                {couponSuccess && !appliedCoupon && (
-                  <div className="mt-2 flex items-center text-sm text-green-600 font-Jost">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    {couponSuccess}
-                  </div>
-                )}
-              </div>
-              
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-Primarycolor mb-3 font-Manrope">Payment Method</h4>
-                <div className="space-y-2">
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'card' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={() => setPaymentMethod('card')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                    />
-                    <span className="text-sm text-Accent font-Jost">Card Payment</span>
-                  </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bank' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bank"
-                      checked={paymentMethod === 'bank'}
-                      onChange={() => setPaymentMethod('bank')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                    />
-                    <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
-                  </label>
-                  <label
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'bitcoin' ? 'border-Primarycolor bg-gray-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bitcoin"
-                      checked={paymentMethod === 'bitcoin'}
-                      onChange={() => setPaymentMethod('bitcoin')}
-                      className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
-                    />
-                    <div className="flex items-center">
-                      <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
-                      <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-200 pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
-                    <span>Subtotal</span>
-                    <span>
-                      {displaySubtotal.toLocaleString('en-NG', {
-                        style: 'currency',
-                        currency: 'NGN',
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
                   </div>
                   
-                  {displayFirstOrderDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>First Order Discount (5%)</span>
-                      <span>
-                        -{displayFirstOrderDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {displayCouponDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 font-Jost">
-                      <span>Coupon Discount</span>
-                      <span>
-                        -{displayCouponDiscount.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between text-sm text-Accent font-Jost">
-                    <span>Shipping</span>
-                    <span>
-                      {isNigeria ? (
-                        (shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })
-                      ) : (
-                        'TBD'
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm text-Accent font-Jost">
+                        <span>Subtotal</span>
+                        <span>
+                          {displaySubtotal.toLocaleString('en-NG', {
+                            style: 'currency',
+                            currency: 'NGN',
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      
+                      {displayFirstOrderDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600 font-Jost">
+                          <span>First Order Discount (5%)</span>
+                          <span>
+                            -{displayFirstOrderDiscount.toLocaleString('en-NG', {
+                              style: 'currency',
+                              currency: 'NGN',
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
                       )}
-                    </span>
-                  </div>
-                  
-                  {!isNigeria && (
-                    <div className="flex justify-between text-sm text-Accent font-Jost">
-                      <span>Tax (5%)</span>
-                      <span>
-                        {displayTax.toLocaleString('en-NG', {
-                          style: 'currency',
-                          currency: 'NGN',
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
+                      
+                      {displayCouponDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600 font-Jost">
+                          <span>Coupon Discount</span>
+                          <span>
+                            -{displayCouponDiscount.toLocaleString('en-NG', {
+                              style: 'currency',
+                              currency: 'NGN',
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between text-sm text-Accent font-Jost">
+                        <span>Shipping</span>
+                        <span>
+                          {isNigeria ? (
+                            (shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
+                              style: 'currency',
+                              currency: 'NGN',
+                              minimumFractionDigits: 2,
+                            })
+                          ) : (
+                            'TBD'
+                          )}
+                        </span>
+                      </div>
+                      
+                      {!isNigeria && (
+                        <div className="flex justify-between text-sm text-Accent font-Jost">
+                          <span>Tax (5%)</span>
+                          <span>
+                            {displayTax.toLocaleString('en-NG', {
+                              style: 'currency',
+                              currency: 'NGN',
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                
-                <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
-                    <span>Total</span>
-                    <span>
-                      {displayTotal.toLocaleString('en-NG', {
-                        style: 'currency',
-                        currency: 'NGN',
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                {!isNigeria && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-700 font-Jost">
-                      <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
-                    </p>
-                  </div>
-                )}
-                
-                {displayFirstOrderDiscount > 0 && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
-                    </p>
-                  </div>
-                )}
-                
-                {appliedCoupon && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-700 font-Jost">
-                      🎁 <strong>Coupon Applied!</strong> You saved {appliedCoupon.type === 'percentage' 
-                        ? `${appliedCoupon.value}%` 
-                        : `₦${appliedCoupon.amount.toFixed(2)}`} with coupon code {appliedCoupon.code}.
-                    </p>
-                  </div>
-                )}
-                
-                {requiredForm && (
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-yellow-800 font-Jost">
-                          Please complete the required information
-                        </p>
-                        <p className="text-xs mt-1 text-yellow-700 font-Jost">
-                          {requiredForm === 'guest' && 'Please fill in your personal details'}
-                          {requiredForm === 'shipping' && 'Please add a shipping address'}
-                          {requiredForm === 'billing' && 'Please add a billing address'}
-                        </p>
+                    
+                    <div className="border-t border-gray-200 mt-3 pt-3">
+                      <div className="flex justify-between text-lg font-bold text-Primarycolor font-Manrope">
+                        <span>Total</span>
+                        <span>
+                          {displayTotal.toLocaleString('en-NG', {
+                            style: 'currency',
+                            currency: 'NGN',
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
                       </div>
                     </div>
+                    
+                    {!isNigeria && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-700 font-Jost">
+                          <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {displayFirstOrderDiscount > 0 && (
+                      <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                        <p className="text-xs text-green-700 font-Jost">
+                          🎉 <strong>Congratulations!</strong> You've received a 5% discount on your first order.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {appliedCoupon && (
+                      <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                        <p className="text-xs text-green-700 font-Jost">
+                          🎁 <strong>Coupon Applied!</strong> You saved {appliedCoupon.type === 'percentage' 
+                            ? `${appliedCoupon.value}%` 
+                            : `₦${appliedCoupon.amount.toFixed(2)}`} with coupon code {appliedCoupon.code}.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {requiredForm && (
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-start">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 font-Jost">
+                              Please complete the required information
+                            </p>
+                            <p className="text-xs mt-1 text-yellow-700 font-Jost">
+                              {requiredForm === 'guest' && 'Please fill in your personal details'}
+                              {requiredForm === 'shipping' && 'Please add a shipping address'}
+                              {requiredForm === 'billing' && 'Please add a billing address'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={handlePlaceOrder}
+                      className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
+                      disabled={loading || 
+                        (!shippingForm.address_line_1 && !shippingAddressId) || 
+                        (!billingForm.address_line_1 && !billingAddressId) || 
+                        (isNigeria && !shippingMethod) || 
+                        (isGuest && !createdUserId && !guestFormSubmitted)
+                      }
+                    >
+                      {loading ? (
+                        <div className="flex items-center justify-center">
+                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                          Processing...
+                        </div>
+                      ) : (
+                        'Place Order'
+                      )}
+                    </button>
+                    
+                    {paymentMethod === 'bitcoin' && (
+                      <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <Bitcoin className="h-4 w-4 text-orange-600" />
+                          <p className="text-xs text-orange-800 font-Jost">
+                            Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                
-                <button
-                  onClick={handlePlaceOrder}
-                  className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                  disabled={loading || 
-                    (!shippingForm.address_line_1 && !shippingAddressId) || 
-                    (!billingForm.address_line_1 && !billingAddressId) || 
-                    (isNigeria && !shippingMethod) || 
-                    (isGuest && !createdUserId && !guestFormSubmitted)
-                  }
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
-                      Processing...
-                    </div>
-                  ) : (
-                    'Place Order'
-                  )}
-                </button>
-                
-                {paymentMethod === 'bitcoin' && (
-                  <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <Bitcoin className="h-4 w-4 text-orange-600" />
-                      <p className="text-xs text-orange-800 font-Jost">
-                        Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
       <WhatsAppChatWidget />
       <Footer />
