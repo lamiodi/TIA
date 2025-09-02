@@ -424,7 +424,7 @@ export const createOrder = async (req, res) => {
         ) VALUES (
           ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${finalCartId}, ${total}, ${discount}, 
           ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
-          ${address.country}, ${paymentMethod}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
+          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
           ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
           ${address.country.toLowerCase() === 'nigeria' ? true : false}
         )
@@ -506,7 +506,7 @@ export const createOrder = async (req, res) => {
       }
       
       // Update user's first_order status if this is their first order
-      if (user.first_order) {
+      if (user.first_order === true || user.first_order === 1) {
         await sql`
           UPDATE users 
           SET first_order = false 
@@ -517,17 +517,22 @@ export const createOrder = async (req, res) => {
       
       // Send notification for international orders
       if (address.country.toLowerCase() !== 'nigeria') {
-        await sendAdminDeliveryFeeNotification(
-          orderId,
-          `${user.first_name} ${user.last_name}`,
-          address.country,
-          {
-            address_line_1: address.address_line_1,
-            city: address.city,
-            state: address.state || '',
-            zip_code: address.zip_code,
-          }
-        );
+        try {
+          await sendAdminDeliveryFeeNotification(
+            orderId,
+            `${user.first_name} ${user.last_name}`,
+            address.country,
+            {
+              address_line_1: address.address_line_1,
+              city: address.city,
+              state: address.state || '',
+              zip_code: address.zip_code,
+            }
+          );
+        } catch (notificationError) {
+          console.error('Failed to send admin notification:', notificationError);
+          // Don't fail the order creation if notification fails
+        }
       }
       
       console.log(`✅ Created order ${orderId} for user ${user_id} (${user.is_temporary ? 'temporary' : 'permanent'}) with reference ${reference}, discount ${discount}`);
@@ -535,7 +540,12 @@ export const createOrder = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Error creating order:', err.message, err.stack);
-    res.status(500).json({ error: err.message });
+    console.error('Request body:', req.body);
+    res.status(500).json({ 
+      error: err.message,
+      details: err.stack,
+      request: req.body
+    });
   }
 };
 
