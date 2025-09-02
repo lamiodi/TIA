@@ -68,9 +68,17 @@ const ThankYou = () => {
     
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const pollResponse = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        let pollResponse;
+        
+        // For guest orders (token is null), call without authentication
+        if (token === null) {
+          pollResponse = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`);
+        } else {
+          // For authenticated users, use the token
+          pollResponse = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
         
         if (pollResponse.data.payment_status === 'completed') {
           setOrder(pollResponse.data);
@@ -103,18 +111,30 @@ const ThankYou = () => {
     }
     
     const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Please log in to view your order details.');
-      setLoading(false);
-      navigate('/login', { state: { from: `/thank-you?reference=${reference}` } });
-      return;
-    }
     
     try {
-      console.log(`📡 Fetching order for reference: ${reference}, attempt ${retryCount + 1}`);
-      const response = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        console.log(`📡 Fetching order for reference: ${reference}, attempt ${retryCount + 1}`);
+        
+        // For guest orders, we can verify without authentication
+        if (!token) {
+          const response = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`);
+          const orderData = response.data;
+          setOrder(orderData);
+          console.log('✅ Guest order verified:', orderData);
+          
+          // If payment is still pending, start polling with guest verification
+          if (orderData.payment_status === 'pending') {
+            startPolling(null); // Pass null token for guest polling
+          }
+          
+          setLoading(false);
+          return;
+        }
+        
+        // For authenticated users, use the token
+        const response = await axios.get(`${API_BASE_URL}/api/orders/verify/${reference}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       
       const orderData = response.data;
       setOrder(orderData);
@@ -156,11 +176,22 @@ const ThankYou = () => {
     setVerifying(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/webhooks/verify`,
-        { reference },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let response;
+      
+      // For guest orders, call without authentication
+      if (!token) {
+        response = await axios.post(
+          `${API_BASE_URL}/api/webhooks/verify`,
+          { reference }
+        );
+      } else {
+        // For authenticated users, use the token
+        response = await axios.post(
+          `${API_BASE_URL}/api/webhooks/verify`,
+          { reference },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
       
       if (response.data.order) {
         setOrder(response.data.order);

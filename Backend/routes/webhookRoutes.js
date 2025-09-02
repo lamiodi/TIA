@@ -46,10 +46,11 @@ router.post('/webhook', async (req, res) => {
             o.user_id,
             o.delivery_fee,
             o.currency,
-            u.email,
-            u.first_name
+            COALESCE(u.email, ba.email) as email,
+            COALESCE(u.first_name, ba.full_name) as first_name
           FROM orders o
-          JOIN users u ON o.user_id = u.id
+          LEFT JOIN users u ON o.user_id = u.id
+          LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
           WHERE o.id = ${orderId} AND o.deleted_at IS NULL
         `;
         
@@ -118,10 +119,11 @@ router.post('/webhook', async (req, res) => {
           o.currency, 
           o.email_sent, 
           o.cart_id,
-          u.email,
-          u.first_name
+          COALESCE(u.email, ba.email) as email,
+          COALESCE(u.first_name, ba.full_name) as first_name
         FROM orders o
-        JOIN users u ON o.user_id = u.id
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
         WHERE o.reference = ${reference} AND o.deleted_at IS NULL
       `;
       
@@ -167,7 +169,7 @@ router.post('/webhook', async (req, res) => {
       const [order] = await sql`
         SELECT id, payment_status, cart_id 
         FROM orders 
-        WHERE reference = ${reference} AND o.deleted_at IS NULL
+        WHERE reference = ${reference} AND deleted_at IS NULL
       `;
       
       if (!order) {

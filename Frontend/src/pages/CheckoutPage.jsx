@@ -791,7 +791,37 @@ const processOrder = async (guestUserId = null) => {
     
     console.log('Order payload:', orderData);
     
-    const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
+    let orderResponse;
+    try {
+      orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
+      
+      // Handle case where backend returns 200 with 'Order already exists with pending payment'
+      if (orderResponse.data.message === 'Order already exists with pending payment') {
+        console.log('Order with same reference already exists (pending payment):', orderResponse.data);
+        const existingOrderId = orderResponse.data.order.id;
+        
+        // Continue with payment initialization using existing order
+        orderResponse = { data: { order: { id: existingOrderId, reference: orderData.reference } } };
+      }
+    } catch (err) {
+      // Handle case where order with same reference already exists
+      if (err.response?.status === 409 && err.response?.data?.order_id) {
+        console.log('Order with same reference already exists, using existing order:', err.response.data);
+        const existingOrderId = err.response.data.order_id;
+        
+        // If payment is already completed, redirect to thank you page
+        if (err.response.data.payment_status === 'completed') {
+          toast.success('Order already exists with completed payment');
+          navigate(`/thank-you?reference=${orderData.reference}&orderId=${existingOrderId}`);
+          return;
+        }
+        
+        // If payment is pending, continue with payment initialization
+        orderResponse = { data: { order: { id: existingOrderId, reference: orderData.reference } } };
+      } else {
+        throw err;
+      }
+    }
     
     console.log('Order response:', orderResponse.data);
     
@@ -1559,15 +1589,38 @@ const handlePlaceOrder = async () => {
                       )}
                       
                       {!showShippingForm ? (
-                        <div className="text-center py-8">
-                          <button
-                            onClick={() => setShowShippingForm(true)}
-                            className="px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                          >
-                            <MapPin className="h-5 w-5 inline mr-2" />
-                            Add Shipping Address
-                          </button>
-                        </div>
+                        shippingForm.address_line_1 ? (
+                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="flex items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
+                                <div className="text-sm text-Accent font-Jost">
+                                  <p>{shippingForm.address_line_1}</p>
+                                  {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
+                                  <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                                  <p>{shippingForm.country}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setShowShippingForm(true)}
+                                className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                title="Edit shipping address"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <button
+                              onClick={() => setShowShippingForm(true)}
+                              className="px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                            >
+                              <MapPin className="h-5 w-5 inline mr-2" />
+                              Add Shipping Address
+                            </button>
+                          </div>
+                        )
                       ) : (
                         <ShippingAddressForm
                           address={{ state: shippingForm, setState: setShippingForm }}

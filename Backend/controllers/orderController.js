@@ -48,6 +48,31 @@ export const createOrder = async (req, res) => {
   console.log('📋 Items:', items);
   
   try {
+    // First check if an order with this reference already exists
+    let [existingOrder] = await sql`
+      SELECT id, payment_status, status FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
+    `;
+    
+    if (existingOrder) {
+      console.log(`⚠️ Order with reference ${reference} already exists:`, existingOrder);
+      
+      // If order exists and payment is pending, return the existing order
+      if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
+        return res.status(200).json({ 
+          order: { id: existingOrder.id, reference, discount },
+          message: 'Order already exists with pending payment'
+        });
+      }
+      
+      // If order exists with different status, return error
+      return res.status(409).json({ 
+        error: 'Order with this reference already exists',
+        order_id: existingOrder.id,
+        payment_status: existingOrder.payment_status,
+        status: existingOrder.status
+      });
+    }
+    
     await sql.begin(async (sql) => {
       // Validate user - handle both cases (with and without deleted_at)
       let [user] = await sql`
