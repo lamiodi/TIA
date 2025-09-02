@@ -1558,16 +1558,28 @@ const handlePlaceOrder = async () => {
                         </div>
                       )}
                       
-                      <ShippingAddressForm
-                        address={{ state: shippingForm, setState: setShippingForm }}
-                        onSubmit={handleShippingSubmit}
-                        onCancel={() => setShowShippingForm(false)}
-                        formErrors={formErrors}
-                        setFormErrors={setFormErrors}
-                        actionLoading={loading}
-                        isGuest={true}
-                        guestData={guestForm}
-                      />
+                      {!showShippingForm ? (
+                        <div className="text-center py-8">
+                          <button
+                            onClick={() => setShowShippingForm(true)}
+                            className="px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                          >
+                            <MapPin className="h-5 w-5 inline mr-2" />
+                            Add Shipping Address
+                          </button>
+                        </div>
+                      ) : (
+                        <ShippingAddressForm
+                          address={{ state: shippingForm, setState: setShippingForm }}
+                          onSubmit={handleShippingSubmit}
+                          onCancel={() => setShowShippingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                          isGuest={true}
+                          guestData={guestForm}
+                        />
+                      )}
                     </div>
                     
                     {/* Billing Address Form for Guests */}

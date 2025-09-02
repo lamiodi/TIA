@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { 
   Clock, AlertCircle, Package, CheckCircle, XCircle, Search, Filter, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, DollarSign, User
+  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, DollarSign
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -72,13 +72,13 @@ const Orders = () => {
           shipping_country: order.shipping_country || 'Unknown',
           currency: order.currency || 'NGN',
           shipping_method: order.shipping_method || 'N/A',
-          first_name: order.first_name || 'Unknown',
+          first_name: order.guest_name || order.first_name || 'Unknown',
           last_name: order.last_name || 'Customer',
-          user_email: order.user_email || 'N/A',
+          user_email: order.guest_email || order.user_email || 'N/A',
           payment_status: order.payment_status || 'pending',
           delivery_fee_paid: order.delivery_fee_paid || false,
           delivery_fee: order.delivery_fee || 0,
-          is_temporary: order.is_temporary || false, // Added this line
+          is_guest_order: order.is_guest_order || false
         }));
         setOrders(processedOrders);
         toast.success('Orders loaded successfully');
@@ -151,9 +151,10 @@ const Orders = () => {
       const user = details.user || {};
       await authAxios.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
-        userEmail: user.email || selectedOrder.user_email,
-        userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
+        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
         status: newStatus,
+        isGuest: selectedOrder.is_guest_order
       });
       
       setShowStatusModal(false);
@@ -161,6 +162,27 @@ const Orders = () => {
     } catch (err) {
       console.error('Update order status error:', err);
       handleError(err, 'Failed to update order status');
+    }
+  };
+  
+  const sendEmail = async () => {
+    if (!selectedOrder) return;
+    try {
+      const authAxios = getAuthAxios();
+      if (!orderDetails[selectedOrder.id]) await fetchCompleteOrderDetails(selectedOrder.id);
+      const details = orderDetails[selectedOrder.id] || {};
+      const user = details.user || {};
+      await authAxios.post('/api/email/send-order-status-update', {
+        orderId: selectedOrder.id,
+        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
+        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        status: selectedOrder.status,
+        isGuest: selectedOrder.is_guest_order
+      });
+      toast.success('Status update email sent successfully');
+    } catch (err) {
+      console.error('Send email error:', err);
+      handleError(err, 'Failed to send email');
     }
   };
   
@@ -204,26 +226,6 @@ const Orders = () => {
     } catch (err) {
       console.error('Mark as packed error:', err);
       handleError(err, 'Failed to mark as packed');
-    }
-  };
-  
-  const sendEmail = async () => {
-    if (!selectedOrder) return;
-    try {
-      const authAxios = getAuthAxios();
-      if (!orderDetails[selectedOrder.id]) await fetchCompleteOrderDetails(selectedOrder.id);
-      const details = orderDetails[selectedOrder.id] || {};
-      const user = details.user || {};
-      await authAxios.post('/api/email/send-order-status-update', {
-        orderId: selectedOrder.id,
-        userEmail: user.email || selectedOrder.user_email,
-        userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
-        status: selectedOrder.status,
-      });
-      toast.success('Status update email sent successfully');
-    } catch (err) {
-      console.error('Send email error:', err);
-      handleError(err, 'Failed to send email');
     }
   };
   
@@ -271,9 +273,14 @@ const Orders = () => {
     const matchesSearch = 
       order.id.toString().includes(searchTerm) ||
       order.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.last_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (order.is_guest_order ? 
+        order.guest_email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        order.guest_name?.toLowerCase().includes(searchTerm.toLowerCase()) 
+        : 
+        order.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesPaymentStatus = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
     const matchesCountry = countryFilter === 'all' || order.shipping_country === countryFilter;
@@ -441,16 +448,7 @@ const Orders = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <div className="flex items-center">
-                          <div className="font-medium text-gray-900 font-Manrope">
-                            {order.first_name} {order.last_name}
-                          </div>
-                          {order.is_temporary && (
-                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
-                              <User className="w-3 h-3 mr-1" /> Guest
-                            </span>
-                          )}
-                        </div>
+                        <div className="font-medium text-gray-900 font-Manrope">{order.first_name} {order.last_name}</div>
                         <div className="text-gray-600 font-Jost">{order.user_email}</div>
                       </td>
                       <td className="py-3 px-4 text-gray-600 text-sm font-Jost">{formatDate(order.created_at)}</td>

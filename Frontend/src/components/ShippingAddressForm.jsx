@@ -83,8 +83,8 @@ const ShippingAddressForm = ({
     if (validateForm()) {
       setState(formData);
       onSubmit(formData);
-      // Ensure the form closes after submission
-      onCancel();
+      // The onSubmit function (handleShippingSubmit) will handle closing the form
+      // by calling setShowShippingForm(false) after successful submission
     }
   };
 
