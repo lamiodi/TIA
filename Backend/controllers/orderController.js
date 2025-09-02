@@ -89,15 +89,14 @@ export const createOrder = async (req, res) => {
       let billingAddress;
       
       if (shipping_data && billing_data) { // Guest mode: create addresses
-        // Create shipping address without phone_number field
+        // Create shipping address without address_line_2
         const [newAddress] = await sql`
           INSERT INTO addresses (
-            user_id, title, address_line_1, address_line_2, landmark, city, state, zip_code, country, created_at
+            user_id, title, address_line_1, landmark, city, state, zip_code, country, created_at
           ) VALUES (
             ${user_id}, 
             ${shipping_data.title || 'Home'}, 
             ${shipping_data.address_line_1}, 
-            ${shipping_data.address_line_2 || null},
             ${shipping_data.landmark || null}, 
             ${shipping_data.city}, 
             ${shipping_data.state || null}, 
@@ -110,17 +109,16 @@ export const createOrder = async (req, res) => {
         finalAddressId = newAddress.id;
         address = newAddress;
         
-        // Create billing address with phone_number
+        // Create billing address without address_line_2
         const [newBillingAddress] = await sql`
           INSERT INTO billing_addresses (
-            user_id, full_name, email, phone_number, address_line_1, address_line_2, city, state, zip_code, country, created_at
+            user_id, full_name, email, phone_number, address_line_1, city, state, zip_code, country, created_at
           ) VALUES (
             ${user_id}, 
             ${billing_data.full_name}, 
             ${billing_data.email}, 
             ${billing_data.phone_number || null}, 
             ${billing_data.address_line_1},
-            ${billing_data.address_line_2 || null},
             ${billing_data.city}, 
             ${billing_data.state || null}, 
             ${billing_data.zip_code || null}, 
