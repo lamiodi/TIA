@@ -885,14 +885,14 @@ const CheckoutPage = () => {
     }
   };
   
-  // Optimized handleShippingSubmit to not handle phone number for guest users
+  // Fixed handleShippingSubmit to close the form after saving
   const handleShippingSubmit = async (data) => {
     try {
       setLoading(true);
       
       // Update shipping form state
       setShippingForm(data);
-      setShowShippingForm(false);
+      setShowShippingForm(false); // This ensures the form closes after saving
       
       // If billing address option is 'same', update billing address to match
       if (billingAddressOption === 'same') {
