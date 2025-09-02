@@ -17,7 +17,7 @@ const BillingAddressForm = ({
     email: state.email || (guestData ? guestData.email : ''),
     phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
     address_line_1: state.address_line_1 || '',
-    address_line_2: state.address_line_2 || '',
+    // address_line_2 removed
     city: state.city || '',
     state: state.state || '',
     zip_code: state.zip_code || '',
@@ -31,7 +31,7 @@ const BillingAddressForm = ({
       email: state.email || (guestData ? guestData.email : ''),
       phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
       address_line_1: state.address_line_1 || '',
-      address_line_2: state.address_line_2 || '',
+      // address_line_2 removed
       city: state.city || '',
       state: state.state || '',
       zip_code: state.zip_code || '',
@@ -215,19 +215,7 @@ const BillingAddressForm = ({
         )}
       </div>
       
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 2
-        </label>
-        <input
-          type="text"
-          name="address_line_2"
-          value={formData.address_line_2}
-          onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Apartment, suite, unit, building, floor, etc."
-        />
-      </div>
+      {/* Address Line 2 field removed */}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

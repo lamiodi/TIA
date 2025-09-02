@@ -28,8 +28,8 @@ const GuestCheckoutModal = React.memo(({
   onSubmitGuestForm,
   loading
 }) => (
-  // Changed to use backdrop-blur instead of dark overlay
-  <div className="fixed inset-0 bg-white bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  // Changed to use backdrop-blur with dark overlay instead of white
+  <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
@@ -254,7 +254,7 @@ const CheckoutPage = () => {
   const [shippingForm, setShippingForm] = useState({
     title: '',
     address_line_1: '',
-    address_line_2: '',
+    // address_line_2 removed - using landmark instead
     landmark: '',
     city: '',
     state: '',
@@ -267,7 +267,7 @@ const CheckoutPage = () => {
     email: '',
     phone_number: '',
     address_line_1: '',
-    address_line_2: '',
+    // address_line_2 removed
     city: '',
     state: '',
     zip_code: '',
@@ -584,7 +584,7 @@ const CheckoutPage = () => {
         ...prev,
         title: 'Home', // Add default title
         address_line_1: '',
-        address_line_2: '',
+        // address_line_2 removed
         landmark: '',
         city: '',
         state: '',
@@ -599,7 +599,7 @@ const CheckoutPage = () => {
         email: guestForm.email,
         phone_number: guestForm.phone_number,
         address_line_1: '',
-        address_line_2: '',
+        // address_line_2 removed
         city: '',
         state: '',
         zip_code: '',
@@ -662,7 +662,7 @@ const CheckoutPage = () => {
   
   // Validate shipping address
   const validateShippingAddress = () => {
-    if (!shippingForm.address_line_1.trim()) {
+    if (!shippingForm.address_line_1) {
       setError('Please add a shipping address');
       setRequiredForm('shipping');
       return false;
@@ -672,7 +672,7 @@ const CheckoutPage = () => {
   
   // Validate billing address
   const validateBillingAddress = () => {
-    if (!billingForm.address_line_1.trim()) {
+    if (!billingForm.address_line_1) {
       setError('Please add a billing address');
       setRequiredForm('billing');
       return false;
@@ -904,7 +904,7 @@ const CheckoutPage = () => {
           // For guest users, use the phone number from guest form instead of shipping form
           phone_number: isGuest ? guestForm.phone_number : data.phone_number,
           address_line_1: data.address_line_1,
-          address_line_2: data.address_line_2,
+          // address_line_2 removed
           city: data.city,
           state: data.state,
           zip_code: data.zip_code,
@@ -1002,7 +1002,7 @@ const CheckoutPage = () => {
       // For guest users, use the phone number from guest form instead of shipping form
       phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
       address_line_1: shippingForm.address_line_1,
-      address_line_2: shippingForm.address_line_2,
+      // address_line_2 removed
       city: shippingForm.city,
       state: shippingForm.state,
       zip_code: shippingForm.zip_code,
@@ -1150,7 +1150,7 @@ const CheckoutPage = () => {
         // For guest users, use the phone number from guest form instead of shipping form
         phone_number: isGuest ? guestForm.phone_number : shippingForm.phone_number,
         address_line_1: shippingForm.address_line_1,
-        address_line_2: shippingForm.address_line_2,
+        // address_line_2 removed
         city: shippingForm.city,
         state: shippingForm.state,
         zip_code: shippingForm.zip_code,
@@ -1559,7 +1559,7 @@ const CheckoutPage = () => {
                               {shippingForm.address_line_1 ? (
                                 <div className="text-sm text-Accent font-Jost">
                                   <p>{shippingForm.address_line_1}</p>
-                                  {shippingForm.address_line_2 && <p>{shippingForm.address_line_2}</p>}
+                                  {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
                                   <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
                                   <p>{shippingForm.country}</p>
                                 </div>
@@ -1605,7 +1605,7 @@ const CheckoutPage = () => {
                               <div key={address.id}>
                                 <p className="font-medium text-Primarycolor">{address.title}</p>
                                 <p className="text-sm text-Accent">{address.address_line_1}</p>
-                                {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
+                                {address.landmark && <p className="text-sm text-Accent">{address.landmark}</p>}
                                 <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
                                 <p className="text-sm text-Accent">{address.country}</p>
                                 {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
@@ -1632,7 +1632,6 @@ const CheckoutPage = () => {
                                 <p className="text-sm text-Accent">{address.email}</p>
                                 {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
                                 <p className="text-sm text-Accent">{address.address_line_1}</p>
-                                {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
                                 <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
                                 <p className="text-sm text-Accent">{address.country}</p>
                               </div>
