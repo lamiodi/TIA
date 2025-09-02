@@ -306,6 +306,9 @@ const CheckoutPage = () => {
   // State to track if guest form has been submitted
   const [guestFormSubmitted, setGuestFormSubmitted] = useState(false);
   
+  // State to track if addresses are being created for guest user
+  const [creatingGuestAddresses, setCreatingGuestAddresses] = useState(false);
+  
   // Memoize functions to prevent unnecessary re-renders
   const handleGuestFormChange = useCallback((field, value) => {
     setGuestForm(prev => ({...prev, [field]: value}));
@@ -539,6 +542,78 @@ const CheckoutPage = () => {
     
     setGuestFormErrors({});
     return true;
+  };
+  
+  // Create guest addresses in the database
+  const createGuestAddresses = async (userId) => {
+    try {
+      setCreatingGuestAddresses(true);
+      
+      const token = getToken();
+      
+      // Create shipping address
+      const shippingAddress = {
+        user_id: userId,
+        title: shippingForm.title || 'Home',
+        address_line_1: shippingForm.address_line_1,
+        address_line_2: shippingForm.address_line_2 || '',
+        city: shippingForm.city,
+        state: shippingForm.state,
+        zip_code: shippingForm.zip_code,
+        country: shippingForm.country,
+        phone_number: guestForm.phone_number,
+      };
+      
+      const shippingResponse = await axios.post(
+        `${API_BASE_URL}/api/addresses`,
+        shippingAddress,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const newShippingAddress = shippingResponse.data;
+      setShippingAddresses([newShippingAddress]);
+      setShippingAddressId(String(newShippingAddress.id));
+      
+      // Create billing address
+      const billingAddress = {
+        user_id: userId,
+        full_name: guestForm.name,
+        email: guestForm.email,
+        phone_number: guestForm.phone_number,
+        address_line_1: billingForm.address_line_1,
+        address_line_2: billingForm.address_line_2 || '',
+        city: billingForm.city,
+        state: billingForm.state,
+        zip_code: billingForm.zip_code,
+        country: billingForm.country,
+      };
+      
+      const billingResponse = await axios.post(
+        `${API_BASE_URL}/api/billing-addresses`,
+        billingAddress,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const newBillingAddress = billingResponse.data;
+      setBillingAddresses([newBillingAddress]);
+      setBillingAddressId(String(newBillingAddress.id));
+      
+      setSuccess('Addresses created successfully.');
+      toast.success('Addresses created successfully');
+      
+      return {
+        shippingAddressId: newShippingAddress.id,
+        billingAddressId: newBillingAddress.id
+      };
+    } catch (err) {
+      console.error('Error creating guest addresses:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message;
+      setError(`Failed to create addresses: ${errorMessage}`);
+      toast.error(`Failed to create addresses: ${errorMessage}`);
+      return null;
+    } finally {
+      setCreatingGuestAddresses(false);
+    }
   };
   
   // Handle guest form submission
@@ -1492,7 +1567,39 @@ const CheckoutPage = () => {
                       
                       <ShippingAddressForm
                         address={{ state: shippingForm, setState: setShippingForm }}
-                        onSubmit={handleShippingSubmit}
+                        onSubmit={async (data) => {
+                          // Update shipping form state
+                          setShippingForm(data);
+                          setShowShippingForm(false);
+                          
+                          // If billing address option is 'same', update billing address to match
+                          if (billingAddressOption === 'same') {
+                            // Create a billing address object from the shipping address
+                            const billingAddress = {
+                              full_name: guestForm.name || billingForm.full_name,
+                              email: guestForm.email || billingForm.email,
+                              // For guest users, use the phone number from guest form instead of shipping form
+                              phone_number: isGuest ? guestForm.phone_number : data.phone_number,
+                              address_line_1: data.address_line_1,
+                              address_line_2: data.address_line_2,
+                              city: data.city,
+                              state: data.state,
+                              zip_code: data.zip_code,
+                              country: data.country,
+                            };
+                            
+                            // Update billing form state
+                            setBillingForm(billingAddress);
+                          }
+                          
+                          // Create addresses in the database for guest users
+                          if (createdUserId) {
+                            await createGuestAddresses(createdUserId);
+                          }
+                          
+                          setSuccess('Shipping address added successfully.');
+                          toast.success('Shipping address added');
+                        }}
                         onCancel={() => setShowShippingForm(false)}
                         formErrors={formErrors}
                         setFormErrors={setFormErrors}
@@ -1578,7 +1685,19 @@ const CheckoutPage = () => {
                       ) : (
                         <BillingAddressForm
                           address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
+                          onSubmit={async (data) => {
+                            // Update billing form state
+                            setBillingForm(data);
+                            setShowBillingForm(false);
+                            
+                            // Create addresses in the database for guest users
+                            if (createdUserId) {
+                              await createGuestAddresses(createdUserId);
+                            }
+                            
+                            setSuccess('Billing address added successfully.');
+                            toast.success('Billing address added');
+                          }}
                           onCancel={() => setShowBillingForm(false)}
                           formErrors={formErrors}
                           setFormErrors={setFormErrors}
