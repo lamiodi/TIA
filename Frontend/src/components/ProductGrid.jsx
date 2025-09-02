@@ -43,18 +43,63 @@ const ProductGrid = () => {
       
       // Only sort when filter is 'All' to show briefs first, then gymwears, then everything else
       if (filter === 'All') {
+        // Log a sample product to understand the structure
+        if (productsData.length > 0) {
+          console.log('Sample product structure:', productsData[0]);
+        }
+        
         productsData = [...productsData].sort((a, b) => {
-          // Check if product is a brief
-          const aIsBrief = a.name?.toLowerCase().includes('brief') || 
-                           (a.category === 'briefs');
-          const bIsBrief = b.name?.toLowerCase().includes('brief') || 
-                           (b.category === 'briefs');
+          // Helper function to check if a product is a brief
+          const isBrief = (product) => {
+            if (!product) return false;
+            
+            // For bundles, check bundle_types
+            if (!product.is_product && product.bundle_types) {
+              return product.bundle_types.some(type => 
+                type.toLowerCase().includes('brief') || 
+                type.toLowerCase().includes('underwear')
+              );
+            }
+            
+            // For products, check the name
+            const name = (product.name || '').toLowerCase();
+            return name.includes('brief') || 
+                   name.includes('boxer') || 
+                   name.includes('underwear') ||
+                   name.includes('trunk');
+          };
           
-          // Check if product is gymwear
-          const aIsGymwear = a.name?.toLowerCase().includes('gym') || 
-                            (a.category === 'gymwear');
-          const bIsGymwear = b.name?.toLowerCase().includes('gym') || 
-                             (b.category === 'gymwear');
+          // Helper function to check if a product is gymwear
+          const isGymwear = (product) => {
+            if (!product) return false;
+            
+            // For bundles, check bundle_types
+            if (!product.is_product && product.bundle_types) {
+              return product.bundle_types.some(type => 
+                type.toLowerCase().includes('gym') || 
+                type.toLowerCase().includes('athletic')
+              );
+            }
+            
+            // For products, check the name
+            const name = (product.name || '').toLowerCase();
+            return name.includes('gym') || 
+                   name.includes('athletic') || 
+                   name.includes('workout') ||
+                   name.includes('training') ||
+                   name.includes('sport');
+          };
+          
+          const aIsBrief = isBrief(a);
+          const bIsBrief = isBrief(b);
+          const aIsGymwear = isGymwear(a);
+          const bIsGymwear = isGymwear(b);
+          
+          // Debug logging
+          if (aIsBrief) console.log(`Product "${a.name}" identified as brief`);
+          if (bIsBrief) console.log(`Product "${b.name}" identified as brief`);
+          if (aIsGymwear) console.log(`Product "${a.name}" identified as gymwear`);
+          if (bIsGymwear) console.log(`Product "${b.name}" identified as gymwear`);
           
           // Sort briefs first, then gymwears, then everything else
           if (aIsBrief && !bIsBrief) return -1;
@@ -64,6 +109,9 @@ const ProductGrid = () => {
           
           return 0;
         });
+        
+        // Log the first few products after sorting to verify
+        console.log('First 5 products after sorting:', productsData.slice(0, 5));
       }
       
       setProducts(productsData);
