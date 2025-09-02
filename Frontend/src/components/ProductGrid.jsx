@@ -4,9 +4,7 @@ import Button from './Button';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
-
 const ProductGrid = () => {
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState('All');
@@ -26,7 +24,6 @@ const ProductGrid = () => {
     '3 in 1': '3in1',
     '5 in 1': '5in1'
   };
-
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -41,30 +38,28 @@ const ProductGrid = () => {
       const res = await axios.get(url);
       let productsData = res.data || [];
       
-      // If "All" category is selected, sort to show briefs first, then gymwears
-      if (filter === 'All') {
-        productsData = [...productsData].sort((a, b) => {
-          // Check if product is a brief
-          const aIsBrief = a.name?.toLowerCase().includes('brief') || 
-                           (a.category === 'briefs');
-          const bIsBrief = b.name?.toLowerCase().includes('brief') || 
-                           (b.category === 'briefs');
-          
-          // Check if product is gymwear
-          const aIsGymwear = a.name?.toLowerCase().includes('gym') || 
-                            (a.category === 'gymwear');
-          const bIsGymwear = b.name?.toLowerCase().includes('gym') || 
-                             (b.category === 'gymwear');
-          
-          // Sort briefs first, then gymwears, then everything else
-          if (aIsBrief && !bIsBrief) return -1;
-          if (!aIsBrief && bIsBrief) return 1;
-          if (aIsGymwear && !bIsGymwear && !bIsBrief) return -1;
-          if (!aIsGymwear && bIsGymwear && !aIsBrief) return 1;
-          
-          return 0;
-        });
-      }
+      // Sort to show briefs first, then gymwears, then everything else - FOR ALL CATEGORIES
+      productsData = [...productsData].sort((a, b) => {
+        // Check if product is a brief
+        const aIsBrief = a.name?.toLowerCase().includes('brief') || 
+                         (a.category === 'briefs');
+        const bIsBrief = b.name?.toLowerCase().includes('brief') || 
+                         (b.category === 'briefs');
+        
+        // Check if product is gymwear
+        const aIsGymwear = a.name?.toLowerCase().includes('gym') || 
+                          (a.category === 'gymwear');
+        const bIsGymwear = b.name?.toLowerCase().includes('gym') || 
+                           (b.category === 'gymwear');
+        
+        // Sort briefs first, then gymwears, then everything else
+        if (aIsBrief && !bIsBrief) return -1;
+        if (!aIsBrief && bIsBrief) return 1;
+        if (aIsGymwear && !bIsGymwear && !bIsBrief) return -1;
+        if (!aIsGymwear && bIsGymwear && !aIsBrief) return 1;
+        
+        return 0;
+      });
       
       setProducts(productsData);
       setPage(1);
@@ -74,29 +69,22 @@ const ProductGrid = () => {
       setLoading(false);
     }
   }, [filter]);
-
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
   const displayedProducts = useMemo(() => {
     return products.slice(0, page * itemsPerPage);
   }, [products, page]);
-
   const hasMoreProducts = displayedProducts.length < products.length;
-
   const handleFilterChange = (category) => {
     setFilter(category);
   };
-
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
-
   const handleImageError = useCallback((e) => {
     e.target.src = 'https://via.placeholder.com/400x500?text=No+Image';
   }, []);
-
   return (
     <div className="my-5">
       <div className="typography flex flex-col container-padding space-y-1 lg:py-8">
@@ -267,7 +255,6 @@ const ProductGrid = () => {
     </div>
   );
 };
-
 const ProductCard = ({ product, onImageError }) => {
   const { id, name, price, image, color, is_product, variantId, bundle_types } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
@@ -352,5 +339,4 @@ const ProductCard = ({ product, onImageError }) => {
     </div>
   );
 };
-
 export default ProductGrid;

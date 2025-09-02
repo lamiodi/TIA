@@ -4,7 +4,7 @@ import { MapPin, Save, X } from 'lucide-react';
 const ShippingAddressForm = ({ 
   address, 
   onSubmit, 
-  onCancel, 
+  onCancel,
   formErrors, 
   setFormErrors, 
   actionLoading,
