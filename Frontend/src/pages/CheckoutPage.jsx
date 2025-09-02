@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react"
+import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus, CreditCard } from 'lucide-react';
@@ -404,8 +404,8 @@ const CheckoutPage = () => {
       refreshCount
     });
     
-    // Make sure user exists and first_order is true
-    if (user && user.first_order === true && currentSubtotal > 0) {
+    // Make sure user exists and first_order is true or 1 (database might return 1 instead of true)
+    if (user && (user.first_order === true || user.first_order === 1) && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
       console.log('Applied first order discount:', discountAmount);
@@ -723,9 +723,9 @@ const CheckoutPage = () => {
       
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = true; // Always true for new users
+      const baseFirstOrderDiscount = firstOrderDiscount; // Use the calculated discount
       const baseCouponDiscount = couponDiscount;
-      const baseTotalDiscount = Number((baseFirstOrderDiscount ? (baseSubtotal * 0.05) : 0 + baseCouponDiscount).toFixed(2));
+      const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
       const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
       const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
