@@ -1,15 +1,12 @@
-// src/pages/CheckoutPage.jsx
-"use client"
+// CheckoutPage.jsx
 import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react"
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus, CreditCard } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import BillingAddressForm from '../components/BillingAddressForm';
 import ShippingAddressForm from '../components/ShippingAddressForm';
-import GuestShippingAddressForm from '../components/GuestShippingAddressForm';
-import GuestBillingAddressForm from '../components/GuestBillingAddressForm';
 import WhatsAppChatWidget from '../components/WhatsAppChatWidget';
 import { useAuth } from '../context/AuthContext';
 import { useUserManager } from '../hooks/useUserManager';
@@ -17,524 +14,6 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
-// New LoggedInUserAddresses component
-const LoggedInUserAddresses = ({ 
-  userId, 
-  shippingAddresses, 
-  setShippingAddresses, 
-  billingAddresses, 
-  setBillingAddresses,
-  shippingAddressId, 
-  setShippingAddressId,
-  billingAddressId, 
-  setBillingAddressId,
-  billingAddressOption, 
-  setBillingAddressOption,
-  formErrors,
-  setFormErrors,
-  loading,
-  setLoading
-}) => {
-  const [showShippingForm, setShowShippingForm] = useState(false);
-  const [showBillingForm, setShowBillingForm] = useState(false);
-  const [editingShippingAddress, setEditingShippingAddress] = useState(null);
-  const [editingBillingAddress, setEditingBillingAddress] = useState(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
-  // Handle shipping address submission
-  const handleShippingSubmit = async (data) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const token = localStorage.getItem('token');
-      const url = editingShippingAddress 
-        ? `${API_BASE_URL}/api/addresses/${editingShippingAddress.id}`
-        : `${API_BASE_URL}/api/addresses`;
-      
-      const method = editingShippingAddress ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...data,
-          user_id: userId
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save shipping address');
-      }
-      
-      const savedAddress = await response.json();
-      
-      // Update addresses list
-      if (editingShippingAddress) {
-        setShippingAddresses(prev => 
-          prev.map(addr => addr.id === editingShippingAddress.id ? savedAddress : addr)
-        );
-      } else {
-        setShippingAddresses(prev => [...prev, savedAddress]);
-        // Set as selected if it's the first address
-        if (shippingAddresses.length === 0) {
-          setShippingAddressId(savedAddress.id);
-        }
-      }
-      
-      setSuccess('Shipping address saved successfully');
-      setShowShippingForm(false);
-      setEditingShippingAddress(null);
-      
-      // Reset form
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle billing address submission
-  const handleBillingSubmit = async (data) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const token = localStorage.getItem('token');
-      const url = editingBillingAddress 
-        ? `${API_BASE_URL}/api/billing-addresses/${editingBillingAddress.id}`
-        : `${API_BASE_URL}/api/billing-addresses`;
-      
-      const method = editingBillingAddress ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...data,
-          user_id: userId
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save billing address');
-      }
-      
-      const savedAddress = await response.json();
-      
-      // Update addresses list
-      if (editingBillingAddress) {
-        setBillingAddresses(prev => 
-          prev.map(addr => addr.id === editingBillingAddress.id ? savedAddress : addr)
-        );
-      } else {
-        setBillingAddresses(prev => [...prev, savedAddress]);
-        // Set as selected if it's the first address
-        if (billingAddresses.length === 0) {
-          setBillingAddressId(savedAddress.id);
-        }
-      }
-      
-      setSuccess('Billing address saved successfully');
-      setShowBillingForm(false);
-      setEditingBillingAddress(null);
-      
-      // Reset form
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Handle address deletion
-  const handleDeleteAddress = async (type, addressId) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/${type}/${addressId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete address');
-      }
-      
-      if (type === 'addresses') {
-        setShippingAddresses(prev => prev.filter(addr => addr.id !== addressId));
-        if (shippingAddressId === addressId) {
-          setShippingAddressId(shippingAddresses.length > 1 ? shippingAddresses[0].id : null);
-        }
-      } else {
-        setBillingAddresses(prev => prev.filter(addr => addr.id !== addressId));
-        if (billingAddressId === addressId) {
-          setBillingAddressId(billingAddresses.length > 1 ? billingAddresses[0].id : null);
-        }
-      }
-      
-      setSuccess('Address deleted successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Edit shipping address
-  const handleEditShippingAddress = (address) => {
-    setEditingShippingAddress(address);
-    setShowShippingForm(true);
-  };
-  
-  // Edit billing address
-  const handleEditBillingAddress = (address) => {
-    setEditingBillingAddress(address);
-    setShowBillingForm(true);
-  };
-  
-  // Cancel form
-  const handleCancelForm = () => {
-    setShowShippingForm(false);
-    setShowBillingForm(false);
-    setEditingShippingAddress(null);
-    setEditingBillingAddress(null);
-  };
-  
-  return (
-    <div className="space-y-6">
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
-          <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-          <span className="text-sm text-red-700 font-Jost">{error}</span>
-        </div>
-      )}
-      
-      {success && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
-          <AlertCircle className="h-5 w-5 text-green-600 mr-2" />
-          <span className="text-sm text-green-700 font-Jost">{success}</span>
-        </div>
-      )}
-      
-      {/* Shipping Address Section */}
-      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
-            Shipping Address
-          </h3>
-          <button
-            onClick={() => {
-              setEditingShippingAddress(null);
-              setShowShippingForm(!showShippingForm);
-            }}
-            className="flex items-center text-sm bg-Primarycolor text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-1" /> 
-            {showShippingForm ? 'Cancel' : 'Add New'}
-          </button>
-        </div>
-        
-        {showShippingForm ? (
-          <ShippingAddressForm
-            address={{
-              state: editingShippingAddress || {
-                title: '',
-                address_line_1: '',
-                address_line_2: '',
-                landmark: '',
-                city: '',
-                state: '',
-                zip_code: '',
-                country: 'Nigeria',
-                phone_number: '',
-              },
-              setState: () => {} // We'll handle this in the form
-            }}
-            onSubmit={handleShippingSubmit}
-            onCancel={handleCancelForm}
-            formErrors={formErrors}
-            setFormErrors={setFormErrors}
-            actionLoading={loading}
-          />
-        ) : (
-          <>
-            {shippingAddresses.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-500 font-Jost">No shipping addresses found</p>
-                <button
-                  onClick={() => setShowShippingForm(true)}
-                  className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-Jost"
-                >
-                  Add your first address
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {shippingAddresses.map((address) => (
-                  <div
-                    key={address.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      shippingAddressId === address.id
-                        ? 'border-Primarycolor bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setShippingAddressId(address.id)}
-                  >
-                    <div className="flex justify-between">
-                      <div className="flex items-start">
-                        <input
-                          type="radio"
-                          name="shippingAddress"
-                          checked={shippingAddressId === address.id}
-                          onChange={() => setShippingAddressId(address.id)}
-                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3 mt-1"
-                        />
-                        <div>
-                          <h4 className="font-medium text-Primarycolor font-Manrope">{address.title}</h4>
-                          <p className="text-sm text-Accent font-Jost">
-                            {address.address_line_1}
-                            {address.address_line_2 && `, ${address.address_line_2}`}
-                          </p>
-                          <p className="text-sm text-Accent font-Jost">
-                            {address.city}, {address.state} {address.zip_code}
-                          </p>
-                          <p className="text-sm text-Accent font-Jost">{address.country}</p>
-                          {address.phone_number && (
-                            <p className="text-sm text-Accent font-Jost">{address.phone_number}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditShippingAddress(address);
-                          }}
-                          className="p-2 text-gray-500 hover:text-Primarycolor"
-                          title="Edit address"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Are you sure you want to delete this address?')) {
-                              handleDeleteAddress('addresses', address.id);
-                            }
-                          }}
-                          className="p-2 text-gray-500 hover:text-red-600"
-                          title="Delete address"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-      
-      {/* Billing Address Section */}
-      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
-            Billing Address
-          </h3>
-          <button
-            onClick={() => {
-              setEditingBillingAddress(null);
-              setShowBillingForm(!showBillingForm);
-            }}
-            className="flex items-center text-sm bg-Primarycolor text-white px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-1" /> 
-            {showBillingForm ? 'Cancel' : 'Add New'}
-          </button>
-        </div>
-        
-        {/* Billing Address Option Selector */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-6">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="billingAddressOption"
-                value="same"
-                checked={billingAddressOption === 'same'}
-                onChange={() => setBillingAddressOption('same')}
-                className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-              />
-              <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="billingAddressOption"
-                value="different"
-                checked={billingAddressOption === 'different'}
-                onChange={() => setBillingAddressOption('different')}
-                className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
-              />
-              <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
-            </label>
-          </div>
-        </div>
-        
-        {billingAddressOption === 'same' ? (
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div className="flex items-start">
-              <div className="flex-1">
-                <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
-                {shippingAddresses.find(addr => addr.id === shippingAddressId) ? (
-                  <div className="text-sm text-Accent font-Jost">
-                    <p>{shippingAddresses.find(addr => addr.id === shippingAddressId).address_line_1}</p>
-                    {shippingAddresses.find(addr => addr.id === shippingAddressId).address_line_2 && (
-                      <p>{shippingAddresses.find(addr => addr.id === shippingAddressId).address_line_2}</p>
-                    )}
-                    <p>
-                      {shippingAddresses.find(addr => addr.id === shippingAddressId).city}, 
-                      {shippingAddresses.find(addr => addr.id === shippingAddressId).state} 
-                      {shippingAddresses.find(addr => addr.id === shippingAddressId).zip_code}
-                    </p>
-                    <p>{shippingAddresses.find(addr => addr.id === shippingAddressId).country}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : showBillingForm ? (
-          <BillingAddressForm
-            address={{
-              state: editingBillingAddress || {
-                full_name: '',
-                email: '',
-                phone_number: '',
-                address_line_1: '',
-                address_line_2: '',
-                city: '',
-                state: '',
-                zip_code: '',
-                country: 'Nigeria',
-              },
-              setState: () => {} // We'll handle this in the form
-            }}
-            onSubmit={handleBillingSubmit}
-            onCancel={handleCancelForm}
-            formErrors={formErrors}
-            setFormErrors={setFormErrors}
-            actionLoading={loading}
-          />
-        ) : (
-          <>
-            {billingAddresses.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-500 font-Jost">No billing addresses found</p>
-                <button
-                  onClick={() => setShowBillingForm(true)}
-                  className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-Jost"
-                >
-                  Add your first address
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {billingAddresses.map((address) => (
-                  <div
-                    key={address.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      billingAddressId === address.id
-                        ? 'border-Primarycolor bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setBillingAddressId(address.id)}
-                  >
-                    <div className="flex justify-between">
-                      <div className="flex items-start">
-                        <input
-                          type="radio"
-                          name="billingAddress"
-                          checked={billingAddressId === address.id}
-                          onChange={() => setBillingAddressId(address.id)}
-                          className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3 mt-1"
-                        />
-                        <div>
-                          <h4 className="font-medium text-Primarycolor font-Manrope">{address.full_name}</h4>
-                          <p className="text-sm text-Accent font-Jost">{address.email}</p>
-                          <p className="text-sm text-Accent font-Jost">
-                            {address.address_line_1}
-                            {address.address_line_2 && `, ${address.address_line_2}`}
-                          </p>
-                          <p className="text-sm text-Accent font-Jost">
-                            {address.city}, {address.state} {address.zip_code}
-                          </p>
-                          <p className="text-sm text-Accent font-Jost">{address.country}</p>
-                          {address.phone_number && (
-                            <p className="text-sm text-Accent font-Jost">{address.phone_number}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditBillingAddress(address);
-                          }}
-                          className="p-2 text-gray-500 hover:text-Primarycolor"
-                          title="Edit address"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Are you sure you want to delete this address?')) {
-                              handleDeleteAddress('billing-addresses', address.id);
-                            }
-                          }}
-                          className="p-2 text-gray-500 hover:text-red-600"
-                          title="Delete address"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
@@ -546,7 +25,9 @@ const GuestCheckoutForm = React.memo(({
   existingUserType, 
   requiredForm,
   onGuestFormChange,
-  onLoginRedirect 
+  onLoginRedirect,
+  onSubmitGuestForm,
+  loading
 }) => (
   <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
     <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope flex items-center">
@@ -609,20 +90,20 @@ const GuestCheckoutForm = React.memo(({
       </div>
     )}
     
-    <div className="space-y-4">
+    <form onSubmit={onSubmitGuestForm} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
           Full Name *
         </label>
         <input
           type="text"
+          name="name"
           value={guestForm.name}
           onChange={(e) => onGuestFormChange('name', e.target.value)}
           className={`w-full p-2 border rounded-md font-Jost ${
             guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your full name"
-          key="guest-name-input"
         />
         {guestFormErrors.name && (
           <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
@@ -635,13 +116,13 @@ const GuestCheckoutForm = React.memo(({
         </label>
         <input
           type="email"
+          name="email"
           value={guestForm.email}
           onChange={(e) => onGuestFormChange('email', e.target.value)}
           className={`w-full p-2 border rounded-md font-Jost ${
             guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your email address"
-          key="guest-email-input"
         />
         {guestFormErrors.email && (
           <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
@@ -654,13 +135,13 @@ const GuestCheckoutForm = React.memo(({
         </label>
         <input
           type="tel"
+          name="phone_number"
           value={guestForm.phone_number}
           onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
           className={`w-full p-2 border rounded-md font-Jost ${
             guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Enter your phone number"
-          key="guest-phone-input"
         />
         {guestFormErrors.phone_number && (
           <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
@@ -685,7 +166,31 @@ const GuestCheckoutForm = React.memo(({
           </button>
         </div>
       )}
-    </div>
+      
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onLoginRedirect}
+          className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+        >
+          Log In Instead
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
+        >
+          {loading ? (
+            <>
+              <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+              Creating Account...
+            </>
+          ) : (
+            'Continue to Checkout'
+          )}
+        </button>
+      </div>
+    </form>
   </div>
 ));
 
@@ -731,6 +236,8 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showShippingForm, setShowShippingForm] = useState(false);
+  const [showBillingForm, setShowBillingForm] = useState(false);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     title: '',
@@ -787,9 +294,6 @@ const CheckoutPage = () => {
   
   // State to track if guest form has been submitted
   const [guestFormSubmitted, setGuestFormSubmitted] = useState(false);
-  
-  // State to track if guest has completed address forms
-  const [guestAddressFormsCompleted, setGuestAddressFormsCompleted] = useState(false);
   
   // Memoize functions to prevent unnecessary re-renders
   const handleGuestFormChange = useCallback((field, value) => {
@@ -1026,34 +530,20 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Validate shipping address
-  const validateShippingAddress = () => {
-    if (!shippingForm.address_line_1.trim()) {
-      setError('Please add a shipping address');
-      setRequiredForm('shipping');
-      return false;
-    }
-    return true;
-  };
-  
-  // Validate billing address
-  const validateBillingAddress = () => {
-    if (!billingForm.address_line_1.trim()) {
-      setError('Please add a billing address');
-      setRequiredForm('billing');
-      return false;
-    }
-    return true;
-  };
-  
-  // Updated processGuestForm function
-  const processGuestForm = async () => {
+  // Handle guest form submission
+  const handleGuestFormSubmit = async (e) => {
+    e.preventDefault();
+    
     if (!validateGuestForm()) {
       setRequiredForm('guest');
-      return false;
+      return;
     }
     
+    setLoading(true);
+    setError('');
+    
     try {
+      // Call the createTemporaryUser API endpoint
       const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
         name: guestForm.name,
         email: guestForm.email,
@@ -1136,7 +626,29 @@ const CheckoutPage = () => {
       }
       
       return false;
+    } finally {
+      setLoading(false);
     }
+  };
+  
+  // Validate shipping address
+  const validateShippingAddress = () => {
+    if (!shippingForm.address_line_1.trim()) {
+      setError('Please add a shipping address');
+      setRequiredForm('shipping');
+      return false;
+    }
+    return true;
+  };
+  
+  // Validate billing address
+  const validateBillingAddress = () => {
+    if (!billingForm.address_line_1.trim()) {
+      setError('Please add a billing address');
+      setRequiredForm('billing');
+      return false;
+    }
+    return true;
   };
   
   // Modified processOrder to accept guestUserId parameter
@@ -1325,31 +837,20 @@ const CheckoutPage = () => {
     setRequiredForm(null);
     
     try {
-      let guestUserId = null;
-      
-      // Step 1: Process guest form if needed
+      // For guest users, first process the guest form to get the user ID
       if (isGuest && !guestFormSubmitted) {
-        guestUserId = await processGuestForm();
+        const guestUserId = await handleGuestFormSubmit();
         if (!guestUserId) {
           setLoading(false);
           return;
         }
+        
+        // Now process the order with the returned user ID
+        await processOrder(guestUserId);
+      } else {
+        // For logged-in users or already submitted guest forms, process directly
+        await processOrder();
       }
-      
-      // Step 2: Validate shipping address
-      if (!validateShippingAddress()) {
-        setLoading(false);
-        return;
-      }
-      
-      // Step 3: Validate billing address
-      if (!validateBillingAddress()) {
-        setLoading(false);
-        return;
-      }
-      
-      // Step 4: Process the order with the guest user ID if available
-      await processOrder(guestUserId);
     } catch (err) {
       console.error('Error in place order:', err);
       setLoading(false);
@@ -1403,11 +904,6 @@ const CheckoutPage = () => {
       // Update billing form state
       setBillingForm(data);
       setShowBillingForm(false);
-      
-      // Mark guest address forms as completed
-      if (isGuest) {
-        setGuestAddressFormsCompleted(true);
-      }
       
       setSuccess('Billing address added successfully.');
       toast.success('Billing address added');
@@ -1799,8 +1295,7 @@ const CheckoutPage = () => {
       shippingMethod: !!shippingMethod,
       isGuest,
       createdUserId: !!createdUserId,
-      guestFormSubmitted,
-      guestAddressFormsCompleted
+      guestFormSubmitted
     });
   };
   
@@ -1833,7 +1328,6 @@ const CheckoutPage = () => {
               First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
               Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
               Guest Form Submitted: {guestFormSubmitted?.toString()}<br />
-              Guest Address Forms Completed: {guestAddressFormsCompleted?.toString()}<br />
               User Data Refreshed: {userDataRefreshed?.toString()}
             </p>
             <button 
@@ -1935,6 +1429,8 @@ const CheckoutPage = () => {
                 requiredForm={requiredForm}
                 onGuestFormChange={handleGuestFormChange}
                 onLoginRedirect={handleLoginRedirect}
+                onSubmitGuestForm={handleGuestFormSubmit}
+                loading={loading}
               />
             )}
             
@@ -1962,13 +1458,14 @@ const CheckoutPage = () => {
                     </div>
                   )}
                   
-                  <GuestShippingAddressForm
+                  <ShippingAddressForm
                     address={{ state: shippingForm, setState: setShippingForm }}
                     onSubmit={handleShippingSubmit}
                     onCancel={() => setShowShippingForm(false)}
                     formErrors={formErrors}
                     setFormErrors={setFormErrors}
                     actionLoading={loading}
+                    isGuest={true}
                   />
                 </div>
                 
@@ -2046,60 +1543,75 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <GuestBillingAddressForm
+                    <BillingAddressForm
                       address={{ state: billingForm, setState: setBillingForm }}
                       onSubmit={handleBillingSubmit}
                       onCancel={() => setShowBillingForm(false)}
                       formErrors={formErrors}
                       setFormErrors={setFormErrors}
                       actionLoading={loading}
+                      isGuest={true}
+                      guestData={guestForm}
                     />
                   )}
                 </div>
-                
-                {/* One-click order button for guests who have completed address forms */}
-                {guestAddressFormsCompleted && (
-                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Complete Your Order</h3>
-                    <p className="text-sm text-Accent mb-4 font-Jost">
-                      You're all set! Click the button below to place your order and proceed to payment.
-                    </p>
-                    <button
-                      onClick={handlePlaceOrder}
-                      className="w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <div className="flex items-center justify-center">
-                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        'Place Order Now'
-                      )}
-                    </button>
-                  </div>
-                )}
               </>
             ) : (
               // Logged-in User Address Management
-              <LoggedInUserAddresses
-                userId={user?.id}
-                shippingAddresses={shippingAddresses}
-                setShippingAddresses={setShippingAddresses}
-                billingAddresses={billingAddresses}
-                setBillingAddresses={setBillingAddresses}
-                shippingAddressId={shippingAddressId}
-                setShippingAddressId={setShippingAddressId}
-                billingAddressId={billingAddressId}
-                setBillingAddressId={setBillingAddressId}
-                billingAddressOption={billingAddressOption}
-                setBillingAddressOption={setBillingAddressOption}
-                formErrors={formErrors}
-                setFormErrors={setFormErrors}
-                loading={loading}
-                setLoading={setLoading}
-              />
+              <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Address Management</h3>
+                
+                {shippingAddresses.length > 0 ? (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Shipping Address</h4>
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      {shippingAddresses
+                        .filter(addr => String(addr.id) === String(shippingAddressId))
+                        .map(address => (
+                          <div key={address.id}>
+                            <p className="font-medium text-Primarycolor">{address.title}</p>
+                            <p className="text-sm text-Accent">{address.address_line_1}</p>
+                            {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
+                            <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                            <p className="text-sm text-Accent">{address.country}</p>
+                            {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-Jost">No shipping addresses found. Please add a shipping address.</p>
+                  </div>
+                )}
+                
+                {billingAddresses.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Billing Address</h4>
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      {billingAddresses
+                        .filter(addr => String(addr.id) === String(billingAddressId))
+                        .map(address => (
+                          <div key={address.id}>
+                            <p className="font-medium text-Primarycolor">{address.full_name}</p>
+                            <p className="text-sm text-Accent">{address.email}</p>
+                            {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                            <p className="text-sm text-Accent">{address.address_line_1}</p>
+                            {address.address_line_2 && <p className="text-sm text-Accent">{address.address_line_2}</p>}
+                            <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                            <p className="text-sm text-Accent">{address.country}</p>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-Jost">No billing addresses found. Please add a billing address.</p>
+                  </div>
+                )}
+              </div>
             )}
             
             {/* Order Note */}
@@ -2557,28 +2069,25 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 
-                {/* Show the place order button only for logged-in users or guests who haven't completed address forms */}
-                {(!isGuest || !guestAddressFormsCompleted) && (
-                  <button
-                    onClick={handlePlaceOrder}
-                    className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
-                    disabled={loading || 
-                      (!shippingForm.address_line_1 && !shippingAddressId) || 
-                      (!billingForm.address_line_1 && !billingAddressId) || 
-                      (isNigeria && !shippingMethod) || 
-                      (isGuest && !createdUserId && !guestFormSubmitted)
-                    }
-                  >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
-                        Processing...
-                      </div>
-                    ) : (
-                      'Place Order'
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={handlePlaceOrder}
+                  className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Manrope font-semibold"
+                  disabled={loading || 
+                    (!shippingForm.address_line_1 && !shippingAddressId) || 
+                    (!billingForm.address_line_1 && !billingAddressId) || 
+                    (isNigeria && !shippingMethod) || 
+                    (isGuest && !createdUserId && !guestFormSubmitted)
+                  }
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Place Order'
+                  )}
+                </button>
                 
                 {paymentMethod === 'bitcoin' && (
                   <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">

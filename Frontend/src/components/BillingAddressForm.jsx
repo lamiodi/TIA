@@ -33,10 +33,10 @@ const BillingAddressForm = ({
     } else if (!/\S+@\S+\.\S+/.test(billingForm.email)) {
       errors.email = 'Email is invalid';
     }
+    if (!billingForm.phone_number?.trim()) errors.phone_number = 'Phone number is required';
     if (!billingForm.address_line_1?.trim()) errors.address_line_1 = 'Address line 1 is required';
     if (!billingForm.city?.trim()) errors.city = 'City is required';
     if (!billingForm.country?.trim()) errors.country = 'Country is required';
-    if (!billingForm.phone_number?.trim()) errors.phone_number = 'Phone number is required';
     
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
