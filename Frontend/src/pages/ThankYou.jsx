@@ -150,8 +150,14 @@ const ThankYou = () => {
       console.error('❌ Error verifying order:', err.response?.data || err.message);
       
       if (err.response?.status === 401 || err.response?.status === 403) {
-        setError('Authentication failed. Please log in again.');
-        navigate('/login', { state: { from: `/thank-you?reference=${reference}` } });
+        // For guest users, don't redirect to login - allow them to stay on the page
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Order verification failed. Please try verifying manually or contact support.');
+        } else {
+          setError('Authentication failed. Please log in again.');
+          navigate('/login', { state: { from: `/thank-you?reference=${reference}` } });
+        }
       } else if (err.response?.status === 404) {
         if (retryCount < 3) {
           setRetryCount(prev => prev + 1);
@@ -180,15 +186,13 @@ const ThankYou = () => {
       
       // For guest orders, call without authentication
       if (!token) {
-        response = await axios.post(
-          `${API_BASE_URL}/api/webhooks/verify`,
-          { reference }
+        response = await axios.get(
+          `${API_BASE_URL}/api/orders/verify/${reference}`
         );
       } else {
         // For authenticated users, use the token
-        response = await axios.post(
-          `${API_BASE_URL}/api/webhooks/verify`,
-          { reference },
+        response = await axios.get(
+          `${API_BASE_URL}/api/orders/verify/${reference}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
