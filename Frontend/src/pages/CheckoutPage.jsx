@@ -13,10 +13,8 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
-
 // Memoized GuestCheckoutModal component to prevent unnecessary re-renders
 const GuestCheckoutModal = React.memo(({ 
   guestForm, 
@@ -28,8 +26,8 @@ const GuestCheckoutModal = React.memo(({
   onSubmitGuestForm,
   loading
 }) => (
-  // Changed to use backdrop-blur with dark overlay instead of white
-  <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  // Changed to use backdrop-blur without dark overlay
+  <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
@@ -205,7 +203,6 @@ const GuestCheckoutModal = React.memo(({
     </div>
   </div>
 ));
-
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
   const { user: authUser, loading: authLoading, login } = useAuth();
@@ -886,45 +883,48 @@ const CheckoutPage = () => {
     }
   };
   
-  // Fixed handleShippingSubmit to close the form after saving
-  const handleShippingSubmit = async (data) => {
-    try {
-      setLoading(true);
+  
+ // Fixed handleShippingSubmit to close the form after saving
+const handleShippingSubmit = async (data) => {
+  try {
+    setLoading(true);
+    
+    // Update shipping form state
+    setShippingForm(data);
+    setShowShippingForm(false); // This ensures the form closes after saving
+    
+    // If billing address option is 'same', update billing address to match
+    if (billingAddressOption === 'same') {
+      // Create a billing address object from the shipping address
+      const billingAddress = {
+        full_name: guestForm.name || billingForm.full_name,
+        email: guestForm.email || billingForm.email,
+        // For guest users, use the phone number from guest form instead of shipping form
+        phone_number: isGuest ? guestForm.phone_number : data.phone_number,
+        address_line_1: data.address_line_1,
+        // address_line_2 removed
+        city: data.city,
+        state: data.state,
+        zip_code: data.zip_code,
+        country: data.country,
+      };
       
-      // Update shipping form state
-      setShippingForm(data);
-      setShowShippingForm(false); // This ensures the form closes after saving
-      
-      // If billing address option is 'same', update billing address to match
-      if (billingAddressOption === 'same') {
-        // Create a billing address object from the shipping address
-        const billingAddress = {
-          full_name: guestForm.name || billingForm.full_name,
-          email: guestForm.email || billingForm.email,
-          // For guest users, use the phone number from guest form instead of shipping form
-          phone_number: isGuest ? guestForm.phone_number : data.phone_number,
-          address_line_1: data.address_line_1,
-          // address_line_2 removed
-          city: data.city,
-          state: data.state,
-          zip_code: data.zip_code,
-          country: data.country,
-        };
-        
-        // Update billing form state
-        setBillingForm(billingAddress);
-      }
-      
-      setSuccess('Shipping address added successfully.');
-      toast.success('Shipping address added');
-    } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add shipping address: ${errorMessage}`);
-      toast.error(`Failed to add shipping address: ${errorMessage}`);
-    } finally {
-      setLoading(false);
+      // Update billing form state
+      setBillingForm(billingAddress);
     }
-  };
+    
+    setSuccess('Shipping address added successfully.');
+    toast.success('Shipping address added');
+  } catch (err) {
+    const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
+    setError(`Failed to add shipping address: ${errorMessage}`);
+    toast.error(`Failed to add shipping address: ${errorMessage}`);
+    // Ensure form closes even if there's an error
+    setShowShippingForm(false);
+  } finally {
+    setLoading(false);
+  }
+};
   
   const handleBillingSubmit = async (data) => {
     try {
@@ -2144,5 +2144,4 @@ const CheckoutPage = () => {
     </div>
   );
 };
-
 export default CheckoutPage;

@@ -13,7 +13,7 @@ const ShippingAddressForm = ({
 }) => {
   const { state, setState } = address;
   const [formData, setFormData] = useState({
-    title: state.title || 'Home', // Add default title
+    title: state.title || 'Home',
     address_line_1: state.address_line_1 || '',
     address_line_2: state.address_line_2 || '',
     landmark: state.landmark || '',
@@ -83,6 +83,8 @@ const ShippingAddressForm = ({
     if (validateForm()) {
       setState(formData);
       onSubmit(formData);
+      // Ensure the form closes after submission
+      onCancel();
     }
   };
 
