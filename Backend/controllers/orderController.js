@@ -10,6 +10,18 @@ const shippingOptions = [
   { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
 ];
 
+import sql from '../db/index.js';
+import dotenv from 'dotenv';
+import { Country } from 'country-state-city';
+import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
+dotenv.config();
+
+const shippingOptions = [
+  { id: 1, method: 'Delivery within Lagos', total_cost: 4000, estimated_delivery: '3–5 business days' },
+  { id: 2, method: 'GIG Logistics (Outside Lagos)', total_cost: 6000, estimated_delivery: '5–7 business days' },
+  { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
+];
+
 export const createOrder = async (req, res) => {
   const {
     user_id,
@@ -33,6 +45,7 @@ export const createOrder = async (req, res) => {
     converted_total,
     tax,
   } = req.body;
+
   console.log('📥 Create order request:', {
     user_id,
     cart_id,
@@ -45,19 +58,21 @@ export const createOrder = async (req, res) => {
     discount,
   });
   console.log('📋 Items:', items);
-  
+
   try {
     await sql.begin(async (sql) => {
       // Validate user - handle both cases (with and without deleted_at)
       let [user] = await sql`
-        SELECT id, first_name, last_name, is_temporary, first_order FROM users 
+        SELECT id, first_name, last_name, is_temporary, first_order, email 
+        FROM users 
         WHERE id = ${user_id}
       `;
       
       // If user has deleted_at column, check it's null
       if (user && 'deleted_at' in user) {
         [user] = await sql`
-          SELECT id, first_name, last_name, is_temporary, first_order FROM users 
+          SELECT id, first_name, last_name, is_temporary, first_order, email 
+          FROM users 
           WHERE id = ${user_id} AND deleted_at IS NULL
         `;
       }
@@ -66,26 +81,40 @@ export const createOrder = async (req, res) => {
         console.error('Validation failed: User not found');
         throw new Error('User not found');
       }
-      
+
+      // Handle cart for guest users
+      let finalCartId = cart_id;
+      if (user.is_temporary && !cart_id) {
+        // Create a new cart for guest user
+        const [newCart] = await sql`
+          INSERT INTO cart (user_id, total)
+          VALUES (${user_id}, 0)
+          RETURNING id
+        `;
+        finalCartId = newCart.id;
+        console.log(`✅ Created new cart for guest user ${user_id}, cart_id: ${finalCartId}`);
+      }
+
       let finalAddressId = address_id;
       let finalBillingAddressId = billing_address_id;
       let address;
       let billingAddress;
       
       if (shipping_data && billing_data) { // Guest mode: create addresses
-        // Create shipping address
+        // Create shipping address with phone number
         const [newAddress] = await sql`
           INSERT INTO addresses (
-            user_id, title, address_line_1, landmark, city, state, zip_code, country, created_at
+            user_id, title, address_line_1, landmark, city, state, zip_code, country, phone_number, created_at
           ) VALUES (
             ${user_id}, 
-            ${shipping_data.title}, 
+            ${shipping_data.title || 'Home'}, 
             ${shipping_data.address_line_1}, 
             ${shipping_data.landmark || null}, 
             ${shipping_data.city}, 
             ${shipping_data.state || null}, 
             ${shipping_data.zip_code || null}, 
             ${shipping_data.country}, 
+            ${billing_data.phone_number || null}, -- Use phone number from billing data
             NOW()
           )
           RETURNING id, country, address_line_1, city, state, zip_code
@@ -146,17 +175,16 @@ export const createOrder = async (req, res) => {
         }
       }
       
-      // For guest users, cart_id might be null initially
-      // If cart_id is provided, validate it
-      if (cart_id) {
+      // Validate cart if provided (for logged-in users)
+      if (finalCartId) {
         let [cart] = await sql`
-          SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id}
+          SELECT id FROM cart WHERE id = ${finalCartId} AND user_id = ${user_id}
         `;
         
         // If cart has deleted_at column, check it's null
         if (cart && 'deleted_at' in cart) {
           [cart] = await sql`
-            SELECT id FROM cart WHERE id = ${cart_id} AND user_id = ${user_id} AND deleted_at IS NULL
+            SELECT id FROM cart WHERE id = ${finalCartId} AND user_id = ${user_id} AND deleted_at IS NULL
           `;
         }
         
@@ -399,7 +427,7 @@ export const createOrder = async (req, res) => {
           shipping_country, payment_method, payment_status, status, currency, reference, note, exchange_rate,
           base_currency_total, converted_total, delivery_fee_paid
         ) VALUES (
-          ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${cart_id}, ${total}, ${discount}, 
+          ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${finalCartId}, ${total}, ${discount}, 
           ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
           ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
           ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
@@ -482,8 +510,15 @@ export const createOrder = async (req, res) => {
         }
       }
       
-      // Note: Removed automatic conversion of temporary users to permanent
-      // Temporary users will remain temporary until they set a password via resetPassword
+      // Update user's first_order status if this is their first order
+      if (user.first_order) {
+        await sql`
+          UPDATE users 
+          SET first_order = false 
+          WHERE id = ${user_id}
+        `;
+        console.log(`✅ Updated first_order status for user ${user_id}`);
+      }
       
       // Send notification for international orders
       if (address.country.toLowerCase() !== 'nigeria') {
