@@ -1,4 +1,3 @@
-// BillingAddressForm.jsx
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Save, X, User, Mail, Smartphone } from 'lucide-react';
 
@@ -24,7 +23,6 @@ const BillingAddressForm = ({
     zip_code: state.zip_code || '',
     country: state.country || 'Nigeria',
   });
-
   const [errors, setErrors] = useState({});
 
   useEffect(() => {

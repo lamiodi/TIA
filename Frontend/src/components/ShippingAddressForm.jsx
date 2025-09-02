@@ -1,4 +1,3 @@
-// ShippingAddressForm.jsx
 import React, { useState, useEffect } from 'react';
 import { MapPin, Save, X } from 'lucide-react';
 
@@ -24,7 +23,6 @@ const ShippingAddressForm = ({
     country: state.country || 'Nigeria',
     phone_number: state.phone_number || (guestData ? guestData.phone_number : '')
   });
-
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
