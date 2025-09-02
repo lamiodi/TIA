@@ -687,222 +687,265 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Modified processOrder to accept guestUserId parameter
-  const processOrder = async (guestUserId = null) => {
-    // Use the provided guestUserId if available, otherwise fall back to state
-    const userId = guestUserId || createdUserId || getUserId();
-    
-    // Skip guest form check if we have a guestUserId
-    if (!guestUserId && isGuest && !guestFormSubmitted) {
-      setError('Please complete the guest form to continue');
-      setRequiredForm('guest');
-      setLoading(false); // Reset loading state
-      return;
-    }
-    
-    if (!shippingForm.address_line_1) {
-      setError('Please add a shipping address');
-      setRequiredForm('shipping');
-      setLoading(false); // Reset loading state
-      return;
-    }
-    
-    if (!billingForm.address_line_1) {
-      setError('Please add a billing address');
-      setRequiredForm('billing');
-      setLoading(false); // Reset loading state
-      return;
-    }
-    
-    const addressCountry = shippingForm.country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-    
-    if (isNigeria && !shippingMethod) {
-      setError('Please select a shipping method');
-      setLoading(false); // Reset loading state
-      return;
-    }
-    
-    if (!cart?.items?.length) {
-      setError('Cart is empty');
-      toast.error('Cart is empty');
-      setLoading(false); // Reset loading state
-      return;
-    }
-    
-    try {
-      const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
-      
-      // Calculate amounts in NGN
-      const baseSubtotal = Number(cart?.subtotal) || 0;
-      const baseFirstOrderDiscount = firstOrderDiscount; // Use the calculated discount
-      const baseCouponDiscount = couponDiscount;
-      const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
-      const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
-      const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
-      const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
-      const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
-      const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
-      
-      // Format payment method as a string to match backend expectations
-      const formattedPaymentMethod = paymentMethod;
-      
-      const orderData = {
-        user_id: userId,
-        // For guests, we send shipping_data and billing_data
-        // For authenticated users, we send address_id and billing_address_id
-        shipping_data: !isAuthenticated() ? shippingForm : null,
-        billing_data: !isAuthenticated() ? billingForm : null,
-        address_id: isAuthenticated() ? parseInt(shippingAddressId) : null,
-        billing_address_id: isAuthenticated() ? parseInt(billingAddressId) : null,
-        cart_id: isAuthenticated() ? cart.cartId : null,
-        total: baseTotal,
-        discount: baseFinalDiscount,
-        coupon_code: appliedCoupon ? appliedCoupon.code : null,
-        delivery_option: isNigeria ? 'standard' : 'international',
-        shipping_method_id: isNigeria ? shippingMethod?.id : null,
-        shipping_cost: baseShippingCost,
-        shipping_country: addressCountry,
-        payment_method: formattedPaymentMethod, // Use formatted payment method as string
-        currency: orderCurrency,
-        reference: uuidv4(),
-        items: cart.items.map(item => {
-          const basePrice = Number(item.item?.price || 0);
-          return {
-            variant_id: item.item?.is_product ? item.item.id : null,
-            bundle_id: item.item?.is_product ? null : item.item.id,
-            quantity: item.quantity || 1,
-            price: basePrice,
-            size_id: item.item?.size_id || null,
-            image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
-              (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
-              (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
-            product_name: item.item?.name || 'Unknown Item',
-            color_name: item.item?.color || null,
-            size_name: item.item?.size || null,
-          };
-        }),
-        note: orderNote,
-        exchange_rate: 1, // No conversion needed
-        base_currency_total: baseTotal,
-        converted_total: baseTotal,
-        tax: baseTax,
-      };
-      
-      console.log('Order payload:', orderData);
-      
-      const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
-      
-      console.log('Order response:', orderResponse.data);
-      
-      const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
-      if (!orderId) {
-        console.error('Order ID not found in response:', orderResponse.data);
-        throw new Error('Order ID not found in response');
-      }
-      
-      const paymentCurrency = 'NGN';
-      const paymentAmount = baseTotal;
-      
-      const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
-      
-      const paymentData = {
-        order_id: orderId,
-        reference: orderData.reference,
-        email: billingForm.email || guestForm.email || user.email,
-        amount: Math.round(paymentAmount * 100), // Convert to kobo
-        currency: paymentCurrency,
-        callback_url: callbackUrl,
-      };
-      
-      console.log('Payment payload:', paymentData);
-      
-      // Add a timeout to the payment request to prevent hanging
-      const paymentResponse = await Promise.race([
-        axios.post(`${API_BASE_URL}/api/paystack/initialize`, paymentData),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Payment initialization timeout')), 15000)
-        )
-      ]);
-      
-      console.log('Payment response:', paymentResponse.data);
-      
-      let paymentInfo = paymentResponse.data;
-      if (paymentResponse.data.data) {
-        paymentInfo = paymentResponse.data.data;
-      }
-      
-      const accessCode = paymentInfo.access_code;
-      const authorizationUrl = paymentInfo.authorization_url;
-      
-      // Clear guest cart from localStorage
-      if (isGuest) {
-        localStorage.removeItem('guestCart');
-      }
-      
-      toast.success('Order placed successfully!');
-      localStorage.setItem('lastOrderReference', orderData.reference);
-      localStorage.setItem('pendingOrderId', orderId); // Store the order ID
-      
-      if (accessCode) {
-        const paystack = new PaystackPop();
-        paystack.newTransaction({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-          email: paymentData.email,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          reference: paymentData.reference,
-          callback: (response) => {
-            toast.success('Payment successful!');
-            navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
-          },
-          onClose: () => {
-            toast.info('Payment window closed. You can complete payment later from your orders page.');
-            navigate(`/orders/${orderId}`);
-          }
-        });
-      } else if (authorizationUrl) {
-        window.location.href = authorizationUrl;
-      } else {
-        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
-        throw new Error('Failed to get payment information');
-      }
-    } catch (err) {
-      console.error('Payment processing error:', err);
-      console.error('Error response:', err.response?.data);
-      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.response?.data?.message || err.message;
-      setError(`Failed to process order: ${errorMessage}`);
-      toast.error(`Failed to process order: ${errorMessage}`);
-      setLoading(false); // Reset loading state
-    }
-  };
+  // Modified processOrder function with better error handling and loading state management
+const processOrder = async (guestUserId = null) => {
+  // Use the provided guestUserId if available, otherwise fall back to state
+  const userId = guestUserId || createdUserId || getUserId();
   
-  // Handle place order - validates all forms and processes the order
-  const handlePlaceOrder = async () => {
-    setLoading(true);
-    setError('');
-    setRequiredForm(null);
+  // Skip guest form check if we have a guestUserId
+  if (!guestUserId && isGuest && !guestFormSubmitted) {
+    setError('Please complete the guest form to continue');
+    setRequiredForm('guest');
+    setLoading(false); // Reset loading state
+    return;
+  }
+  
+  if (!shippingForm.address_line_1) {
+    setError('Please add a shipping address');
+    setRequiredForm('shipping');
+    setLoading(false); // Reset loading state
+    return;
+  }
+  
+  if (!billingForm.address_line_1) {
+    setError('Please add a billing address');
+    setRequiredForm('billing');
+    setLoading(false); // Reset loading state
+    return;
+  }
+  
+  const addressCountry = shippingForm.country;
+  const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+  
+  if (isNigeria && !shippingMethod) {
+    setError('Please select a shipping method');
+    setLoading(false); // Reset loading state
+    return;
+  }
+  
+  if (!cart?.items?.length) {
+    setError('Cart is empty');
+    toast.error('Cart is empty');
+    setLoading(false); // Reset loading state
+    return;
+  }
+  
+  try {
+    const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
     
-    try {
-      // For guest users, first process the guest form to get the user ID
-      if (isGuest && !guestFormSubmitted) {
-        const guestUserId = await handleGuestFormSubmit();
-        if (!guestUserId) {
-          setLoading(false);
-          return;
+    // Calculate amounts in NGN
+    const baseSubtotal = Number(cart?.subtotal) || 0;
+    const baseFirstOrderDiscount = firstOrderDiscount; // Use the calculated discount
+    const baseCouponDiscount = couponDiscount;
+    const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
+    const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
+    const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
+    const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+    const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
+    const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
+    
+    // Format payment method as a string to match backend expectations
+    const formattedPaymentMethod = paymentMethod;
+    
+    const orderData = {
+      user_id: userId,
+      // For guests, we send shipping_data and billing_data
+      // For authenticated users, we send address_id and billing_address_id
+      shipping_data: !isAuthenticated() ? shippingForm : null,
+      billing_data: !isAuthenticated() ? billingForm : null,
+      address_id: isAuthenticated() ? parseInt(shippingAddressId) : null,
+      billing_address_id: isAuthenticated() ? parseInt(billingAddressId) : null,
+      cart_id: isAuthenticated() ? cart.cartId : null,
+      total: baseTotal,
+      discount: baseFinalDiscount,
+      coupon_code: appliedCoupon ? appliedCoupon.code : null,
+      delivery_option: isNigeria ? 'standard' : 'international',
+      shipping_method_id: isNigeria ? shippingMethod?.id : null,
+      shipping_cost: baseShippingCost,
+      shipping_country: addressCountry,
+      payment_method: formattedPaymentMethod, // Use formatted payment method as string
+      currency: orderCurrency,
+      reference: uuidv4(),
+      items: cart.items.map(item => {
+        const basePrice = Number(item.item?.price || 0);
+        return {
+          variant_id: item.item?.is_product ? item.item.id : null,
+          bundle_id: item.item?.is_product ? null : item.item.id,
+          quantity: item.quantity || 1,
+          price: basePrice,
+          size_id: item.item?.size_id || null,
+          image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
+            (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
+            (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
+          product_name: item.item?.name || 'Unknown Item',
+          color_name: item.item?.color || null,
+          size_name: item.item?.size || null,
+        };
+      }),
+      note: orderNote,
+      exchange_rate: 1, // No conversion needed
+      base_currency_total: baseTotal,
+      converted_total: baseTotal,
+      tax: baseTax,
+    };
+    
+    console.log('Order payload:', orderData);
+    
+    const orderResponse = await axios.post(`${API_BASE_URL}/api/orders`, orderData);
+    
+    console.log('Order response:', orderResponse.data);
+    
+    const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
+    if (!orderId) {
+      console.error('Order ID not found in response:', orderResponse.data);
+      throw new Error('Order ID not found in response');
+    }
+    
+    const paymentCurrency = 'NGN';
+    const paymentAmount = baseTotal;
+    
+    const callbackUrl = `${window.location.origin}/thank-you?reference=${orderData.reference}&orderId=${orderId}`;
+    
+    const paymentData = {
+      order_id: orderId,
+      reference: orderData.reference,
+      email: billingForm.email || guestForm.email || user.email,
+      amount: Math.round(paymentAmount * 100), // Convert to kobo
+      currency: paymentCurrency,
+      callback_url: callbackUrl,
+    };
+    
+    console.log('Payment payload:', paymentData);
+    
+    // Try to initialize payment with multiple retries
+    let paymentResponse;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Increase timeout for each retry
+        const timeout = 15000 * (retryCount + 1); // 15s, 30s, 45s
+        
+        paymentResponse = await Promise.race([
+          axios.post(`${API_BASE_URL}/api/paystack/initialize`, paymentData),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Payment initialization timeout')), timeout)
+          )
+        ]);
+        
+        // If we get here, the request was successful
+        break;
+      } catch (err) {
+        retryCount++;
+        console.warn(`Payment initialization attempt ${retryCount} failed:`, err.message);
+        
+        if (retryCount >= maxRetries) {
+          throw new Error('Payment initialization failed after multiple attempts');
         }
         
-        // Now process the order with the returned user ID
-        await processOrder(guestUserId);
-      } else {
-        // For logged-in users or already submitted guest forms, process directly
-        await processOrder();
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    } catch (err) {
-      console.error('Error in place order:', err);
-      setLoading(false);
     }
-  };
+    
+    console.log('Payment response:', paymentResponse.data);
+    
+    let paymentInfo = paymentResponse.data;
+    if (paymentResponse.data.data) {
+      paymentInfo = paymentResponse.data.data;
+    }
+    
+    const accessCode = paymentInfo.access_code;
+    const authorizationUrl = paymentInfo.authorization_url;
+    
+    // Clear guest cart from localStorage
+    if (isGuest) {
+      localStorage.removeItem('guestCart');
+    }
+    
+    toast.success('Order placed successfully!');
+    localStorage.setItem('lastOrderReference', orderData.reference);
+    localStorage.setItem('pendingOrderId', orderId); // Store the order ID
+    
+    if (accessCode) {
+      const paystack = new PaystackPop();
+      paystack.newTransaction({
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        email: paymentData.email,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        reference: paymentData.reference,
+        callback: (response) => {
+          toast.success('Payment successful!');
+          navigate(`/thank-you?reference=${orderData.reference}&orderId=${orderId}`);
+        },
+        onClose: () => {
+          toast.info('Payment window closed. You can complete payment later from your orders page.');
+          navigate(`/orders/${orderId}`);
+        }
+      });
+    } else if (authorizationUrl) {
+      window.location.href = authorizationUrl;
+    } else {
+      console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
+      throw new Error('Failed to get payment information');
+    }
+  } catch (err) {
+    console.error('Payment processing error:', err);
+    console.error('Error response:', err.response?.data);
+    
+    // Handle specific error cases
+    let errorMessage = 'Failed to process order';
+    
+    if (err.message === 'Payment initialization timeout' || 
+        err.message === 'Payment initialization failed after multiple attempts') {
+      errorMessage = 'Payment service is currently experiencing high traffic. Please try again later.';
+    } else if (err.response?.data?.error) {
+      errorMessage = err.response.data.error;
+    } else if (err.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    setError(`Failed to process order: ${errorMessage}`);
+    toast.error(`Failed to process order: ${errorMessage}`);
+    setLoading(false); // Reset loading state
+    
+    // If order was created but payment failed, redirect to order page
+    if (err.orderId) {
+      navigate(`/orders/${err.orderId}`);
+    }
+  }
+};
+
+// Update handlePlaceOrder to ensure loading state is reset
+const handlePlaceOrder = async () => {
+  setLoading(true);
+  setError('');
+  setRequiredForm(null);
+  
+  try {
+    // For guest users, first process the guest form to get the user ID
+    if (isGuest && !guestFormSubmitted) {
+      const guestUserId = await handleGuestFormSubmit();
+      if (!guestUserId) {
+        setLoading(false);
+        return;
+      }
+      
+      // Now process the order with the returned user ID
+      await processOrder(guestUserId);
+    } else {
+      // For logged-in users or already submitted guest forms, process directly
+      await processOrder();
+    }
+  } catch (err) {
+    console.error('Error in place order:', err);
+    setLoading(false);
+  }
+};
   
   // Fixed handleShippingSubmit to close the form after saving
   const handleShippingSubmit = async (data) => {
