@@ -401,11 +401,18 @@ const CheckoutPage = () => {
       userFirstOrder: user?.first_order,
       currentSubtotal,
       userDataRefreshed,
-      refreshCount
+      refreshCount,
+      isGuest,
+      userExists: !!user
     });
     
-    // Make sure user exists and first_order is true or 1 (database might return 1 instead of true)
-    if (user && (user.first_order === true || user.first_order === 1) && currentSubtotal > 0) {
+    // Guest users (temporary) don't get first order discount
+    if (isGuest) {
+      setFirstOrderDiscount(0);
+      console.log('No first order discount for guest user');
+    } 
+    // For authenticated users, check if it's their first order
+    else if (user && (user.first_order === true || user.first_order === 1) && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
       console.log('Applied first order discount:', discountAmount);
@@ -413,7 +420,7 @@ const CheckoutPage = () => {
       setFirstOrderDiscount(0);
       console.log('No first order discount applied. User:', user ? 'exists' : 'missing', 'First order:', user?.first_order);
     }
-  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount]); // Added refreshCount
+  }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount, isGuest]); // Added isGuest to dependencies
   
   // Apply coupon code
   const handleApplyCoupon = async (e) => {
@@ -689,18 +696,21 @@ const CheckoutPage = () => {
     if (!guestUserId && isGuest && !guestFormSubmitted) {
       setError('Please complete the guest form to continue');
       setRequiredForm('guest');
+      setLoading(false); // Reset loading state
       return;
     }
     
     if (!shippingForm.address_line_1) {
       setError('Please add a shipping address');
       setRequiredForm('shipping');
+      setLoading(false); // Reset loading state
       return;
     }
     
     if (!billingForm.address_line_1) {
       setError('Please add a billing address');
       setRequiredForm('billing');
+      setLoading(false); // Reset loading state
       return;
     }
     
@@ -709,12 +719,14 @@ const CheckoutPage = () => {
     
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method');
+      setLoading(false); // Reset loading state
       return;
     }
     
     if (!cart?.items?.length) {
       setError('Cart is empty');
       toast.error('Cart is empty');
+      setLoading(false); // Reset loading state
       return;
     }
     
@@ -805,10 +817,13 @@ const CheckoutPage = () => {
       
       console.log('Payment payload:', paymentData);
       
-      const paymentResponse = await axios.post(
-        `${API_BASE_URL}/api/paystack/initialize`,
-        paymentData
-      );
+      // Add a timeout to the payment request to prevent hanging
+      const paymentResponse = await Promise.race([
+        axios.post(`${API_BASE_URL}/api/paystack/initialize`, paymentData),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Payment initialization timeout')), 15000)
+        )
+      ]);
       
       console.log('Payment response:', paymentResponse.data);
       
@@ -820,13 +835,16 @@ const CheckoutPage = () => {
       const accessCode = paymentInfo.access_code;
       const authorizationUrl = paymentInfo.authorization_url;
       
-      if (accessCode) {
-        // Clear guest cart from localStorage
+      // Clear guest cart from localStorage
+      if (isGuest) {
         localStorage.removeItem('guestCart');
-        toast.success('Order placed successfully. Opening payment popup...');
-        localStorage.setItem('lastOrderReference', orderData.reference);
-        localStorage.setItem('pendingOrderId', orderId); // Store the order ID
-        
+      }
+      
+      toast.success('Order placed successfully!');
+      localStorage.setItem('lastOrderReference', orderData.reference);
+      localStorage.setItem('pendingOrderId', orderId); // Store the order ID
+      
+      if (accessCode) {
         const paystack = new PaystackPop();
         paystack.newTransaction({
           key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
@@ -844,11 +862,6 @@ const CheckoutPage = () => {
           }
         });
       } else if (authorizationUrl) {
-        // Clear guest cart from localStorage
-        localStorage.removeItem('guestCart');
-        toast.success('Order placed successfully. Redirecting to payment page...');
-        localStorage.setItem('lastOrderReference', orderData.reference);
-        localStorage.setItem('pendingOrderId', orderId);
         window.location.href = authorizationUrl;
       } else {
         console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
@@ -860,6 +873,7 @@ const CheckoutPage = () => {
       const errorMessage = err.response?.data?.error || err.response?.data?.details || err.response?.data?.message || err.message;
       setError(`Failed to process order: ${errorMessage}`);
       toast.error(`Failed to process order: ${errorMessage}`);
+      setLoading(false); // Reset loading state
     }
   };
   
@@ -1040,7 +1054,7 @@ const CheckoutPage = () => {
           try {
             const guestCart = JSON.parse(guestCartData);
             setCart(guestCart);
-            setIsGuest(true);
+            setIsGuest(true); // Set isGuest to true
             setShowGuestModal(true); // Show the modal for guests
             setLoading(false);
             return;
@@ -1049,7 +1063,7 @@ const CheckoutPage = () => {
           }
         }
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-        setIsGuest(true);
+        setIsGuest(true); // Set isGuest to true
         setShowGuestModal(true); // Show the modal for guests
         setLoading(false);
         return;
@@ -1061,6 +1075,8 @@ const CheckoutPage = () => {
         
         // If we have a createdUserId but no token, we don't need to fetch addresses
         if (createdUserId && !isAuthenticated()) {
+          // This is a guest user with a created temporary account
+          setIsGuest(true); // Ensure isGuest is set to true
           setLoading(false);
           return;
         }
@@ -1081,7 +1097,7 @@ const CheckoutPage = () => {
         }
         
         setCart(cartData);
-        setIsGuest(false);
+        setIsGuest(false); // Set isGuest to false for authenticated users
         
         try {
           const shippingResponse = await axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
