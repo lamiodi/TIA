@@ -234,7 +234,7 @@ export const createOrder = async (req, res) => {
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.id
             JOIN colors c ON pv.color_id = c.id
-            LEFT JOIN sizes s ON s.id = ${item.size_id}
+            LEFT JOIN sizes s ON s.id = ${item.size_id || null}
             LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
             WHERE pv.id = ${item.variant_id}
           `;
@@ -259,7 +259,8 @@ export const createOrder = async (req, res) => {
             // Fallback for products without size; adjust based on your schema
             [variantSize] = await sql`
               SELECT stock_quantity FROM variant_sizes 
-              WHERE variant_id = ${item.variant_id} LIMIT 1
+              WHERE variant_id = ${item.variant_id}
+              LIMIT 1
             `;
             if (!variantSize) {
               console.error(`Validation failed: No stock found for variant ${item.variant_id} without size`);
@@ -317,7 +318,7 @@ export const createOrder = async (req, res) => {
                 FROM product_variants pv
                 JOIN products p ON pv.product_id = p.id
                 JOIN colors c ON pv.color_id = c.id
-                LEFT JOIN sizes s ON s.id = ${bi.size_id}
+                LEFT JOIN sizes s ON s.id = ${bi.size_id || null}
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
                 WHERE pv.id = ${bi.variant_id}
               `;
@@ -340,7 +341,8 @@ export const createOrder = async (req, res) => {
               } else {
                 [variantSize] = await sql`
                   SELECT stock_quantity FROM variant_sizes 
-                  WHERE variant_id = ${bi.variant_id} LIMIT 1
+                  WHERE variant_id = ${bi.variant_id}
+                  LIMIT 1
                 `;
                 if (!variantSize) {
                   console.error(`Validation failed: No stock found for bundle item variant ${bi.variant_id} without size`);
@@ -464,7 +466,8 @@ export const createOrder = async (req, res) => {
             const [updateResult] = await sql`
               UPDATE variant_sizes 
               SET stock_quantity = stock_quantity - ${item.quantity} 
-              WHERE variant_id = ${item.variant_id} LIMIT 1
+              WHERE variant_id = ${item.variant_id}
+              LIMIT 1
               RETURNING stock_quantity
             `;
             if (!updateResult) {
@@ -492,7 +495,8 @@ export const createOrder = async (req, res) => {
               const [updateResult] = await sql`
                 UPDATE variant_sizes 
                 SET stock_quantity = stock_quantity - ${item.quantity} 
-                WHERE variant_id = ${bi.variant_id} LIMIT 1
+                WHERE variant_id = ${bi.variant_id}
+                LIMIT 1
                 RETURNING stock_quantity
               `;
               if (!updateResult) {
