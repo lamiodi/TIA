@@ -260,7 +260,6 @@ export const createOrder = async (req, res) => {
             [variantSize] = await sql`
               SELECT stock_quantity FROM variant_sizes 
               WHERE variant_id = ${item.variant_id}
-              LIMIT 1
             `;
             if (!variantSize) {
               console.error(`Validation failed: No stock found for variant ${item.variant_id} without size`);
@@ -342,7 +341,6 @@ export const createOrder = async (req, res) => {
                 [variantSize] = await sql`
                   SELECT stock_quantity FROM variant_sizes 
                   WHERE variant_id = ${bi.variant_id}
-                  LIMIT 1
                 `;
                 if (!variantSize) {
                   console.error(`Validation failed: No stock found for bundle item variant ${bi.variant_id} without size`);
@@ -426,7 +424,7 @@ export const createOrder = async (req, res) => {
         ) VALUES (
           ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${finalCartId}, ${total}, ${discount}, 
           ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
-          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
+          ${address.country}, ${paymentMethod}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
           ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
           ${address.country.toLowerCase() === 'nigeria' ? true : false}
         )
@@ -467,7 +465,6 @@ export const createOrder = async (req, res) => {
               UPDATE variant_sizes 
               SET stock_quantity = stock_quantity - ${item.quantity} 
               WHERE variant_id = ${item.variant_id}
-              LIMIT 1
               RETURNING stock_quantity
             `;
             if (!updateResult) {
@@ -496,7 +493,6 @@ export const createOrder = async (req, res) => {
                 UPDATE variant_sizes 
                 SET stock_quantity = stock_quantity - ${item.quantity} 
                 WHERE variant_id = ${bi.variant_id}
-                LIMIT 1
                 RETURNING stock_quantity
               `;
               if (!updateResult) {
