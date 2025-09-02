@@ -6,13 +6,10 @@ import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : 'https://tia-backend-r331.onrender.com/api';
-
 const api = axios.create({ baseURL: API_BASE_URL });
-
 
 const ShopAllPage = () => {
   const [products, setProducts] = useState([]);
@@ -26,12 +23,9 @@ const ShopAllPage = () => {
   const { user } = useAuth();
   const { currency, exchangeRate, country, loading: contextLoading } = useContext(CurrencyContext);
   const navigate = useNavigate();
-
   const itemsPerPage = 16;
   const category = searchParams.get('category');
-
   const filterCategories = ['All', 'Briefs', 'Gymwear', 'New Arrivals', '3 in 1', '5 in 1'];
-
   const categoryMap = {
     'New Arrivals': 'new',
     'Briefs': 'briefs',
@@ -39,7 +33,6 @@ const ShopAllPage = () => {
     '3 in 1': '3in1',
     '5 in 1': '5in1'
   };
-
   const reverseCategoryMap = {
     'new': 'New Arrivals',
     'briefs': 'Briefs',
@@ -47,6 +40,32 @@ const ShopAllPage = () => {
     '3in1': '3 in 1',
     '5in1': '5 in 1'
   };
+
+  // Helper function to check if a product is a brief
+  const isBrief = useCallback((product) => {
+    if (!product) return false;
+    
+    // For bundles, check bundle_types
+    if (!product.is_product && product.bundle_types && product.bundle_types.length > 0) {
+      return product.bundle_types.some(type => {
+        const typeLower = type.toLowerCase();
+        return typeLower.includes('brief') || 
+               typeLower.includes('underwear') ||
+               typeLower.includes('boxer') ||
+               typeLower.includes('trunk');
+      });
+    }
+    
+    // For products, check the name and category
+    const name = (product.name || '').toLowerCase();
+    const category = (product.category || '').toLowerCase();
+    
+    return name.includes('brief') || 
+           name.includes('boxer') || 
+           name.includes('underwear') ||
+           name.includes('trunk') ||
+           category === 'briefs';
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -66,6 +85,7 @@ const ShopAllPage = () => {
           price: item.price,
           image: item.image,
           created_at: item.created_at,
+          category: item.category, // Include category for brief detection
         };
   
         if (!item.is_product) {
@@ -84,6 +104,19 @@ const ShopAllPage = () => {
         };
       });
   
+      // Sort to show briefs first when "All" is selected
+      if (!category) {
+        processedData.sort((a, b) => {
+          const aIsBrief = isBrief(a);
+          const bIsBrief = isBrief(b);
+          
+          // Sort briefs first, then everything else
+          if (aIsBrief && !bIsBrief) return -1; // a comes before b
+          if (!aIsBrief && bIsBrief) return 1;  // b comes before a
+          return 0; // maintain original order for non-briefs
+        });
+      }
+  
       setProducts(processedData);
       setCurrentFilter(reverseCategoryMap[category?.toLowerCase()] || 'All');
     } catch (err) {
@@ -91,7 +124,7 @@ const ShopAllPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [category]);
+  }, [category, isBrief]);
 
   useEffect(() => {
     fetchProducts();
@@ -99,14 +132,12 @@ const ShopAllPage = () => {
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
-
     if (currentFilter === '3 in 1' || currentFilter === '5 in 1') {
       filtered = filtered.filter(item =>
         !item.is_product &&
         item.bundle_types?.includes(currentFilter === '3 in 1' ? '3-in-1' : '5-in-1')
       );
     }
-
     switch (sortBy) {
       case 'price-low':
         filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -123,7 +154,6 @@ const ShopAllPage = () => {
       default:
         break;
     }
-
     return filtered;
   }, [products, currentFilter, sortBy]);
 
@@ -150,7 +180,6 @@ const ShopAllPage = () => {
         navigate('/login', { state: { from: `/shop${category ? `?category=${category}` : ''}` } });
         return;
       }
-
       if (isProduct) {
         // Fetch product details to get variant and size
         const res = await api.get(`/products/${id}`);
@@ -159,14 +188,12 @@ const ShopAllPage = () => {
           alert('Invalid product data');
           return;
         }
-
         const variant = product.data.variants[0]; // Use first variant
         const size = variant.sizes?.[0]; // Use first size
         if (!variant || !size) {
           alert('No valid variant or size available');
           return;
         }
-
         await api.post('/cart', {
           user_id: user.id,
           variant_id: variant.variant_id,
@@ -177,7 +204,6 @@ const ShopAllPage = () => {
         }, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-
         alert(`${name} added to cart!`);
       } else {
         // Fetch bundle details
@@ -187,7 +213,6 @@ const ShopAllPage = () => {
           alert('Invalid bundle data');
           return;
         }
-
         // Use first variant and size for simplicity
         const variant = bundle.data.items[0]?.all_variants?.[0];
         const size = variant?.sizes?.[0];
@@ -195,7 +220,6 @@ const ShopAllPage = () => {
           alert('No valid variant or size available for bundle');
           return;
         }
-
         await api.post('/cart', {
           user_id: user.id,
           bundle_id: id,
@@ -207,7 +231,6 @@ const ShopAllPage = () => {
         }, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-
         alert(`${name} bundle added to cart!`);
       }
     } catch (err) {
@@ -280,7 +303,6 @@ const ShopAllPage = () => {
             </p>
           </div>
         </div>
-
         <div className="mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex flex-wrap gap-3">
@@ -298,7 +320,6 @@ const ShopAllPage = () => {
                 </button>
               ))}
             </div>
-
             <div className="flex items-center justify-between gap-3">
               <div className="flex sm:hidden bg-gray-100 rounded-lg p-1">
                 <button
@@ -328,7 +349,6 @@ const ShopAllPage = () => {
                   </svg>
                 </button>
               </div>
-
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -343,7 +363,6 @@ const ShopAllPage = () => {
             </div>
           </div>
         </div>
-
         <div className={`grid gap-x-2 gap-y-[0.7em] sm:gap-x-3 sm:gap-y-[1.05em] md:gap-x-4 md:gap-y-[1.4em] lg:gap-x-3 lg:gap-y-[0.95em] mb-8 ${
           mobileLayout === 'one' 
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
@@ -358,7 +377,6 @@ const ShopAllPage = () => {
             />
           ))}
         </div>
-
         {hasMoreProducts && (
           <div className="flex justify-center">
             <Button
@@ -382,22 +400,21 @@ const ShopAllPage = () => {
 const ProductCard = ({ product, onImageError }) => {
   const { id, name, price, image, is_product, variantId, bundle_types } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
-
+  
   // Clean product name (remove trailing "– Something")
   let displayName = name || 'Unnamed Product';
   if (displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
   }
-
+  
   const productUrl = is_product
     ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
     : `/bundle/${id}`;
-    const parsedPrice = parseFloat(price) || 0;
-
-    const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
+    
+  const parsedPrice = parseFloat(price) || 0;
+  const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
+  const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
   
-    const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
-
   return (
     <div className="group bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full border border-gray-100">
       <Link to={productUrl} className="block relative overflow-hidden">
@@ -416,13 +433,12 @@ const ProductCard = ({ product, onImageError }) => {
             </span>
           )}
         </div>
-
         <div className="p-3 sm:p-4">
           <h3 className="text-sm sm:text-base font-semibold text-Primarycolor mb-2 line-clamp-2 leading-tight group-hover:text-Primarycolor transition-colors duration-200">
             {displayName}
           </h3>
           <p className="text-lg sm:text-xl font-semibold font-Manrope text-Accent">
-          {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
+            {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
               style: 'currency', 
               currency: displayCurrency,
               minimumFractionDigits: 2
@@ -430,7 +446,6 @@ const ProductCard = ({ product, onImageError }) => {
           </p>
         </div>
       </Link>
-
       <div className="p-3 sm:p-4 pt-1 mt-auto">
         <Link to={productUrl}>
           <button
@@ -456,6 +471,5 @@ const ProductCard = ({ product, onImageError }) => {
     </div>
   );
 };
-
 
 export default ShopAllPage;

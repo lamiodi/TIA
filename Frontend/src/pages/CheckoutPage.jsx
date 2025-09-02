@@ -732,13 +732,8 @@ const CheckoutPage = () => {
       const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
       const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
       
-      // Format payment method properly
-      const formattedPaymentMethod = {
-        type: paymentMethod,
-        provider: paymentMethod === 'card' ? 'paystack' : 
-                  paymentMethod === 'bank' ? 'bank_transfer' : 
-                  paymentMethod === 'bitcoin' ? 'bitcoin' : 'other'
-      };
+      // Format payment method as a string to match backend expectations
+      const formattedPaymentMethod = paymentMethod;
       
       const orderData = {
         user_id: userId,
@@ -756,7 +751,7 @@ const CheckoutPage = () => {
         shipping_method_id: isNigeria ? shippingMethod?.id : null,
         shipping_cost: baseShippingCost,
         shipping_country: addressCountry,
-        payment_method: formattedPaymentMethod, // Use formatted payment method
+        payment_method: formattedPaymentMethod, // Use formatted payment method as string
         currency: orderCurrency,
         reference: uuidv4(),
         items: cart.items.map(item => {

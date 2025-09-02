@@ -41,49 +41,43 @@ const ProductGrid = () => {
       const res = await axios.get(url);
       let productsData = res.data || [];
       
-      // Only sort when filter is 'All' to show briefs first, then everything else in original order
+      // If "All" category is selected, sort to show briefs first
       if (filter === 'All') {
-        // Log a sample product to understand the structure
-        if (productsData.length > 0) {
-          console.log('Sample product structure:', productsData[0]);
-        }
-        
         productsData = [...productsData].sort((a, b) => {
           // Helper function to check if a product is a brief
           const isBrief = (product) => {
             if (!product) return false;
             
             // For bundles, check bundle_types
-            if (!product.is_product && product.bundle_types) {
-              return product.bundle_types.some(type => 
-                type.toLowerCase().includes('brief') || 
-                type.toLowerCase().includes('underwear')
-              );
+            if (!product.is_product && product.bundle_types && product.bundle_types.length > 0) {
+              return product.bundle_types.some(type => {
+                const typeLower = type.toLowerCase();
+                return typeLower.includes('brief') || 
+                       typeLower.includes('underwear') ||
+                       typeLower.includes('boxer') ||
+                       typeLower.includes('trunk');
+              });
             }
             
-            // For products, check the name
+            // For products, check the name and category
             const name = (product.name || '').toLowerCase();
+            const category = (product.category || '').toLowerCase();
+            
             return name.includes('brief') || 
                    name.includes('boxer') || 
                    name.includes('underwear') ||
-                   name.includes('trunk');
+                   name.includes('trunk') ||
+                   category === 'briefs';
           };
           
           const aIsBrief = isBrief(a);
           const bIsBrief = isBrief(b);
           
-          // Debug logging
-          if (aIsBrief) console.log(`Product "${a.name}" identified as brief`);
-          if (bIsBrief) console.log(`Product "${b.name}" identified as brief`);
-          
-          // Sort briefs first, maintain original order for all other products
-          if (aIsBrief && !bIsBrief) return -1;
-          if (!aIsBrief && bIsBrief) return 1;
-          return 0; // Maintain original order for non-brief products
+          // Sort briefs first, then everything else
+          if (aIsBrief && !bIsBrief) return -1; // a comes before b
+          if (!aIsBrief && bIsBrief) return 1;  // b comes before a
+          return 0; // maintain original order for non-briefs
         });
-        
-        // Log the first few products after sorting to verify
-        console.log('First 5 products after sorting:', productsData.slice(0, 5));
       }
       
       setProducts(productsData);
