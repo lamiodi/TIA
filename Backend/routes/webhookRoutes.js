@@ -51,7 +51,7 @@ router.post('/webhook', async (req, res) => {
             ba.full_name as billing_full_name,
             ba.email as billing_email  // Keep for reference/logging
           FROM orders o
-          INNER JOIN users u ON o.user_id = u.id  // Changed to INNER JOIN
+          LEFT JOIN users u ON o.user_id = u.id  // Changed to LEFT JOIN to handle guest orders
           LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
           WHERE o.id = ${orderId} AND o.deleted_at IS NULL
         `;
@@ -73,23 +73,43 @@ router.post('/webhook', async (req, res) => {
         `;
         
         try {
-          await sendDeliveryFeePaymentConfirmation(
-            orderDetails.email,
-            orderDetails.first_name,
-            orderId,
-            orderDetails.delivery_fee,
-            orderDetails.currency
-          );
-          console.log(`✅ Delivery fee confirmation email sent to ${orderDetails.email} for order ${orderId}`);
+          // Use the email from the users table (may be null for guest orders)
+          const userEmail = orderDetails.email;
+          const userName = orderDetails.first_name;
+          
+          // Fallback to billing email if user email is not available (guest orders)
+          const billingEmail = orderDetails.billing_email;
+          const billingName = orderDetails.billing_full_name;
+          
+          const finalEmail = userEmail || billingEmail;
+          const finalName = userName || billingName || 'Customer';
+          
+          if (finalEmail) {
+            await sendDeliveryFeePaymentConfirmation(
+              finalEmail,
+              finalName,
+              orderId,
+              orderDetails.delivery_fee,
+              orderDetails.currency
+            );
+            console.log(`✅ Delivery fee confirmation email sent to ${finalEmail} for order ${orderId}`);
+          } else {
+            console.error(`No email available for delivery fee confirmation for order ${orderId}`);
+          }
         } catch (emailError) {
-          console.error(`Failed to send delivery fee confirmation email to ${orderDetails.email} for order ${orderId}:`, emailError.message);
+          console.error(`Failed to send delivery fee confirmation email for order ${orderId}:`, emailError.message);
           console.error('Email error details:', emailError.response?.data || emailError);
         }
         
         try {
+          // Use name from users table or fallback to billing name for guest orders
+          const userName = orderDetails.first_name;
+          const billingName = orderDetails.billing_full_name;
+          const finalName = userName || billingName || 'Customer';
+          
           await sendAdminDeliveryFeePaymentConfirmation(
             orderId,
-            orderDetails.first_name,
+            finalName,
             orderDetails.delivery_fee,
             orderDetails.currency
           );
@@ -126,7 +146,7 @@ router.post('/webhook', async (req, res) => {
           ba.full_name as billing_full_name,
           ba.email as billing_email  // Keep for reference/logging
         FROM orders o
-        INNER JOIN users u ON o.user_id = u.id  // Changed to INNER JOIN
+        LEFT JOIN users u ON o.user_id = u.id  // Changed to LEFT JOIN to handle guest orders
         LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
         WHERE o.reference = ${reference} AND o.deleted_at IS NULL
       `;
@@ -156,37 +176,29 @@ router.post('/webhook', async (req, res) => {
       
       if (!orderDetails.email_sent) {
         try {
-          // Use the email from the users table
+          // Use the email from the users table (may be null for guest orders)
           const userEmail = orderDetails.email;
+          const userName = orderDetails.first_name;
           
-          if (!userEmail) {
-            console.error(`No email found for user ${orderDetails.user_id} in order ${orderDetails.id}`);
-            
-            // Fallback to billing email if available
-            const billingEmail = orderDetails.billing_email;
-            if (billingEmail) {
-              await sendOrderConfirmationEmail(
-                billingEmail, 
-                orderDetails.first_name, 
-                orderDetails.id, 
-                orderDetails.total, 
-                orderDetails.currency,
-                'completed'
-              );
-              console.log(`Sent email to billing email ${billingEmail} for order ${orderDetails.id}`);
-            } else {
-              console.error(`No email available for order ${orderDetails.id}`);
-            }
-          } else {
+          // Fallback to billing email if user email is not available (guest orders)
+          const billingEmail = orderDetails.billing_email;
+          const billingName = orderDetails.billing_full_name;
+          
+          const finalEmail = userEmail || billingEmail;
+          const finalName = userName || billingName || 'Customer';
+          
+          if (finalEmail) {
             await sendOrderConfirmationEmail(
-              userEmail, 
-              orderDetails.first_name, 
+              finalEmail, 
+              finalName, 
               orderDetails.id, 
               orderDetails.total, 
               orderDetails.currency,
               'completed'
             );
-            console.log(`✅ Sent order confirmation email to user email ${userEmail} for order ${orderDetails.id}`);
+            console.log(`✅ Sent order confirmation email to ${finalEmail} for order ${orderDetails.id}`);
+          } else {
+            console.error(`No email available for order ${orderDetails.id}`);
           }
           
           // Mark email as sent regardless of which email was used
