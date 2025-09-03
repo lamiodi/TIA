@@ -30,15 +30,14 @@ export const loginUser = async (req, res) => {
     res.json({
       token,
       user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-        email: user.email,
-        phone_number: user.phone_number,
-        isAdmin: user.is_admin,
-        first_order: user.first_order,
-      },
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          phone_number: user.phone_number,
+          isAdmin: user.is_admin,
+          first_order: user.first_order,
+        },
     });
   } catch (err) {
     console.error('loginUser error:', err);
@@ -64,14 +63,13 @@ export const adminLogin = async (req, res) => {
     res.json({
       token,
       user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        username: user.username,
-        email: user.email,
-        phone_number: user.phone_number,
-        isAdmin: user.is_admin,
-      },
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          phone_number: user.phone_number,
+          isAdmin: user.is_admin,
+        },
     });
   } catch (err) {
     console.error('adminLogin error:', err);

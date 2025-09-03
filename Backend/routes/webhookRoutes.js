@@ -25,7 +25,7 @@ router.post('/webhook', async (req, res) => {
     const { event, data } = req.body;
     const reference = data.reference;
     
-    if (!reference.startsWith('DF-') && !reference.match(/^[0-9a-zA-Z-]+$/)) {
+    if (!reference.startsWith('DF-') && !reference.startsWith('ORD-') && !reference.match(/^[0-9a-zA-Z-]+$/)) {
       console.warn(`Unrecognized reference format: ${reference}. Event ignored.`);
       return res.status(200).json({ message: 'Unrecognized reference format, event ignored' });
     }

@@ -27,13 +27,13 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { first_name, last_name, username, email, phone_number } = req.body;
+    const { first_name, last_name, email, phone_number } = req.body;
     
     // Build dynamic update query
     const updates = {};
     if (first_name) updates.first_name = first_name;
     if (last_name) updates.last_name = last_name;
-    if (username) updates.username = username;
+
     if (email) updates.email = email;
     if (phone_number) updates.phone_number = phone_number;
     
@@ -43,9 +43,9 @@ export const updateUserProfile = async (req, res) => {
     
     const [updatedUser] = await sql`
       UPDATE users
-      SET ${sql(updates, 'first_name', 'last_name', 'username', 'email', 'phone_number')}, updated_at = NOW()
+      SET ${sql(updates, 'first_name', 'last_name', 'email', 'phone_number')}, updated_at = NOW()
       WHERE id = ${userId} AND deleted_at IS NULL
-      RETURNING id, first_name, last_name, username, email, phone_number, created_at, updated_at
+      RETURNING id, first_name, last_name, email, phone_number, created_at, updated_at
     `;
     
     if (!updatedUser) {

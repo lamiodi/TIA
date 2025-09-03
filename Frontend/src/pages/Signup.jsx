@@ -35,7 +35,7 @@ const SignupPage = () => {
   ];
   
   const [formData, setFormData] = useState({
-    first_name: '', last_name: '', username: '',
+    first_name: '', last_name: '',
     email: '', password: '', phone_number: ''
   });
   const [formErrors, setFormErrors] = useState({});
@@ -294,39 +294,7 @@ const SignupPage = () => {
                   </p>
                 )}
               </div>
-              {/* Username */}
-              <div>
-                <label htmlFor="username" className="block text-sm font-semibold mb-2 font-Jost" style={{ color: '#1E1E1E' }}>
-                  Username
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#6E6E6E' }} />
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 text-sm rounded-xl border transition-all focus:outline-none focus:ring-2 font-Jost ${
-                      formErrors.username 
-                        ? 'border-red-300 focus:ring-red-500' 
-                        : 'border-gray-300'
-                    }`}
-                    style={{ 
-                      color: '#1E1E1E',
-                      ...(formErrors.username ? {} : { '--tw-ring-color': '#1E1E1E' })
-                    }}
-                    placeholder="Username"
-                    autoComplete="username"
-                  />
-                </div>
-                {formErrors.username && (
-                  <p className="mt-2 text-xs text-red-600 flex items-center gap-1 font-Jost">
-                    <AlertCircle className="w-4 h-4" />
-                    {formErrors.username}
-                  </p>
-                )}
-              </div>
+
               {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold mb-2 font-Jost" style={{ color: '#1E1E1E' }}>
