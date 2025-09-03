@@ -1648,11 +1648,11 @@ const CheckoutPage = () => {
                             <div className="flex items-start">
                               <div className="flex-1">
                                 <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
-                                <div className="text-sm typography">
-                                  <p>{shippingForm.address_line_1}</p>
+                                <div className="text-sm text-black font-Jost">
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.address_line_1}</p>
                                   {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
-                                  <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                                  <p>{shippingForm.country}</p>
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.country}</p>
                                 </div>
                               </div>
                               <button
@@ -1743,11 +1743,11 @@ const CheckoutPage = () => {
                             <div className="flex-1">
                               <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
                               {shippingForm.address_line_1 ? (
-                                <div className="text-sm typography">
-                                  <p>{shippingForm.address_line_1}</p>
+                                <div className="text-sm text-black font-Jost">
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.address_line_1}</p>
                                   {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
-                                  <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                                  <p>{shippingForm.country}</p>
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.country}</p>
                                 </div>
                               ) : (
                                 <p className="text-sm text-gray-500 font-Jost">Please enter a shipping address first</p>
