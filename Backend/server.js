@@ -22,9 +22,7 @@ import emailRoutes from './routes/email.js';
 import { EventEmitter } from 'events';
 import { cleanupOldOrders } from './utils/cleanupOrders.js';
 
-
 EventEmitter.defaultMaxListeners = 40;
-
 dotenv.config();
 
 // Initialize Cloudinary
@@ -35,7 +33,6 @@ cloudinary.config({
 });
 
 const app = express();
-
 
 const allowedOrigins = [
   'https://www.thetiabrand.org', // Production frontend
@@ -57,15 +54,11 @@ app.use(cors({
     'Authorization',
     'X-User-Country',
     'Cache-Control',
-    'Pragma'
+    'Pragma',
+    'x-idempotency-key' // Added this header
   ],
   methods: ['GET','POST','PUT','DELETE','OPTIONS']
 }));
-
-
-// ... existing code ...
-
-
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -99,13 +92,12 @@ app.use((err, req, res, next) => {
 // Start cron job
 cleanupOldOrders(); // Optional: Run on startup
 
-
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
 // Health check
 app.get('/', (req, res) => res.send('TIA Backend is running 🚀'));
-
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
