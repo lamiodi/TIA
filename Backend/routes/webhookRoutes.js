@@ -4,8 +4,8 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { sendOrderConfirmationEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation } from '../utils/emailService.js';
-
 dotenv.config();
+
 const router = express.Router();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -37,7 +37,7 @@ router.post('/webhook', async (req, res) => {
         return res.status(200).json({ message: 'Invalid delivery fee reference format, event ignored' });
       }
       const orderId = referenceParts[1];
-
+      
       if (event === 'charge.success') {
         const [orderDetails] = await sql`
           SELECT 
@@ -46,10 +46,12 @@ router.post('/webhook', async (req, res) => {
             o.user_id,
             o.delivery_fee,
             o.currency,
-            COALESCE(u.email, ba.email) as email,
-            COALESCE(u.first_name, ba.full_name) as first_name
+            u.email,  // Primary email from users table
+            u.first_name,  // Primary name from users table
+            ba.full_name as billing_full_name,
+            ba.email as billing_email  // Keep for reference/logging
           FROM orders o
-          LEFT JOIN users u ON o.user_id = u.id
+          INNER JOIN users u ON o.user_id = u.id  // Changed to INNER JOIN
           LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
           WHERE o.id = ${orderId} AND o.deleted_at IS NULL
         `;
@@ -119,10 +121,12 @@ router.post('/webhook', async (req, res) => {
           o.currency, 
           o.email_sent, 
           o.cart_id,
-          COALESCE(u.email, ba.email) as email,
-          COALESCE(u.first_name, ba.full_name) as first_name
+          u.email,  // Primary email from users table
+          u.first_name,  // Primary name from users table
+          ba.full_name as billing_full_name,
+          ba.email as billing_email  // Keep for reference/logging
         FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
+        INNER JOIN users u ON o.user_id = u.id  // Changed to INNER JOIN
         LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
         WHERE o.reference = ${reference} AND o.deleted_at IS NULL
       `;
@@ -151,16 +155,48 @@ router.post('/webhook', async (req, res) => {
       });
       
       if (!orderDetails.email_sent) {
-        await sendOrderConfirmationEmail(
-          orderDetails.email, 
-          orderDetails.first_name, 
-          orderDetails.id, 
-          orderDetails.total, 
-          orderDetails.currency,
-          'completed'
-        );
-        
-        await sql`UPDATE orders SET email_sent = true WHERE id = ${orderDetails.id}`;
+        try {
+          // Use the email from the users table
+          const userEmail = orderDetails.email;
+          
+          if (!userEmail) {
+            console.error(`No email found for user ${orderDetails.user_id} in order ${orderDetails.id}`);
+            
+            // Fallback to billing email if available
+            const billingEmail = orderDetails.billing_email;
+            if (billingEmail) {
+              await sendOrderConfirmationEmail(
+                billingEmail, 
+                orderDetails.first_name, 
+                orderDetails.id, 
+                orderDetails.total, 
+                orderDetails.currency,
+                'completed'
+              );
+              console.log(`Sent email to billing email ${billingEmail} for order ${orderDetails.id}`);
+            } else {
+              console.error(`No email available for order ${orderDetails.id}`);
+            }
+          } else {
+            await sendOrderConfirmationEmail(
+              userEmail, 
+              orderDetails.first_name, 
+              orderDetails.id, 
+              orderDetails.total, 
+              orderDetails.currency,
+              'completed'
+            );
+            console.log(`✅ Sent order confirmation email to user email ${userEmail} for order ${orderDetails.id}`);
+          }
+          
+          // Mark email as sent regardless of which email was used
+          await sql`UPDATE orders SET email_sent = true WHERE id = ${orderDetails.id}`;
+        } catch (emailError) {
+          console.error(`Failed to send order confirmation email for order ${orderDetails.id}:`, emailError.message);
+          console.error('Email error details:', emailError.response?.data || emailError);
+          
+          // Don't fail the webhook if email fails, just log it
+        }
       }
       
       console.log(`✅ Processed charge.success for reference=${reference}`);

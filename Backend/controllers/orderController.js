@@ -47,7 +47,38 @@ export const createOrder = async (req, res) => {
   });
   console.log('📋 Items:', items);
   
+  // Get idempotency key from headers if available
+  const idempotencyKey = req.headers['x-idempotency-key'];
+  
   try {
+    // Check for idempotency key first
+    if (idempotencyKey) {
+      const [existingOrder] = await sql`
+        SELECT id, payment_status, status, reference FROM orders 
+        WHERE idempotency_key = ${idempotencyKey} AND deleted_at IS NULL
+      `;
+      
+      if (existingOrder) {
+        console.log(`⚠️ Order with idempotency key already exists:`, existingOrder);
+        
+        // If order exists and payment is pending, return the existing order
+        if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
+          return res.status(200).json({ 
+            order: { id: existingOrder.id, reference: existingOrder.reference, discount },
+            message: 'Order already exists with pending payment'
+          });
+        }
+        
+        // If order exists with different status, return error
+        return res.status(409).json({ 
+          error: 'Order with this idempotency key already exists',
+          order_id: existingOrder.id,
+          payment_status: existingOrder.payment_status,
+          status: existingOrder.status
+        });
+      }
+    }
+    
     // First check if an order with this reference already exists
     let [existingOrder] = await sql`
       SELECT id, payment_status, status FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
@@ -440,21 +471,88 @@ export const createOrder = async (req, res) => {
         throw new Error(`Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);
       }
       
-      // Insert order
-      const [order] = await sql`
-        INSERT INTO orders (
-          user_id, address_id, billing_address_id, cart_id, total, discount, tax, shipping_method_id, shipping_cost,
-          shipping_country, payment_method, payment_status, status, currency, reference, note, exchange_rate,
-          base_currency_total, converted_total, delivery_fee_paid
-        ) VALUES (
-          ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${finalCartId}, ${total}, ${discount}, 
-          ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
-          ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
-          ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
-          ${address.country.toLowerCase() === 'nigeria' ? true : false}
-        )
-        RETURNING id
-      `;
+      // Try to insert order with idempotency key
+      let order;
+      try {
+        [order] = await sql`
+          INSERT INTO orders (
+            user_id, address_id, billing_address_id, cart_id, total, discount, tax, shipping_method_id, shipping_cost,
+            shipping_country, payment_method, payment_status, status, currency, reference, note, exchange_rate,
+            base_currency_total, converted_total, delivery_fee_paid, idempotency_key
+          ) VALUES (
+            ${user_id}, ${finalAddressId}, ${finalBillingAddressId}, ${finalCartId}, ${total}, ${discount}, 
+            ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
+            ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
+            ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
+            ${address.country.toLowerCase() === 'nigeria' ? true : false}, ${idempotencyKey || null}
+          )
+          RETURNING id
+        `;
+      } catch (insertErr) {
+        // Handle unique constraint violation
+        if (insertErr.code === '23505') { // PostgreSQL unique violation
+          console.log('Unique constraint violation, checking for existing order');
+          
+          // Re-check for existing order by reference
+          [existingOrder] = await sql`
+            SELECT id, payment_status, status FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
+          `;
+          
+          if (existingOrder) {
+            console.log(`Found existing order with reference ${reference}:`, existingOrder);
+            
+            // If order exists and payment is pending, return the existing order
+            if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
+              return res.status(200).json({ 
+                order: { id: existingOrder.id, reference, discount },
+                message: 'Order already exists with pending payment'
+              });
+            }
+            
+            // If order exists with different status, return error
+            return res.status(409).json({ 
+              error: 'Order with this reference already exists',
+              order_id: existingOrder.id,
+              payment_status: existingOrder.payment_status,
+              status: existingOrder.status
+            });
+          }
+          
+          // If idempotency key was provided, check by idempotency key
+          if (idempotencyKey) {
+            [existingOrder] = await sql`
+              SELECT id, payment_status, status, reference FROM orders 
+              WHERE idempotency_key = ${idempotencyKey} AND deleted_at IS NULL
+            `;
+            
+            if (existingOrder) {
+              console.log(`Found existing order with idempotency key:`, existingOrder);
+              
+              // If order exists and payment is pending, return the existing order
+              if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
+                return res.status(200).json({ 
+                  order: { id: existingOrder.id, reference: existingOrder.reference, discount },
+                  message: 'Order already exists with pending payment'
+                });
+              }
+              
+              // If order exists with different status, return error
+              return res.status(409).json({ 
+                error: 'Order with this idempotency key already exists',
+                order_id: existingOrder.id,
+                payment_status: existingOrder.payment_status,
+                status: existingOrder.status
+              });
+            }
+          }
+          
+          // If we can't find the existing order, throw the original error
+          throw insertErr;
+        } else {
+          // For other errors, just throw them
+          throw insertErr;
+        }
+      }
       
       const orderId = order.id;
       
