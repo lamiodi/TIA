@@ -1648,7 +1648,7 @@ const CheckoutPage = () => {
                             <div className="flex items-start">
                               <div className="flex-1">
                                 <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
-                                <div className="text-sm text-Accent font-Jost">
+                                <div className="text-sm text-black font-Jost">
                                   <p>{shippingForm.address_line_1}</p>
                                   {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
                                   <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
@@ -1743,7 +1743,7 @@ const CheckoutPage = () => {
                             <div className="flex-1">
                               <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
                               {shippingForm.address_line_1 ? (
-                                <div className="text-sm text-Accent font-Jost">
+                                <div className="text-sm text-black font-Jost">
                                   <p>{shippingForm.address_line_1}</p>
                                   {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
                                   <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
@@ -1789,7 +1789,25 @@ const CheckoutPage = () => {
                             .filter(addr => String(addr.id) === String(shippingAddressId))
                             .map(address => (
                               <div key={address.id}>
-                                <p className="font-medium text-Primarycolor">{address.title}</p>
+                                <div className="flex justify-between items-start mb-2">
+                                  <p className="font-medium text-Primarycolor">{address.title}</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleEditAddress('addresses', address)}
+                                      className="p-1 text-Primarycolor hover:text-gray-800 transition-colors"
+                                      title="Edit address"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteAddress('addresses', address.id)}
+                                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                      title="Delete address"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
                                 <p className="text-sm text-Accent">{address.address_line_1}</p>
                                 {address.landmark && <p className="text-sm text-Accent">{address.landmark}</p>}
                                 <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
