@@ -95,7 +95,8 @@ export const getShopAll = async (req, res) => {
           WHERE pi.variant_id = pv.id AND pi.is_primary = TRUE
           LIMIT 1
         ) AS primary_image,
-        c.color_name
+        c.color_name,
+        p.category
       FROM products p
       JOIN product_variants pv ON p.id = pv.product_id
       JOIN colors c ON pv.color_id = c.id
@@ -119,6 +120,7 @@ export const getShopAll = async (req, res) => {
       image: row.primary_image || 'https://via.placeholder.com/300x300?text=No+Image',
       color: row.color_name,
       variantId: row.variant_id,
+      category: row.category,
       is_product: true
     }));
 

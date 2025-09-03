@@ -666,7 +666,7 @@ const ProductDetails = () => {
                       <Heart className={`w-6 h-6 ${isWishlisted ? "fill-current" : ""}`} />
                     </button>
                   </div>
-                  <div className="flex items-baseline space-x-4">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     <p className="text-3xl font-bold text-gray-900 font-Manrope">
                       {Number.parseFloat(displayPrice).toLocaleString(country === "Nigeria" ? "en-NG" : "en-US", {
                         style: "currency",
@@ -674,20 +674,22 @@ const ProductDetails = () => {
                         minimumFractionDigits: 2,
                       })}
                     </p>
-                    <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full font-Jost">
-                      In Stock
-                    </span>
-                    {!isProduct && (
-                      <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost">
-                        {bundleType} Bundle
+                    <div className="flex items-center gap-2 flex-nowrap min-w-0">
+                      <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
+                        In Stock
                       </span>
-                    )}
-                    {isGuest && (
-                      <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-Jost flex items-center">
-                        <User className="w-3 h-3 mr-1" />
-                        Guest Shopping
-                      </span>
-                    )}
+                      {!isProduct && (
+                        <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
+                          {bundleType} Bundle
+                        </span>
+                      )}
+                      {isGuest && (
+                        <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-Jost flex items-center whitespace-nowrap">
+                          <User className="w-3 h-3 mr-1" />
+                          Guest Shopping
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Product Options */}
