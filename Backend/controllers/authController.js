@@ -136,10 +136,24 @@ export const signupUser = async (req, res) => {
   }
 };
 
+// Rate-limiter for password reset requests
+const passwordResetAttempts = new Map();
+const MAX_RESET_ATTEMPTS = 5;
+const RESET_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email is required' });
-  
+
+  const key = email.toLowerCase();
+  const now = Date.now();
+  const attempts = passwordResetAttempts.get(key) || [];
+  const recentAttempts = attempts.filter((ts) => now - ts < RESET_WINDOW_MS);
+  if (recentAttempts.length >= MAX_RESET_ATTEMPTS) {
+    return res.status(429).json({ message: 'Too many reset requests. Please try again later.' });
+  }
+  // record this attempt
+  recentAttempts.push(now);
+  passwordResetAttempts.set(key, recentAttempts);
   try {
     // Get the user's actual email from the database
     const [user] = await sql`

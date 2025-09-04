@@ -39,7 +39,10 @@ router.post('/webhook', async (req, res) => {
       const orderId = referenceParts[1];
       
       if (event === 'charge.success') {
-        const [orderDetails] = await sql`
+        console.log(`Processing delivery fee payment success for order=${orderId}, reference=${reference}`);
+        
+        // First attempt to find the order with deleted_at IS NULL
+        let [orderDetails] = await sql`
           SELECT 
             o.id, 
             o.delivery_fee_paid, 
@@ -56,6 +59,27 @@ router.post('/webhook', async (req, res) => {
           WHERE o.id = ${orderId} AND o.deleted_at IS NULL
         `;
         
+        // If not found, try to find the order even if it's marked as deleted
+        if (!orderDetails) {
+          console.log(`Order ${orderId} not found with deleted_at IS NULL, trying to find deleted order...`);
+          [orderDetails] = await sql`
+            SELECT 
+              o.id, 
+              o.delivery_fee_paid, 
+              o.user_id,
+              o.delivery_fee,
+              o.currency,
+              u.email,
+              u.first_name,
+              ba.full_name as billing_full_name,
+              ba.email as billing_email
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
+            WHERE o.id = ${orderId}
+          `;
+        }
+        
         if (!orderDetails) {
           console.error(`Order not found for delivery fee payment: ${orderId}`);
           return res.status(200).json({ message: 'Order not found, event ignored' });
@@ -66,11 +90,23 @@ router.post('/webhook', async (req, res) => {
           return res.status(200).json({ message: 'Delivery fee already paid' });
         }
         
-        await sql`
-          UPDATE orders 
-          SET delivery_fee_paid = true, updated_at = NOW() 
-          WHERE id = ${orderId}
-        `;
+        // Use a transaction to ensure data consistency
+        try {
+          const [updatedOrder] = await sql.begin(async sql => {
+            const [result] = await sql`
+              UPDATE orders 
+              SET delivery_fee_paid = true, updated_at = NOW() 
+              WHERE id = ${orderId}
+              RETURNING id, delivery_fee_paid
+            `;
+            return result;
+          });
+          
+          console.log(`✅ Delivery fee payment status updated for order=${orderId}, result:`, updatedOrder);
+        } catch (dbError) {
+          console.error(`Failed to update delivery fee payment status for order=${orderId}:`, dbError.message);
+          // Continue processing to attempt email sending even if DB update fails
+        }
         
         try {
           // Use the email from the users table (may be null for guest orders)
@@ -124,7 +160,46 @@ router.post('/webhook', async (req, res) => {
       }
       
       if (event === 'charge.failed') {
-        console.log(`❌ Delivery fee payment failed for order=${orderId}`);
+        console.log(`❌ Delivery fee payment failed for order=${orderId}, reference=${reference}`);
+        
+        // First attempt to find the order with deleted_at IS NULL
+        let [orderDetails] = await sql`
+          SELECT 
+            o.id, 
+            o.delivery_fee_paid,
+            o.user_id,
+            o.delivery_fee,
+            o.currency
+          FROM orders o
+          WHERE o.id = ${orderId} AND o.deleted_at IS NULL
+        `;
+        
+        // If not found, try to find the order even if it's marked as deleted
+        if (!orderDetails) {
+          console.log(`Order ${orderId} not found with deleted_at IS NULL, trying to find deleted order...`);
+          [orderDetails] = await sql`
+            SELECT 
+              o.id, 
+              o.delivery_fee_paid,
+              o.user_id,
+              o.delivery_fee,
+              o.currency
+            FROM orders o
+            WHERE o.id = ${orderId}
+          `;
+        }
+        
+        if (!orderDetails) {
+          console.error(`Order not found for failed delivery fee payment: ${orderId}`);
+          return res.status(200).json({ message: 'Order not found, event ignored' });
+        }
+        
+        // Log the failure details for debugging
+        console.log(`Delivery fee payment failed for order=${orderId}, amount=${orderDetails.delivery_fee} ${orderDetails.currency}`);
+        
+        // We don't need to update anything in the database for failed delivery fee payments,
+        // as the delivery_fee_paid flag should remain false
+        
         return res.status(200).json({ message: 'Delivery fee failure recorded' });
       }
       
@@ -132,6 +207,9 @@ router.post('/webhook', async (req, res) => {
     }
     
     if (event === 'charge.success') {
+      // Log the reference for debugging
+      console.log(`Processing charge.success webhook for reference=${reference}`);
+      
       const [orderDetails] = await sql`
         SELECT 
           o.id, 
@@ -153,6 +231,19 @@ router.post('/webhook', async (req, res) => {
       
       if (!orderDetails) {
         console.error(`Order not found for reference: ${reference}`);
+        
+        // Try to find the order without the deleted_at condition as a fallback
+        const [fallbackOrder] = await sql`
+          SELECT id, reference, payment_status
+          FROM orders
+          WHERE reference = ${reference}
+        `;
+        
+        if (fallbackOrder) {
+          console.log(`Found order with reference=${reference} but it was marked as deleted`);
+          return res.status(200).json({ message: 'Order found but marked as deleted, event ignored' });
+        }
+        
         return res.status(200).json({ message: 'Order not found, event ignored' });
       }
       
@@ -161,18 +252,27 @@ router.post('/webhook', async (req, res) => {
         return res.status(200).json({ message: 'Payment already verified' });
       }
       
-      await sql.begin(async sql => {
-        await sql`
-          UPDATE orders 
-          SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
-          WHERE reference = ${reference}
-        `;
-        
-        if (orderDetails.cart_id) {
-          await sql`DELETE FROM cart_items WHERE cart_id = ${orderDetails.cart_id}`;
-          console.log(`✅ Cleared cart items for cart_id=${orderDetails.cart_id}, reference=${reference}`);
-        }
-      });
+      try {
+        await sql.begin(async sql => {
+          // Update the order status
+          const updatedOrders = await sql`
+            UPDATE orders 
+            SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
+            WHERE reference = ${reference}
+            RETURNING id, payment_status
+          `;
+          
+          console.log(`Updated order status for reference=${reference}, result:`, updatedOrders);
+          
+          if (orderDetails.cart_id) {
+            await sql`DELETE FROM cart_items WHERE cart_id = ${orderDetails.cart_id}`;
+            console.log(`✅ Cleared cart items for cart_id=${orderDetails.cart_id}, reference=${reference}`);
+          }
+        });
+      } catch (dbError) {
+        console.error(`Database error updating order for reference=${reference}:`, dbError);
+        return res.status(500).json({ error: 'Database error updating order' });
+      }
       
       if (!orderDetails.email_sent) {
         try {
@@ -214,14 +314,30 @@ router.post('/webhook', async (req, res) => {
       console.log(`✅ Processed charge.success for reference=${reference}`);
       return res.status(200).json({ message: 'Webhook processed successfully' });
     } else if (event === 'charge.failed') {
+      // Log the reference for debugging
+      console.log(`Processing charge.failed webhook for reference=${reference}`);
+      
       const [order] = await sql`
-        SELECT id, payment_status, cart_id 
+        SELECT id, payment_status, cart_id, user_id
         FROM orders 
         WHERE reference = ${reference} AND deleted_at IS NULL
       `;
       
       if (!order) {
         console.error(`Order not found for reference: ${reference}`);
+        
+        // Try to find the order without the deleted_at condition as a fallback
+        const [fallbackOrder] = await sql`
+          SELECT id, reference, payment_status
+          FROM orders
+          WHERE reference = ${reference}
+        `;
+        
+        if (fallbackOrder) {
+          console.log(`Found order with reference=${reference} but it was marked as deleted`);
+          return res.status(200).json({ message: 'Order found but marked as deleted, event ignored' });
+        }
+        
         return res.status(200).json({ message: 'Order not found, event ignored' });
       }
       
@@ -236,24 +352,34 @@ router.post('/webhook', async (req, res) => {
         WHERE order_id = ${order.id}
       `;
       
-      await sql.begin(async sql => {
-        for (const item of orderItems) {
-          if (item.variant_id && item.size_id) {
-            await sql`
-              UPDATE variant_sizes
-              SET stock_quantity = stock_quantity + ${item.quantity}
-              WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
-            `;
-            console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
+      try {
+        await sql.begin(async sql => {
+          // Restock inventory
+          for (const item of orderItems) {
+            if (item.variant_id && item.size_id) {
+              await sql`
+                UPDATE variant_sizes
+                SET stock_quantity = stock_quantity + ${item.quantity}
+                WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
+              `;
+              console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);
+            }
           }
-        }
-        
-        await sql`
-          UPDATE orders 
-          SET payment_status = 'failed', updated_at = NOW()
-          WHERE reference = ${reference}
-        `;
-      });
+          
+          // Update order status
+          const updatedOrders = await sql`
+            UPDATE orders 
+            SET payment_status = 'failed', updated_at = NOW()
+            WHERE reference = ${reference}
+            RETURNING id, payment_status
+          `;
+          
+          console.log(`Updated order status to failed for reference=${reference}, result:`, updatedOrders);
+        });
+      } catch (dbError) {
+        console.error(`Database error updating failed order for reference=${reference}:`, dbError);
+        return res.status(500).json({ error: 'Database error updating failed order' });
+      }
       
       console.log(`✅ Processed charge.failed for reference=${reference}`);
       return res.status(200).json({ message: 'Webhook processed successfully' });
