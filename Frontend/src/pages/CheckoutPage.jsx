@@ -1088,6 +1088,16 @@ const CheckoutPage = () => {
     }
   };
   
+  const handleEditAddress = (type, address) => {
+    if (type === 'addresses') {
+      setShippingForm(address);
+      setShowShippingForm(true);
+    } else {
+      setBillingForm(address);
+      setShowBillingForm(true);
+    }
+  };
+
   const handleDeleteAddress = async (type, addressId) => {
     if (!isAuthenticated() && !createdUserId) {
       console.error('CheckoutPage: No user ID available');
@@ -1099,7 +1109,10 @@ const CheckoutPage = () => {
       setLoading(true);
       
       // 1. Delete address from backend
-      await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE_URL}/api/${type}/${addressId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
   
       if (type === 'addresses') {
         // Remove from local state
