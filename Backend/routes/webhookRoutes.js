@@ -1,3 +1,4 @@
+// webhookRoutes.js (or whatever your webhook route file is named)
 import express from 'express';
 import sql from '../db/index.js';
 import crypto from 'crypto';

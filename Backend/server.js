@@ -1,6 +1,8 @@
+// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import bodyParser from 'body-parser'; // Added this import
 import { v2 as cloudinary } from 'cloudinary';
 import productRoutes from './routes/products.js';
 import orderRoutes from './routes/orders.js';
@@ -60,42 +62,17 @@ app.use(cors({
   methods: ['GET','POST','PUT','DELETE','OPTIONS']
 }));
 
+// Add body-parser middleware to capture raw body for webhooks
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    console.log('Body-parser verify: raw body received');
+    req.rawBody = buf; // Store as Buffer
+  }
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static('Uploads'));
-
-// Middleware to capture raw body for webhooks
-app.use('/api/webhooks', (req, res, next) => {
-  if (req.method === 'POST' || req.method === 'PUT') {
-    let rawData = '';
-    req.setEncoding('utf8');
-    req.on('data', (chunk) => {
-      rawData += chunk;
-    });
-    req.on('end', () => {
-      req.rawBody = rawData;
-      next();
-    });
-  } else {
-    next();
-  }
-});
-// Middleware to capture raw body for webhooks
-app.use('/api/webhooks', (req, res, next) => {
-  if (req.method === 'POST' || req.method === 'PUT') {
-    let rawData = '';
-    req.setEncoding('utf8');
-    req.on('data', (chunk) => {
-      rawData += chunk;
-    });
-    req.on('end', () => {
-      req.rawBody = rawData;
-      next();
-    });
-  } else {
-    next();
-  }
-});
 
 // Route mounting
 app.use('/api/products', productRoutes);
