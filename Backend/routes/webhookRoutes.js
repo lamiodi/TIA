@@ -197,7 +197,7 @@ async function handleSuccessfulPayment(reference, res) {
   
   // Send confirmation email if not already sent
   if (!orderDetails.email_sent) {
-    await sendOrderConfirmationEmail(orderDetails);
+    await sendOrderConfirmationEmailHelper(orderDetails);
   }
   
   console.log(`✅ Processed charge.success for reference=${reference}`);
@@ -301,7 +301,7 @@ async function sendDeliveryFeeEmails(orderDetails, orderId) {
 }
 
 // Helper function to send order confirmation email
-async function sendOrderConfirmationEmail(orderDetails) {
+async function sendOrderConfirmationEmailHelper(orderDetails) {
   try {
     // Determine email and name to use
     const userEmail = orderDetails.email;
@@ -313,7 +313,7 @@ async function sendOrderConfirmationEmail(orderDetails) {
     const finalName = userName || billingName || 'Customer';
     
     if (finalEmail) {
-      await sendOrderConfirmationEmail(
+      await sendOrderConfirmationEmail(  // This is the imported function
         finalEmail, 
         finalName, 
         orderDetails.id, 
