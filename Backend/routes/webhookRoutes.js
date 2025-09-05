@@ -12,9 +12,14 @@ const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 router.post('/webhook', async (req, res) => {
   try {
+    if (!req.rawBody) {
+      console.error('Raw body not available');
+      return res.status(400).json({ error: 'Invalid request' });
+    }
+
     const hash = crypto
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
-      .update(req.body)
+      .update(req.rawBody)
       .digest('hex');
       
     if (hash !== req.headers['x-paystack-signature']) {
@@ -22,8 +27,8 @@ router.post('/webhook', async (req, res) => {
       return res.status(400).json({ error: 'Invalid signature' });
     }
     
-    // Parse the raw JSON body after signature verification
-    const payload = JSON.parse(req.body.toString());
+    // Parse the raw body
+    const payload = JSON.parse(req.rawBody.toString('utf8'));
     const { event, data } = payload;
     const reference = data.reference;
     
@@ -92,7 +97,6 @@ router.post('/webhook', async (req, res) => {
           return res.status(200).json({ message: 'Delivery fee already paid' });
         }
         
-        // Use a transaction to ensure data consistency
         try {
           const [updatedOrder] = await sql.begin(async sql => {
             const [result] = await sql`
