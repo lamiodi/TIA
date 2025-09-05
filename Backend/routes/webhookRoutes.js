@@ -14,7 +14,7 @@ router.post('/webhook', async (req, res) => {
   try {
     const hash = crypto
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body))
+      .update(req.body)
       .digest('hex');
       
     if (hash !== req.headers['x-paystack-signature']) {
@@ -22,7 +22,9 @@ router.post('/webhook', async (req, res) => {
       return res.status(400).json({ error: 'Invalid signature' });
     }
     
-    const { event, data } = req.body;
+    // Parse the raw JSON body after signature verification
+    const payload = JSON.parse(req.body.toString());
+    const { event, data } = payload;
     const reference = data.reference;
     
     if (!reference.startsWith('DF-') && !reference.startsWith('ORD-') && !reference.match(/^[0-9a-zA-Z-]+$/)) {
