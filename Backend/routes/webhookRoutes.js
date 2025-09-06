@@ -13,7 +13,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 // Webhook endpoint for Paystack
-router.post('/', async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     // Validate Paystack signature
     if (!req.rawBody) {
