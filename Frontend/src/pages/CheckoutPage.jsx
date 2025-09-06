@@ -1892,7 +1892,13 @@ const CheckoutPage = () => {
                       </div>
                     ) : (
                       <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800 font-Jost">No shipping addresses found. Please add a shipping address.</p>
+                        <p className="text-sm text-yellow-800 font-Jost mb-3">No shipping addresses found. Please add a shipping address.</p>
+                        <button
+                          onClick={() => setShowShippingForm(true)}
+                          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-Jost"
+                        >
+                          Add Shipping Address
+                        </button>
                       </div>
                     )}
                     
@@ -1917,9 +1923,47 @@ const CheckoutPage = () => {
                       </div>
                     ) : (
                       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800 font-Jost">No billing addresses found. Please add a billing address.</p>
+                        <p className="text-sm text-yellow-800 font-Jost mb-3">No billing addresses found. Please add a billing address.</p>
+                        <button
+                          onClick={() => setShowBillingForm(true)}
+                          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-Jost"
+                        >
+                          Add Billing Address
+                        </button>
                       </div>
                     )}
+                  </div>
+                )}
+                
+                {/* Shipping Address Form for Logged-in Users */}
+                {showShippingForm && (
+                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Shipping Address</h3>
+                    <ShippingAddressForm
+                      address={{ state: shippingForm, setState: setShippingForm }}
+                      onSubmit={handleShippingSubmit}
+                      onCancel={() => setShowShippingForm(false)}
+                      formErrors={formErrors}
+                      setFormErrors={setFormErrors}
+                      actionLoading={loading}
+                      isGuest={false}
+                    />
+                  </div>
+                )}
+                
+                {/* Billing Address Form for Logged-in Users */}
+                {showBillingForm && (
+                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Billing Address</h3>
+                    <BillingAddressForm
+                      address={{ state: billingForm, setState: setBillingForm }}
+                      onSubmit={handleBillingSubmit}
+                      onCancel={() => setShowBillingForm(false)}
+                      formErrors={formErrors}
+                      setFormErrors={setFormErrors}
+                      actionLoading={loading}
+                      isGuest={false}
+                    />
                   </div>
                 )}
                 

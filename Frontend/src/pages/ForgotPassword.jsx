@@ -78,7 +78,7 @@ function ForgotPassword() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm text-blue-700 font-Jost">
-                      You're using a temporary account. Enter your email and we'll send you a link to set up a password and convert your account to a permanent one.
+                      You're using a temporary guest account. Enter your email and we'll send you a password reset link. When you create your new password, your account will automatically be converted to a permanent account with full access.
                     </p>
                   </div>
                 </div>
@@ -111,11 +111,27 @@ function ForgotPassword() {
               className="w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800 transition font-Manrope disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? 'Sending...' : (isTemporaryAccount ? 'Create Password' : 'Send Reset Link')}
+              {loading ? 'Sending...' : (isTemporaryAccount ? 'Send Conversion Link' : 'Send Reset Link')}
             </button>
           </form>
           
-          <div className="text-center mt-4">
+          <div className="text-center mt-4 space-y-3">
+            {/* Guest Conversion Button - only show if not already in temporary account mode */}
+            {!isTemporaryAccount && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-600 mb-3 font-Jost">
+                  Made a purchase as a guest?
+                </p>
+                <button
+                  onClick={() => setIsTemporaryAccount(true)}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-Manrope text-sm flex items-center justify-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Convert Guest Account to Permanent
+                </button>
+              </div>
+            )}
+            
             <button
               onClick={() => navigate('/login')}
               className="text-Accent hover:text-Primarycolor font-Jost flex items-center justify-center"

@@ -530,6 +530,19 @@ const ThankYou = () => {
                      </button>
                    </div>
                  )}
+                 {!user && (
+                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-center max-w-md mx-auto">
+                     <p className="text-blue-800 text-sm font-Jost mb-3">
+                       Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
+                     </p>
+                     <button
+                       onClick={() => navigate('/forgot-password')}
+                       className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-Jost"
+                     >
+                       Reset Password
+                     </button>
+                   </div>
+                 )}
             <button
               onClick={() => navigate('/')}
               className="bg-white text-Primarycolor border border-gray-300 py-2 px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center"

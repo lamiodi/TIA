@@ -163,8 +163,8 @@ async function handleSuccessfulPayment(reference, res) {
       o.cart_id,
       o.delivery_fee,
       o.delivery_fee_paid,
-      u.email,
-      u.first_name,
+      COALESCE(u.email, ba.email) as email,
+      COALESCE(u.first_name, ba.full_name) as first_name,
       ba.full_name as billing_full_name,
       ba.email as billing_email
     FROM orders o
