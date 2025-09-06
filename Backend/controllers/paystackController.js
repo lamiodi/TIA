@@ -6,7 +6,7 @@ import { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirma
 dotenv.config();
 
 // Debug: Log to confirm module import
-console.log('Imported emailService functions:', { sendDeliveryFeeEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation });
+console.log('Imported emailService functions:', { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation });
 
 dotenv.config();
 
