@@ -15,6 +15,12 @@ const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 // Webhook endpoint for Paystack
 router.post('/webhook', async (req, res) => {
   try {
+    // Validate environment configuration
+    if (!PAYSTACK_SECRET_KEY) {
+      console.error('PAYSTACK_SECRET_KEY not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     // Validate Paystack signature
     if (!req.rawBody) {
       console.error('Raw body not available');
@@ -237,7 +243,7 @@ async function handleFailedPayment(reference, res) {
         if (item.variant_id && item.size_id) {
           await sql`
             UPDATE variant_sizes
-            SET stock_quantity = stock_quantity + ${item.quantity}
+            SET stock = stock + ${item.quantity}
             WHERE variant_id = ${item.variant_id} AND size_id = ${item.size_id}
           `;
           console.log(`✅ Restocked ${item.quantity} units for variant_id=${item.variant_id}, size_id=${item.size_id}`);

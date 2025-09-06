@@ -1,15 +1,23 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import sql from '../db/index.js';
-import { sendDeliveryFeeEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation } from '../utils/emailService.js';
+import { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation } from '../utils/emailService.js';
 
 dotenv.config();
 
 // Debug: Log to confirm module import
 console.log('Imported emailService functions:', { sendDeliveryFeeEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation });
 
+dotenv.config();
+
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+// Validate environment configuration
+if (!PAYSTACK_SECRET_KEY) {
+  console.error('CRITICAL: PAYSTACK_SECRET_KEY environment variable is not set');
+  throw new Error('Paystack secret key not configured - check environment variables');
+}
 
 export const initializePayment = async (req, res) => {
   try {
@@ -296,15 +304,11 @@ export const initializeDeliveryFeePayment = async (req, res) => {
     
     let emailSent = false;
     try {
-      if (typeof sendDeliveryFeeEmail !== 'function') {
-        throw new Error('sendDeliveryFeeEmail is not defined');
-      }
-      await sendDeliveryFeeEmail(
+      await sendDeliveryFeePaymentConfirmation(
         order.email,
         order.first_name,
-        order.shipping_country,
+        order_id,
         delivery_fee,
-        authorization_url,
         currency
       );
       console.log(`✅ Sent delivery fee payment link email to ${order.email} for order ${order_id}`);
