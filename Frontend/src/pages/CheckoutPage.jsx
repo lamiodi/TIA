@@ -1030,6 +1030,32 @@ const CheckoutPage = () => {
     try {
       setLoading(true);
       
+      // For authenticated users, save address to backend
+      if (isAuthenticated()) {
+        const token = localStorage.getItem('token');
+        const userId = getUserId();
+        
+        const addressData = {
+          user_id: userId,
+          title: data.title || 'Home',
+          address_line_1: data.address_line_1,
+          address_line_2: data.address_line_2,
+          city: data.city,
+          state: data.state,
+          zip_code: data.zip_code,
+          country: data.country
+        };
+        
+        const response = await axios.post(`${API_BASE_URL}/api/addresses/`, addressData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Add the new address to the list and set it as selected
+        const newAddress = response.data;
+        setShippingAddresses(prev => [newAddress, ...prev]);
+        setShippingAddressId(String(newAddress.id));
+      }
+      
       // Update shipping form state
       setShippingForm(data);
       setShowShippingForm(false); // This ensures the form closes after saving
@@ -1070,6 +1096,33 @@ const CheckoutPage = () => {
   const handleBillingSubmit = async (data) => {
     try {
       setLoading(true);
+      
+      // For authenticated users, save billing address to backend
+      if (isAuthenticated()) {
+        const token = localStorage.getItem('token');
+        const userId = getUserId();
+        
+        const billingData = {
+          user_id: userId,
+          full_name: data.full_name,
+          email: data.email,
+          phone_number: data.phone_number,
+          address_line_1: data.address_line_1,
+          city: data.city,
+          state: data.state,
+          zip_code: data.zip_code,
+          country: data.country
+        };
+        
+        const response = await axios.post(`${API_BASE_URL}/api/billing-addresses/`, billingData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Add the new billing address to the list and set it as selected
+        const newBillingAddress = response.data;
+        setBillingAddresses(prev => [newBillingAddress, ...prev]);
+        setBillingAddressId(String(newBillingAddress.id));
+      }
       
       // Update billing form state
       setBillingForm(data);
