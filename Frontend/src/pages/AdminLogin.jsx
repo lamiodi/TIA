@@ -116,7 +116,7 @@ const AdminLogin = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-gray-600">
-          <Loader2 className="w-8 h-8 animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-Primarycolor" />
           <p className="mt-2 text-sm font-Jost">Loading...</p>
         </div>
       </div>
@@ -229,7 +229,7 @@ const AdminLogin = () => {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-Primarycolor" />
                   Signing in...
                 </>
               ) : (

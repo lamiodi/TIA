@@ -161,6 +161,8 @@ async function handleSuccessfulPayment(reference, res) {
       o.currency, 
       o.email_sent, 
       o.cart_id,
+      o.delivery_fee,
+      o.delivery_fee_paid,
       u.email,
       u.first_name,
       ba.full_name as billing_full_name,

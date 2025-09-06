@@ -715,7 +715,7 @@ const CheckoutPage = () => {
     
     // Check if user has provided shipping address (either form data or selected address ID)
     const hasShippingAddress = isAuthenticated() 
-      ? shippingAddressId && shippingAddresses.length > 0
+      ? (shippingAddressId && shippingAddresses.length > 0) || shippingForm.address_line_1
       : shippingForm.address_line_1;
     
     if (!hasShippingAddress) {
@@ -1251,6 +1251,9 @@ const CheckoutPage = () => {
           setShippingAddresses(shippingData);
           if (shippingData.length > 0) {
             setShippingAddressId(String(shippingData[0].id));
+          } else {
+            // Automatically show shipping form for logged-in users with no addresses
+            setShowShippingForm(true);
           }
         } catch (err) {
           console.error('Error fetching shipping addresses:', err);
@@ -1276,6 +1279,9 @@ const CheckoutPage = () => {
           setBillingAddresses(billingData);
           if (billingData.length > 0) {
             setBillingAddressId(String(billingData[0].id));
+          } else {
+            // Automatically show billing form for logged-in users with no addresses
+            setShowBillingForm(true);
           }
         } catch (err) {
           console.error('Error fetching billing addresses:', err);
@@ -1427,7 +1433,7 @@ const CheckoutPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-Accent">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
           <p className="mt-2 text-sm font-Jost">Loading...</p>
         </div>
       </div>
@@ -1438,7 +1444,7 @@ const CheckoutPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-Accent">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
           <p className="mt-2 text-sm font-Jost">Loading checkout data...</p>
         </div>
       </div>

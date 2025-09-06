@@ -182,7 +182,7 @@ const LocationPopup = React.memo(() => {
                 />
                 {isFetching && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
-                    <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5 text-Primarycolor" viewBox="0 0 24 24">
                       <circle
                         className="opacity-25"
                         cx="12"

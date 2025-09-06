@@ -404,7 +404,7 @@ const SignupPage = () => {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin text-Primarycolor" />
                     Creating Account...
                   </>
                 ) : (

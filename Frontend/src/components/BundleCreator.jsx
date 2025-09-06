@@ -277,7 +277,7 @@ export default function BundleCreator() {
           disabled={loading}
           className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
         >
-          {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+          {loading && <Loader2 className="w-5 h-5 animate-spin text-Primarycolor" />}
           Create Bundle
         </button>
       </form>

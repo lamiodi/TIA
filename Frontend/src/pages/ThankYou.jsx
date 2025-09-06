@@ -236,7 +236,7 @@ const ThankYou = () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-Accent mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-Primarycolor mx-auto mb-4" />
           <p className="text-Accent font-Jost">Verifying your payment...</p>
           {retryCount > 0 && (
             <p className="text-sm text-Accent mt-2 font-Jost">
@@ -276,7 +276,7 @@ const ThankYou = () => {
               >
                 {verifying ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-Primarycolor" />
                     Verifying...
                   </>
                 ) : (
@@ -337,7 +337,7 @@ const ThankYou = () => {
               >
                 {verifying ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-Primarycolor" />
                     Verifying...
                   </>
                 ) : (
@@ -487,7 +487,7 @@ const ThankYou = () => {
                 } font-Jost`}>
                   {order.payment_status}
                   {polling && order.payment_status === 'pending' && (
-                    <Loader2 className="h-3 w-3 ml-1 inline animate-spin" />
+                    <Loader2 className="h-3 w-3 ml-1 inline animate-spin text-Primarycolor" />
                   )}
                 </p>
               </div>
@@ -509,12 +509,27 @@ const ThankYou = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <button
-              onClick={() => navigate(`/orders?orderId=${order.id}`)}
-              className="bg-Primarycolor text-Secondarycolor py-2 px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center"
-            >
-              View Order Details
-            </button>
+            {user && !user.is_temporary && (
+                   <button
+                     onClick={() => navigate(`/orders?orderId=${order.id}`)}
+                     className="bg-Primarycolor text-Secondarycolor py-2 px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center"
+                   >
+                     View Order Details
+                   </button>
+                 )}
+                 {user && user.is_temporary && (
+                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-center">
+                     <p className="text-blue-800 text-sm font-Jost mb-2">
+                       To view your order details and track future orders, please convert your guest account to a permanent account.
+                     </p>
+                     <button
+                       onClick={handleConvertAccount}
+                       className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-Jost"
+                     >
+                       Convert to Permanent Account
+                     </button>
+                   </div>
+                 )}
             <button
               onClick={() => navigate('/')}
               className="bg-white text-Primarycolor border border-gray-300 py-2 px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center"

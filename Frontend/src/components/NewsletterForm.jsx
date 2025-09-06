@@ -101,7 +101,7 @@ const NewsletterForm = () => {
                 className="w-8 sm:w-10 md:w-12 lg:w-14 h-[40px] sm:h-[45px] bg-[#d9d9d9] flex justify-center items-center hover:bg-[#c9c9c9] transition-colors duration-200 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-black animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-Primarycolor animate-spin" />
                 ) : (
                   <svg className="w-4 h-4 sm:w-5 sm:h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />

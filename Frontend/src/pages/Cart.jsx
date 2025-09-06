@@ -596,7 +596,7 @@ const Cart = () => {
         <Navbar />
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-gray-600">
-            <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
             <p className="mt-2 text-sm font-Jost">Loading cart...</p>
           </div>
         </div>
@@ -799,7 +799,7 @@ const Cart = () => {
                       </button>
                       <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-50 border-x border-gray-300 min-w-[2.5rem] sm:min-w-[3rem] text-center">
                         {isUpdating === item.id ? (
-                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mx-auto" />
+                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-Primarycolor mx-auto" />
                         ) : (
                           <span className="text-xs sm:text-sm font-semibold font-Manrope">{item.quantity}</span>
                         )}

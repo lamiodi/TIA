@@ -360,7 +360,7 @@ const Orders = () => {
     </div>
   );
   
-  if (loading || adminLoading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>;
+  if (loading || adminLoading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div></div>;
   if (error) return <div className="bg-red-50 border-l-4 border-red-500 p-4"><div className="flex"><XCircle className="h-5 w-5 text-red-400" /><p className="ml-3 text-sm text-red-700 font-Jost">{error}</p></div></div>;
   
   return (
