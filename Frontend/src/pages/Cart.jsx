@@ -597,7 +597,7 @@ const Cart = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-gray-600">
             <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
-            <p className="mt-2 text-sm font-Jost">Loading cart...</p>
+            <p className="mt-2 text-sm font-Manrope">Loading cart...</p>
           </div>
         </div>
         <Suspense fallback={null}>
