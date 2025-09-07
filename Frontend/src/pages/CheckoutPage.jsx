@@ -26,7 +26,8 @@ const GuestCheckoutModal = React.memo(({
   onGuestFormChange,
   onLoginRedirect,
   onSubmitGuestForm,
-  loading
+  loading,
+  navigate
 }) => (
   // Increased blur effect
   <div className="fixed inset-0 backdrop-blur-lg flex items-center justify-center z-50 p-4">
@@ -178,28 +179,38 @@ const GuestCheckoutModal = React.memo(({
           </div>
         )}
         
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-between pt-4">
           <button
             type="button"
-            onClick={onLoginRedirect}
+            onClick={() => navigate('/cart')}
             className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
           >
-            Log In Instead
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Return to Cart
           </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
-          >
-            {loading ? (
-              <>
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
-                Creating Account...
-              </>
-            ) : (
-              'Continue to Checkout'
-            )}
-          </button>
+          <div className="flex space-x-3">
+            <button
+              type="button"
+              onClick={onLoginRedirect}
+              className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+            >
+              Log In Instead
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
+            >
+              {loading ? (
+                <>
+                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+                  Creating Account...
+                </>
+              ) : (
+                'Continue to Checkout'
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -1764,6 +1775,7 @@ const CheckoutPage = () => {
             onLoginRedirect={handleLoginRedirect}
             onSubmitGuestForm={handleGuestFormSubmit}
             loading={loading}
+            navigate={navigate}
           />
         )}
         
