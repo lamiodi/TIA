@@ -466,8 +466,8 @@ const ThankYou = () => {
             )}
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md text-left max-w-lg mx-auto mb-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-left w-full max-w-md sm:max-w-lg mx-auto mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <p className="text-sm text-Accent font-Jost">Order ID</p>
                 <p className="font-medium text-Primarycolor font-Jost">{order.id}</p>
@@ -508,36 +508,36 @@ const ThankYou = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             {user && !user.is_temporary && (
                    <button
                      onClick={() => navigate(`/orders?orderId=${order.id}`)}
-                     className="bg-Primarycolor text-Secondarycolor py-2 px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center"
+                     className="bg-Primarycolor text-Secondarycolor py-2 px-4 sm:px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center text-sm sm:text-base"
                    >
                      View Order Details
                    </button>
                  )}
                  {user && user.is_temporary && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-center">
-                     <p className="text-blue-800 text-sm font-Jost mb-2">
+                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center">
+                     <p className="text-blue-800 text-xs sm:text-sm font-Jost mb-2">
                        To view your order details and track future orders, please convert your guest account to a permanent account.
                      </p>
                      <button
                        onClick={handleConvertAccount}
-                       className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-Jost"
+                       className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-Jost"
                      >
-                       Convert to Permanent Account
+                       Convert Account
                      </button>
                    </div>
                  )}
                  {!user && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-center max-w-md mx-auto">
-                     <p className="text-blue-800 text-sm font-Jost mb-3">
+                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center w-full max-w-xs sm:max-w-md mx-auto">
+                     <p className="text-blue-800 text-xs sm:text-sm font-Jost mb-2 sm:mb-3">
                        Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
                      </p>
                      <button
                        onClick={() => navigate('/forgot-password')}
-                       className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-Jost"
+                       className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-Jost"
                      >
                        Reset Password
                      </button>
@@ -545,7 +545,7 @@ const ThankYou = () => {
                  )}
             <button
               onClick={() => navigate('/')}
-              className="bg-white text-Primarycolor border border-gray-300 py-2 px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center"
+              className="bg-white text-Primarycolor border border-gray-300 py-2 px-4 sm:px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center text-sm sm:text-base"
             >
               Continue Shopping
             </button>

@@ -170,7 +170,12 @@ const OrderDetailsModal = ({
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-full"><Mail className="w-5 h-5 text-blue-600" /></div>
-                    <div><p className="text-sm text-gray-500">Email</p><p className="font-medium">{user.email || orderData.user_email}</p></div>
+                    <div><p className="text-sm text-gray-500">Email</p><p className="font-medium">
+                      {user.is_temporary 
+                        ? (billingAddress.email || user.email || orderData.user_email)
+                        : (user.email || billingAddress.email || orderData.user_email)
+                      }
+                    </p></div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-full"><Phone className="w-5 h-5 text-blue-600" /></div>

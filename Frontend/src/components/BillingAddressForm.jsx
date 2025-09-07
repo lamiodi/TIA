@@ -85,8 +85,10 @@ const BillingAddressForm = ({
     e.preventDefault();
     
     if (validateForm()) {
-      setState(formData);
-      onSubmit(formData);
+      // For guest users, ensure the email from guestData is included in the form data
+      const finalFormData = isGuest ? { ...formData, email: guestData.email } : formData;
+      setState(finalFormData);
+      onSubmit(finalFormData);
     }
   };
 

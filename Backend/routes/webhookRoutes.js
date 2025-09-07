@@ -153,29 +153,29 @@ async function handleSuccessfulPayment(reference, res) {
   console.log(`Processing charge.success webhook for reference=${reference}`);
   
   const [orderDetails] = await sql`
-    SELECT 
-      o.id, 
-      o.payment_status, 
-      o.user_id, 
-      o.total, 
-      o.currency, 
-      o.email_sent, 
-      o.cart_id,
-      o.delivery_fee,
-      o.delivery_fee_paid,
-      u.email as user_email,
-      u.first_name as user_first_name,
-      u.last_name as user_last_name,
-      u.is_temporary,
-      ba.full_name as billing_full_name,
-      ba.email as billing_email,
-      COALESCE(u.email, ba.email) as email,
-      COALESCE(u.first_name, ba.full_name) as first_name
-    FROM orders o
-    LEFT JOIN users u ON o.user_id = u.id
-    LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
-    WHERE o.reference = ${reference} AND o.deleted_at IS NULL
-  `;
+      SELECT 
+        o.id, 
+        o.payment_status, 
+        o.user_id, 
+        o.total, 
+        o.currency, 
+        o.email_sent, 
+        o.cart_id,
+        o.delivery_fee,
+        o.delivery_fee_paid,
+        u.email as user_email,
+        u.first_name as user_first_name,
+        u.last_name as user_last_name,
+        u.is_temporary,
+        ba.full_name as billing_full_name,
+        ba.email as billing_email,
+        COALESCE(ba.email, u.email) as email,
+        COALESCE(ba.full_name, u.first_name) as first_name
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
+      WHERE o.reference = ${reference} AND o.deleted_at IS NULL
+    `;
   
   if (!orderDetails) {
     console.error(`Order not found for reference: ${reference}`);
