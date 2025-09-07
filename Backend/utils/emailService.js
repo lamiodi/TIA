@@ -30,7 +30,7 @@ export const sendResetEmail = async (to, token) => {
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to,
       subject: 'Password Reset Request',
       html,
@@ -76,7 +76,7 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to: process.env.ADMIN_EMAIL,
       subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
       html,
@@ -117,7 +117,7 @@ export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, p
   `;
   try {
     const response = await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to,
       subject: 'Your International Delivery Fee',
       html,
@@ -154,7 +154,7 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to: process.env.ADMIN_EMAIL,
       subject: `Action Required: DHL Delivery Fee for Order ${orderId}`,
       html,
@@ -422,7 +422,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
 
     try {
       await resend.emails.send({
-        from: 'The Tia Brand <onboarding@resend.dev>',
+        from: 'The Tia Brand <support@thetiabrand.org>',
         to,
         subject: `Order Confirmation - Order #${orderId}`,
         html,
@@ -473,7 +473,7 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to,
       subject: `${status === 'delivery_fee_paid' ? 'Delivery Fee Payment Confirmation' : 'Order Status Update'} - Order #${orderId}`,
       html,
@@ -522,7 +522,7 @@ export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, 
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to,
       subject: `Delivery Fee Payment Confirmed for Order #${orderId}`,
       html,
@@ -568,7 +568,7 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
   `;
   try {
     await resend.emails.send({
-      from: 'The Tia Brand <onboarding@resend.dev>',
+      from: 'The Tia Brand <support@thetiabrand.org>',
       to: process.env.ADMIN_EMAIL,
       subject: `Payment Confirmed for Order #${orderId}`,
       html,

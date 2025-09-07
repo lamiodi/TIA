@@ -36,7 +36,7 @@ const SignupPage = () => {
   
   const [formData, setFormData] = useState({
     first_name: '', last_name: '',
-    email: '', password: '', phone_number: ''
+    email: '', password: '', confirm_password: '', phone_number: ''
   });
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,6 @@ const SignupPage = () => {
     const errors = {};
     if (name === 'first_name' && !value.trim()) errors.first_name = 'First name is required';
     if (name === 'last_name' && !value.trim()) errors.last_name = 'Last name is required';
-    if (name === 'username' && !value.trim()) errors.username = 'Username is required';
     if (name === 'email') {
       if (!value.trim()) errors.email = 'Email is required';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = 'Enter a valid email address';
@@ -70,8 +69,11 @@ const SignupPage = () => {
       else if (!/[0-9]/.test(value)) errors.password = 'Must include at least one number';
       else if (!/[^A-Za-z0-9]/.test(value)) errors.password = 'Must include at least one special character';
     }
+    if (name === 'confirm_password' && value !== formData.password) {
+      errors.confirm_password = 'Passwords do not match';
+    }
     return errors;
-  }, []);
+  }, [formData.password]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -91,9 +93,9 @@ const SignupPage = () => {
     const allErrors = {
       ...validateField('first_name', formData.first_name),
       ...validateField('last_name', formData.last_name),
-      ...validateField('username', formData.username),
       ...validateField('email', formData.email),
       ...validateField('password', formData.password),
+      ...validateField('confirm_password', formData.confirm_password),
     };
     setFormErrors(allErrors);
     return Object.keys(allErrors).length === 0;
@@ -104,11 +106,13 @@ const SignupPage = () => {
     if (!validateForm()) return;
     setLoading(true); setError(''); setSuccessMsg('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, formData);
+      // Remove confirm_password before sending to backend
+      const { confirm_password, ...signupData } = formData;
+      const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, signupData);
       setSuccessMsg(res.data.message);
       setFormData({
-        first_name: '', last_name: '', username: '',
-        email: '', password: '', phone_number: ''
+        first_name: '', last_name: '',
+        email: '', password: '', confirm_password: '', phone_number: ''
       });
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
@@ -366,6 +370,47 @@ const SignupPage = () => {
                   <p className="mt-2 text-xs text-red-600 flex items-center gap-1 font-Jost">
                     <AlertCircle className="w-4 h-4" />
                     {formErrors.password}
+                  </p>
+                )}
+              </div>
+              {/* Confirm Password */}
+              <div>
+                <label htmlFor="confirm_password" className="block text-sm font-semibold mb-2 font-Jost" style={{ color: '#1E1E1E' }}>
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#6E6E6E' }} />
+                  <input
+                    id="confirm_password"
+                    name="confirm_password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.confirm_password}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-10 py-3 text-sm rounded-xl border transition-all focus:outline-none focus:ring-2 font-Jost ${
+                      formErrors.confirm_password 
+                        ? 'border-red-300 focus:ring-red-500' 
+                        : 'border-gray-300'
+                    }`}
+                    style={{ 
+                      color: '#1E1E1E',
+                      ...(formErrors.confirm_password ? {} : { '--tw-ring-color': '#1E1E1E' })
+                    }}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
+                    style={{ color: '#6E6E6E' }}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {formErrors.confirm_password && (
+                  <p className="mt-2 text-xs text-red-600 flex items-center gap-1 font-Jost">
+                    <AlertCircle className="w-4 h-4" />
+                    {formErrors.confirm_password}
                   </p>
                 )}
               </div>
