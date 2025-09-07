@@ -250,6 +250,8 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [showBillingForm, setShowBillingForm] = useState(false);
+  const [editingShippingAddress, setEditingShippingAddress] = useState(null);
+  const [editingBillingAddress, setEditingBillingAddress] = useState(null);
   const [showBitcoinInstructions, setShowBitcoinInstructions] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     title: '',
@@ -1046,19 +1048,36 @@ const CheckoutPage = () => {
           country: data.country
         };
         
-        const response = await axios.post(`${API_BASE_URL}/api/addresses/`, addressData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        // Add the new address to the list and set it as selected
-        const newAddress = response.data;
-        setShippingAddresses(prev => [newAddress, ...prev]);
-        setShippingAddressId(String(newAddress.id));
+        let response;
+        if (editingShippingAddress) {
+          // Update existing address
+          response = await axios.put(`${API_BASE_URL}/api/addresses/${editingShippingAddress.id}`, addressData, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Update the address in the list
+          const updatedAddress = response.data;
+          setShippingAddresses(prev => 
+            prev.map(addr => addr.id === editingShippingAddress.id ? updatedAddress : addr)
+          );
+          setShippingAddressId(String(updatedAddress.id));
+        } else {
+          // Create new address
+          response = await axios.post(`${API_BASE_URL}/api/addresses/`, addressData, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Add the new address to the list and set it as selected
+          const newAddress = response.data;
+          setShippingAddresses(prev => [newAddress, ...prev]);
+          setShippingAddressId(String(newAddress.id));
+        }
       }
       
       // Update shipping form state
       setShippingForm(data);
       setShowShippingForm(false); // This ensures the form closes after saving
+      setEditingShippingAddress(null); // Clear editing state
       
       // If billing address option is 'same', update billing address to match
       if (billingAddressOption === 'same') {
@@ -1080,14 +1099,17 @@ const CheckoutPage = () => {
         setBillingForm(billingAddress);
       }
       
-      setSuccess('Shipping address added successfully.');
-      toast.success('Shipping address added');
+      const successMessage = editingShippingAddress ? 'Shipping address updated successfully.' : 'Shipping address added successfully.';
+      setSuccess(successMessage);
+      toast.success(editingShippingAddress ? 'Shipping address updated' : 'Shipping address added');
     } catch (err) {
       const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add shipping address: ${errorMessage}`);
-      toast.error(`Failed to add shipping address: ${errorMessage}`);
+      const action = editingShippingAddress ? 'update' : 'add';
+      setError(`Failed to ${action} shipping address: ${errorMessage}`);
+      toast.error(`Failed to ${action} shipping address: ${errorMessage}`);
       // Ensure form closes even if there's an error
       setShowShippingForm(false);
+      setEditingShippingAddress(null);
     } finally {
       setLoading(false);
     }
@@ -1114,28 +1136,48 @@ const CheckoutPage = () => {
           country: data.country
         };
         
-        const response = await axios.post(`${API_BASE_URL}/api/billing-addresses/`, billingData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        // Add the new billing address to the list and set it as selected
-        const newBillingAddress = response.data;
-        setBillingAddresses(prev => [newBillingAddress, ...prev]);
-        setBillingAddressId(String(newBillingAddress.id));
+        let response;
+        if (editingBillingAddress) {
+          // Update existing billing address
+          response = await axios.put(`${API_BASE_URL}/api/billing-addresses/${editingBillingAddress.id}`, billingData, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Update the billing address in the list
+          const updatedBillingAddress = response.data;
+          setBillingAddresses(prev => 
+            prev.map(addr => addr.id === editingBillingAddress.id ? updatedBillingAddress : addr)
+          );
+          setBillingAddressId(String(updatedBillingAddress.id));
+        } else {
+          // Create new billing address
+          response = await axios.post(`${API_BASE_URL}/api/billing-addresses/`, billingData, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Add the new billing address to the list and set it as selected
+          const newBillingAddress = response.data;
+          setBillingAddresses(prev => [newBillingAddress, ...prev]);
+          setBillingAddressId(String(newBillingAddress.id));
+        }
       }
       
       // Update billing form state
       setBillingForm(data);
       setShowBillingForm(false);
+      setEditingBillingAddress(null); // Clear editing state
       
-      setSuccess('Billing address added successfully.');
-      toast.success('Billing address added');
+      const successMessage = editingBillingAddress ? 'Billing address updated successfully.' : 'Billing address added successfully.';
+      setSuccess(successMessage);
+      toast.success(editingBillingAddress ? 'Billing address updated' : 'Billing address added');
     } catch (err) {
       const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
-      setError(`Failed to add billing address: ${errorMessage}`);
-      toast.error(`Failed to add billing address: ${errorMessage}`);
+      const action = editingBillingAddress ? 'update' : 'add';
+      setError(`Failed to ${action} billing address: ${errorMessage}`);
+      toast.error(`Failed to ${action} billing address: ${errorMessage}`);
       // Ensure form closes even if there's an error
       setShowBillingForm(false);
+      setEditingBillingAddress(null);
     } finally {
       setLoading(false);
     }
@@ -1144,17 +1186,59 @@ const CheckoutPage = () => {
   const handleEditAddress = (type, address) => {
     if (type === 'addresses') {
       setShippingForm(address);
+      setEditingShippingAddress(address);
       setShowShippingForm(true);
     } else {
       setBillingForm(address);
+      setEditingBillingAddress(address);
       setShowBillingForm(true);
     }
+  };
+
+  const handleAddNewShippingAddress = () => {
+    setEditingShippingAddress(null);
+    setShippingForm({
+      title: '',
+      address_line_1: '',
+      address_line_2: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: 'Nigeria',
+      phone_number: ''
+    });
+    setShowShippingForm(true);
+  };
+
+  const handleAddNewBillingAddress = () => {
+    setEditingBillingAddress(null);
+    setBillingForm({
+      full_name: '',
+      email: '',
+      phone_number: '',
+      address_line_1: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: 'Nigeria'
+    });
+    setShowBillingForm(true);
   };
 
   const handleDeleteAddress = async (type, addressId) => {
     if (!isAuthenticated() && !createdUserId) {
       console.error('CheckoutPage: No user ID available');
       toast.error('Please create an account to delete address');
+      return;
+    }
+
+    // Show confirmation dialog
+    const addressType = type === 'addresses' ? 'shipping' : 'billing';
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete this ${addressType} address?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmDelete) {
       return;
     }
   
@@ -1186,8 +1270,8 @@ const CheckoutPage = () => {
         }
       }
   
-      setSuccess(`Successfully deleted ${type === 'addresses' ? 'shipping' : 'billing'} address.`);
-      toast.success(`Deleted ${type === 'addresses' ? 'shipping' : 'billing'} address`);
+      setSuccess(`Successfully deleted ${addressType} address.`);
+      toast.success(`Deleted ${addressType} address`);
     } catch (err) {
       const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message;
       setError(`Failed to delete address: ${errorMessage}`);
@@ -1850,89 +1934,179 @@ const CheckoutPage = () => {
                   </>
                 ) : (
                   // Logged-in User Address Management
-                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Address Management</h3>
-                    
-                    {shippingAddresses.length > 0 ? (
-                      <div className="mb-6">
-                        <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Shipping Address</h4>
-                        <div className="border rounded-lg p-4 bg-gray-50">
-                          {shippingAddresses
-                            .filter(addr => String(addr.id) === String(shippingAddressId))
-                            .map(address => (
-                              <div key={address.id}>
-                                <div className="flex justify-between items-start mb-2">
-                                  <p className="font-medium text-Primarycolor">{address.title}</p>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleEditAddress('addresses', address)}
-                                      className="p-1 text-Primarycolor hover:text-gray-800 transition-colors"
-                                      title="Edit address"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteAddress('addresses', address.id)}
-                                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                                      title="Delete address"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
+                  <>
+                    {/* Shipping Address Section */}
+                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+                      
+                      {shippingAddresses.length > 0 ? (
+                        <>
+                          {/* Address Selection Dropdown */}
+                          {shippingAddresses.length > 1 && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-Primarycolor mb-2 font-Jost">
+                                Select Shipping Address
+                              </label>
+                              <select
+                                value={shippingAddressId || ''}
+                                onChange={(e) => setShippingAddressId(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-Primarycolor focus:border-transparent font-Jost"
+                              >
+                                {shippingAddresses.map(address => (
+                                  <option key={address.id} value={String(address.id)}>
+                                    {address.title} - {address.city}, {address.state}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          
+                          {/* Selected Address Display */}
+                          <div className="border rounded-lg p-4 bg-gray-50">
+                            {shippingAddresses
+                              .filter(addr => String(addr.id) === String(shippingAddressId))
+                              .map(address => (
+                                <div key={address.id}>
+                                  <div className="flex justify-between items-start mb-2">
+                                    <p className="font-medium text-Primarycolor">{address.title}</p>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleEditAddress('addresses', address)}
+                                        className="p-1 text-Primarycolor hover:text-gray-800 transition-colors"
+                                        title="Edit address"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteAddress('addresses', address.id)}
+                                        className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                        title="Delete address"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
                                   </div>
+                                  <p className="text-sm text-Accent">{address.address_line_1}</p>
+                                  {address.landmark && <p className="text-sm text-Accent">{address.landmark}</p>}
+                                  <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                                  <p className="text-sm text-Accent">{address.country}</p>
+                                  {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
                                 </div>
-                                <p className="text-sm text-Accent">{address.address_line_1}</p>
-                                {address.landmark && <p className="text-sm text-Accent">{address.landmark}</p>}
-                                <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
-                                <p className="text-sm text-Accent">{address.country}</p>
-                                {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
-                              </div>
-                            ))
-                          }
+                              ))
+                            }
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <button
+                                onClick={handleAddNewShippingAddress}
+                                className="flex items-center text-Primarycolor hover:text-gray-800 transition-colors text-sm font-Jost"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Another Address
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                          <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-lg font-medium text-Primarycolor mb-2 font-Manrope">No shipping address found</p>
+                          <p className="text-sm text-gray-600 mb-6 font-Jost">Add your shipping address to continue with checkout</p>
+                          <button
+                            onClick={handleAddNewShippingAddress}
+                            className="inline-flex items-center px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium font-Jost"
+                          >
+                            <MapPin className="h-5 w-5 mr-2" />
+                            Add Shipping Address
+                          </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800 font-Jost mb-3">No shipping addresses found. Please add a shipping address.</p>
-                        <button
-                          onClick={() => setShowShippingForm(true)}
-                          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-Jost"
-                        >
-                          Add Shipping Address
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     
-                    {billingAddresses.length > 0 ? (
-                      <div>
-                        <h4 className="font-medium text-Primarycolor mb-3 font-Manrope">Billing Address</h4>
-                        <div className="border rounded-lg p-4 bg-gray-50">
-                          {billingAddresses
-                            .filter(addr => String(addr.id) === String(billingAddressId))
-                            .map(address => (
-                              <div key={address.id}>
-                                <p className="font-medium text-Primarycolor">{address.full_name}</p>
-                                <p className="text-sm text-Accent">{address.email}</p>
-                                {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
-                                <p className="text-sm text-Accent">{address.address_line_1}</p>
-                                <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
-                                <p className="text-sm text-Accent">{address.country}</p>
-                              </div>
-                            ))
-                          }
+                    {/* Billing Address Section */}
+                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
+                      
+                      {billingAddresses.length > 0 ? (
+                        <>
+                          {/* Address Selection Dropdown */}
+                          {billingAddresses.length > 1 && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-Primarycolor mb-2 font-Jost">
+                                Select Billing Address
+                              </label>
+                              <select
+                                value={billingAddressId || ''}
+                                onChange={(e) => setBillingAddressId(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-Primarycolor focus:border-transparent font-Jost"
+                              >
+                                {billingAddresses.map(address => (
+                                  <option key={address.id} value={String(address.id)}>
+                                    {address.full_name} - {address.city}, {address.state}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          
+                          {/* Selected Address Display */}
+                          <div className="border rounded-lg p-4 bg-gray-50">
+                            {billingAddresses
+                              .filter(addr => String(addr.id) === String(billingAddressId))
+                              .map(address => (
+                                <div key={address.id}>
+                                  <div className="flex justify-between items-start mb-2">
+                                    <p className="font-medium text-Primarycolor">{address.full_name}</p>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleEditAddress('billing-addresses', address)}
+                                        className="p-1 text-Primarycolor hover:text-gray-800 transition-colors"
+                                        title="Edit address"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteAddress('billing-addresses', address.id)}
+                                        className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                        title="Delete address"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-Accent">{address.email}</p>
+                                  {address.phone_number && <p className="text-sm text-Accent">{address.phone_number}</p>}
+                                  <p className="text-sm text-Accent">{address.address_line_1}</p>
+                                  <p className="text-sm text-Accent">{address.city}, {address.state} {address.zip_code}</p>
+                                  <p className="text-sm text-Accent">{address.country}</p>
+                                </div>
+                              ))
+                            }
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <button
+                                onClick={handleAddNewBillingAddress}
+                                className="flex items-center text-Primarycolor hover:text-gray-800 transition-colors text-sm font-Jost"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Another Address
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                          <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-lg font-medium text-Primarycolor mb-2 font-Manrope">No billing address found</p>
+                          <p className="text-sm text-gray-600 mb-6 font-Jost">Add your billing address for payment processing</p>
+                          <button
+                            onClick={handleAddNewBillingAddress}
+                            className="inline-flex items-center px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium font-Jost"
+                          >
+                            <CreditCard className="h-5 w-5 mr-2" />
+                            Add Billing Address
+                          </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800 font-Jost mb-3">No billing addresses found. Please add a billing address.</p>
-                        <button
-                          onClick={() => setShowBillingForm(true)}
-                          className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-Jost"
-                        >
-                          Add Billing Address
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  </>
                 )}
                 
                 {/* Shipping Address Form for Logged-in Users */}

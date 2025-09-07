@@ -222,9 +222,16 @@ export const initializeDeliveryFeePayment = async (req, res) => {
     }
     
     const orderCheck = await sql`
-      SELECT o.id, o.total, o.currency, o.payment_status, o.shipping_country, o.delivery_fee, o.delivery_fee_paid, u.email, u.first_name
+      SELECT 
+        o.id, o.total, o.currency, o.payment_status, o.shipping_country, 
+        o.delivery_fee, o.delivery_fee_paid,
+        u.email as user_email, u.first_name as user_first_name, u.is_temporary,
+        ba.email as billing_email, ba.full_name as billing_full_name,
+        COALESCE(u.email, ba.email) as email,
+        COALESCE(u.first_name, ba.full_name) as first_name
       FROM orders o
       JOIN users u ON o.user_id = u.id
+      LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
       WHERE o.id = ${order_id} AND o.deleted_at IS NULL
     `;
     
@@ -302,19 +309,33 @@ export const initializeDeliveryFeePayment = async (req, res) => {
       return res.status(500).json({ error: 'Failed to get payment authorization URL from Paystack' });
     }
     
+    // Use improved email extraction logic for guest vs logged-in users
+    let finalEmail, finalName;
+    if (order.is_temporary) {
+      // For guest users, prioritize billing address email
+      finalEmail = order.billing_email || order.user_email;
+      finalName = order.billing_full_name || order.user_first_name || 'Customer';
+      console.log(`📧 Guest user delivery fee payment for order ${order_id}: Using billing email ${finalEmail}`);
+    } else {
+      // For logged-in users, prioritize user email
+      finalEmail = order.user_email || order.billing_email;
+      finalName = order.user_first_name || order.billing_full_name || 'Customer';
+      console.log(`📧 Logged-in user delivery fee payment for order ${order_id}: Using user email ${finalEmail}`);
+    }
+
     let emailSent = false;
     try {
       await sendDeliveryFeePaymentConfirmation(
-        order.email,
-        order.first_name,
+        finalEmail,
+        finalName,
         order_id,
         delivery_fee,
         currency
       );
-      console.log(`✅ Sent delivery fee payment link email to ${order.email} for order ${order_id}`);
+      console.log(`✅ Sent delivery fee payment link email to ${finalEmail} for order ${order_id} (${order.is_temporary ? 'guest' : 'logged-in'} user)`);
       emailSent = true;
     } catch (emailError) {
-      console.error(`Failed to send delivery fee email to ${order.email} for order ${order_id}:`, emailError.message);
+      console.error(`Failed to send delivery fee email to ${finalEmail} for order ${order_id}:`, emailError.message);
       console.error('Email error details:', emailError.stack || emailError);
     }
     
@@ -356,9 +377,15 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     console.log(`🔎 Verifying Paystack delivery fee payment: reference=${reference}, order_id=${order_id}`);
     
     const orderCheck = await sql`
-      SELECT o.id, o.user_id, o.delivery_fee, o.delivery_fee_paid, o.currency, u.email, u.first_name
+      SELECT 
+        o.id, o.user_id, o.delivery_fee, o.delivery_fee_paid, o.currency,
+        u.email as user_email, u.first_name as user_first_name, u.is_temporary,
+        ba.email as billing_email, ba.full_name as billing_full_name,
+        COALESCE(u.email, ba.email) as email,
+        COALESCE(u.first_name, ba.full_name) as first_name
       FROM orders o
       JOIN users u ON o.user_id = u.id
+      LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
       WHERE o.id = ${order_id} AND o.deleted_at IS NULL
     `;
     
@@ -405,20 +432,34 @@ export const verifyDeliveryFeePayment = async (req, res) => {
     
     console.log(`✅ Delivery fee payment verified for reference=${reference}, order_id=${order_id}`);
     
+    // Use improved email extraction logic for guest vs logged-in users
+    let finalEmail, finalName;
+    if (order.is_temporary) {
+      // For guest users, prioritize billing address email
+      finalEmail = order.billing_email || order.user_email;
+      finalName = order.billing_full_name || order.user_first_name || 'Customer';
+      console.log(`📧 Guest user delivery fee confirmation for order ${order_id}: Using billing email ${finalEmail}`);
+    } else {
+      // For logged-in users, prioritize user email
+      finalEmail = order.user_email || order.billing_email;
+      finalName = order.user_first_name || order.billing_full_name || 'Customer';
+      console.log(`📧 Logged-in user delivery fee confirmation for order ${order_id}: Using user email ${finalEmail}`);
+    }
+    
     try {
       if (typeof sendDeliveryFeePaymentConfirmation !== 'function') {
         throw new Error('sendDeliveryFeePaymentConfirmation is not defined');
       }
       await sendDeliveryFeePaymentConfirmation(
-        order.email,
-        order.first_name,
+        finalEmail,
+        finalName,
         order_id,
         order.delivery_fee,
         order.currency
       );
-      console.log(`✅ Sent delivery fee payment confirmation to ${order.email} for order ${order_id}`);
+      console.log(`✅ Sent delivery fee payment confirmation to ${finalEmail} for order ${order_id} (${order.is_temporary ? 'guest' : 'logged-in'} user)`);
     } catch (emailError) {
-      console.error(`Failed to send delivery fee payment confirmation to ${order.email} for order ${order_id}:`, emailError.message);
+      console.error(`Failed to send delivery fee payment confirmation to ${finalEmail} for order ${order_id}:`, emailError.message);
       console.error('Email error details:', emailError.stack || emailError);
     }
     

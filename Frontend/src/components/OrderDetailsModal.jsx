@@ -1,7 +1,7 @@
 import { 
   XCircle, User, Mail, Phone, Calendar, Globe, MapPin, Package, CreditCard, 
   ChevronRight as ChevronRightIcon, ChevronLeft as ChevronLeftIcon, 
-  Printer, CheckCircle, Send, Trash2, Truck, FileText
+  Printer, CheckCircle, Trash2, Truck, FileText
 } from 'lucide-react';
 
 const OrderDetailsModal = ({
@@ -425,9 +425,7 @@ const OrderDetailsModal = ({
                 <CheckCircle className="w-4 h-4 mr-1" /> Mark as Packed
               </button>
             )}
-            <button onClick={onSendEmail} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-              <Send className="w-4 h-4 mr-1" /> Send Email
-            </button>
+
             <button onClick={onUpdateStatus} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
               Update Status
             </button>

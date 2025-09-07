@@ -163,10 +163,14 @@ async function handleSuccessfulPayment(reference, res) {
       o.cart_id,
       o.delivery_fee,
       o.delivery_fee_paid,
-      COALESCE(u.email, ba.email) as email,
-      COALESCE(u.first_name, ba.full_name) as first_name,
+      u.email as user_email,
+      u.first_name as user_first_name,
+      u.last_name as user_last_name,
+      u.is_temporary,
       ba.full_name as billing_full_name,
-      ba.email as billing_email
+      ba.email as billing_email,
+      COALESCE(u.email, ba.email) as email,
+      COALESCE(u.first_name, ba.full_name) as first_name
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
@@ -271,14 +275,20 @@ async function handleFailedPayment(reference, res) {
 // Helper function to send delivery fee emails
 async function sendDeliveryFeeEmails(orderDetails, orderId) {
   try {
-    // Determine email and name to use
-    const userEmail = orderDetails.email;
-    const userName = orderDetails.first_name;
-    const billingEmail = orderDetails.billing_email;
-    const billingName = orderDetails.billing_full_name;
+    // Use same improved email extraction logic as order confirmation
+    let finalEmail, finalName;
     
-    const finalEmail = userEmail || billingEmail;
-    const finalName = userName || billingName || 'Customer';
+    if (orderDetails.is_temporary) {
+      // For guest users (temporary), prioritize billing address email
+      finalEmail = orderDetails.billing_email || orderDetails.user_email;
+      finalName = orderDetails.billing_full_name || orderDetails.user_first_name || 'Customer';
+      console.log(`📧 Guest user delivery fee for order ${orderId}: Using billing email ${finalEmail}`);
+    } else {
+      // For logged-in users, prioritize user email
+      finalEmail = orderDetails.user_email || orderDetails.billing_email;
+      finalName = orderDetails.user_first_name || orderDetails.billing_full_name || 'Customer';
+      console.log(`📧 Logged-in user delivery fee for order ${orderId}: Using user email ${finalEmail}`);
+    }
     
     // Send customer email
     if (finalEmail) {
@@ -311,14 +321,21 @@ async function sendDeliveryFeeEmails(orderDetails, orderId) {
 // Helper function to send order confirmation email
 async function sendOrderConfirmationEmailHelper(orderDetails) {
   try {
-    // Determine email and name to use
-    const userEmail = orderDetails.email;
-    const userName = orderDetails.first_name;
-    const billingEmail = orderDetails.billing_email;
-    const billingName = orderDetails.billing_full_name;
+    // Improved email extraction logic for guest vs logged-in users
+    let finalEmail, finalName;
     
-    const finalEmail = userEmail || billingEmail;
-    const finalName = userName || billingName || 'Customer';
+    if (orderDetails.is_temporary) {
+      // For guest users (temporary), prioritize billing address email
+      // since that's where they enter their actual email during checkout
+      finalEmail = orderDetails.billing_email || orderDetails.user_email;
+      finalName = orderDetails.billing_full_name || orderDetails.user_first_name || 'Customer';
+      console.log(`📧 Guest user order ${orderDetails.id}: Using billing email ${finalEmail}`);
+    } else {
+      // For logged-in users, prioritize user email
+      finalEmail = orderDetails.user_email || orderDetails.billing_email;
+      finalName = orderDetails.user_first_name || orderDetails.billing_full_name || 'Customer';
+      console.log(`📧 Logged-in user order ${orderDetails.id}: Using user email ${finalEmail}`);
+    }
     
     if (finalEmail) {
       await sendOrderConfirmationEmail(  // This is the imported function
@@ -329,9 +346,14 @@ async function sendOrderConfirmationEmailHelper(orderDetails) {
         orderDetails.currency,
         'completed'
       );
-      console.log(`✅ Sent order confirmation email to ${finalEmail} for order ${orderDetails.id}`);
+      console.log(`✅ Sent order confirmation email to ${finalEmail} for order ${orderDetails.id} (${orderDetails.is_temporary ? 'guest' : 'logged-in'} user)`);
     } else {
-      console.error(`No email available for order ${orderDetails.id}`);
+      console.error(`❌ No email available for order ${orderDetails.id} (${orderDetails.is_temporary ? 'guest' : 'logged-in'} user)`);
+      console.error('Order details:', {
+        user_email: orderDetails.user_email,
+        billing_email: orderDetails.billing_email,
+        is_temporary: orderDetails.is_temporary
+      });
     }
     
     // Mark email as sent

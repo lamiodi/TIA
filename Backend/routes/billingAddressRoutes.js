@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-// Get the latest billing address for a user
+// Get all billing addresses for a user
 router.get('/user/:userId', authenticateToken, async (req, res) => {
   const { userId } = req.params;
 
@@ -19,13 +19,35 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
       FROM billing_addresses
       WHERE user_id = ${userId} AND deleted_at IS NULL
       ORDER BY created_at DESC
-      LIMIT 1
     `;
 
     res.status(200).json(rows);
   } catch (err) {
     console.error(`Error fetching billing addresses for user ${userId}:`, err);
     res.status(500).json({ error: 'Failed to fetch billing addresses', details: err.message });
+  }
+});
+
+// Get a specific billing address by ID
+router.get('/:addressId', authenticateToken, async (req, res) => {
+  const { addressId } = req.params;
+  const userId = req.user.id;
+  
+  try {
+    const [address] = await sql`
+      SELECT id, full_name, email, phone_number, address_line_1, city, state, zip_code, country
+      FROM billing_addresses
+      WHERE id = ${addressId} AND user_id = ${userId} AND deleted_at IS NULL
+    `;
+    
+    if (!address) {
+      return res.status(404).json({ error: 'Billing address not found' });
+    }
+    
+    res.status(200).json(address);
+  } catch (err) {
+    console.error(`Error fetching billing address ${addressId}:`, err);
+    res.status(500).json({ error: 'Failed to fetch billing address', details: err.message });
   }
 });
 
@@ -67,7 +89,7 @@ router.post('/', authenticateToken, async (req, res) => {
       `;
 
       if (existingAddress.length) {
-        // Update existing address
+        // Update the most recent existing address
         const [updatedAddress] = await sql`
           UPDATE billing_addresses
           SET
@@ -82,6 +104,7 @@ router.post('/', authenticateToken, async (req, res) => {
             updated_at = NOW(),
             deleted_at = NULL
           WHERE user_id = ${user_id} AND deleted_at IS NULL
+          AND id = (SELECT id FROM billing_addresses WHERE user_id = ${user_id} AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)
           RETURNING id, full_name, email, phone_number, address_line_1, city, state, zip_code, country
         `;
 
@@ -104,6 +127,60 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(`Error adding/updating billing address for user ${user_id}:`, err);
     res.status(500).json({ error: 'Failed to add/update billing address', details: err.message });
+  }
+});
+
+// Update a specific billing address
+router.put('/:addressId', authenticateToken, async (req, res) => {
+  const { addressId } = req.params;
+  const userId = req.user.id;
+  const {
+    full_name,
+    email,
+    phone_number,
+    address_line_1,
+    city,
+    state,
+    zip_code,
+    country
+  } = req.body;
+  
+  if (!full_name || !email || !address_line_1 || !city || !country) {
+    return res.status(400).json({ error: 'Full name, email, address line 1, city, and country are required' });
+  }
+  
+  try {
+    // Check if address exists and belongs to user
+    const [existingAddress] = await sql`
+      SELECT id FROM billing_addresses 
+      WHERE id = ${addressId} AND user_id = ${userId} AND deleted_at IS NULL
+    `;
+    
+    if (!existingAddress) {
+      return res.status(404).json({ error: 'Billing address not found or not owned by user' });
+    }
+    
+    // Update the billing address
+    const [updatedAddress] = await sql`
+      UPDATE billing_addresses
+      SET
+        full_name = ${full_name},
+        email = ${email},
+        phone_number = ${phone_number || null},
+        address_line_1 = ${address_line_1},
+        city = ${city},
+        state = ${state || null},
+        zip_code = ${zip_code || null},
+        country = ${country},
+        updated_at = NOW()
+      WHERE id = ${addressId} AND user_id = ${userId} AND deleted_at IS NULL
+      RETURNING id, full_name, email, phone_number, address_line_1, city, state, zip_code, country
+    `;
+    
+    res.status(200).json(updatedAddress);
+  } catch (err) {
+    console.error(`Error updating billing address ${addressId} for user ${userId}:`, err);
+    res.status(500).json({ error: 'Failed to update billing address', details: err.message });
   }
 });
 

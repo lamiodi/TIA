@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { 
   Clock, AlertCircle, Package, CheckCircle, XCircle, Search, Filter, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, DollarSign
+  ChevronLeft, ChevronRight, Globe, Mail, CreditCard, Send
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -216,9 +216,10 @@ const Orders = () => {
       const user = details.user || {};
       await authAxios.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
-        userEmail: user.email || selectedOrder.user_email,
-        userName: `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
+        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
         status: newStatus,
+        isGuest: selectedOrder.is_guest_order
       });
       
       setShowOrderDetail(false);
@@ -448,7 +449,14 @@ const Orders = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <div className="font-medium text-gray-900 font-Manrope">{order.first_name} {order.last_name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900 font-Manrope">{order.first_name} {order.last_name}</div>
+                          {order.is_guest_order && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
+                              Guest
+                            </span>
+                          )}
+                        </div>
                         <div className="text-gray-600 font-Jost">{order.user_email}</div>
                       </td>
                       <td className="py-3 px-4 text-gray-600 text-sm font-Jost">{formatDate(order.created_at)}</td>
@@ -475,8 +483,9 @@ const Orders = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           {order.shipping_country !== 'Nigeria' && order.payment_status === 'completed' && !order.delivery_fee_paid && (
-                            <button onClick={() => { setSelectedOrder(order); setShowDeliveryFeeModal(true); }} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Send Delivery Fee">
-                              <DollarSign className="w-4 h-4" />
+                            <button onClick={() => { setSelectedOrder(order); setShowDeliveryFeeModal(true); }} className="px-2 py-1 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium" title="Send Delivery Fee">
+                              <Send className="w-3 h-3" />
+                              <span>Delivery Fee</span>
                             </button>
                           )}
                           {order.status === 'delivered' && (
