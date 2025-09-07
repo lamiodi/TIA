@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Save, X, User, Mail, Smartphone } from 'lucide-react';
+import { countries } from '../utils/countries';
 
 const BillingAddressForm = ({ 
   address, 
@@ -284,11 +285,12 @@ const BillingAddressForm = ({
               errors.country ? 'border-red-500' : 'border-gray-300'
             }`}
           >
-            <option value="Nigeria">Nigeria</option>
-            <option value="United States">United States</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Canada">Canada</option>
-            <option value="Other">Other</option>
+            <option value="">Select Country</option>
+            {countries.map((country) => (
+              <option key={country} value={country}>
+                {country}
+              </option>
+            ))}
           </select>
           {errors.country && (
             <p className="text-sm text-red-600 mt-1">{errors.country}</p>
