@@ -507,11 +507,11 @@ const ThankYou = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 w-full max-w-md mx-auto">
+          <div className="flex flex-col justify-center items-center gap-4 w-full max-w-md mx-auto">
             {user && !user.is_temporary && (
               <button
                 onClick={() => navigate(`/orders?orderId=${order.id}`)}
-                className="w-full sm:w-auto bg-Primarycolor text-Secondarycolor py-2 px-4 sm:px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
+                className="w-full bg-Primarycolor text-Secondarycolor py-2 px-4 sm:px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
               >
                 View Order Details
               </button>
@@ -530,13 +530,13 @@ const ThankYou = () => {
               </div>
             )}
             {!user && (
-              <div className="w-full bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center">
-                <p className="text-xs md:text-sm text-blue-800 font-Jost mb-2 sm:mb-3">
+              <div className="w-full bg-blue-50 border border-blue-200 rounded-md p-4 text-center">
+                <p className="text-sm md:text-base text-blue-800 font-Jost mb-4">
                   Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
                 </p>
                 <button
                   onClick={() => navigate('/forgot-password')}
-                  className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs md:text-sm font-Jost"
+                  className="w-full bg-blue-600 text-white py-2 px-4 sm:px-6 rounded-md hover:bg-blue-700 transition-colors text-sm md:text-base font-Jost mb-3"
                 >
                   Reset Password
                 </button>
@@ -544,7 +544,7 @@ const ThankYou = () => {
             )}
             <button
               onClick={() => navigate('/')}
-              className="w-full sm:w-auto bg-white text-Primarycolor border border-gray-300 py-2 px-4 sm:px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
+              className="w-full bg-white text-Primarycolor border border-gray-300 py-2 px-4 sm:px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
             >
               Continue Shopping
             </button>
