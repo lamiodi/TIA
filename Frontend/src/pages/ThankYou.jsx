@@ -1,4 +1,3 @@
-// src/pages/ThankYou.jsx
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -234,12 +233,12 @@ const ThankYou = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-Primarycolor mx-auto mb-4" />
-          <p className="text-Accent font-Jost">Verifying your payment...</p>
+          <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-Primarycolor mx-auto mb-4" />
+          <p className="text-base md:text-lg text-Accent font-Jost">Verifying your payment...</p>
           {retryCount > 0 && (
-            <p className="text-sm text-Accent mt-2 font-Jost">
+            <p className="text-sm md:text-base text-Accent mt-2 font-Jost">
               Retry attempt {retryCount} of 3
             </p>
           )}
@@ -261,18 +260,18 @@ const ThankYou = () => {
         }}
       >
         <Navbar />
-        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           <div className="text-center">
-            <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Payment Verification Issue</h2>
+            <AlertCircle className="h-12 w-12 md:h-16 md:w-16 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl md:text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Payment Verification Issue</h2>
             <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 max-w-lg mx-auto">
-              <p className="text-red-700 font-Jost">{error}</p>
+              <p className="text-sm md:text-base text-red-700 font-Jost">{error}</p>
             </div>
-            <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <button
                 onClick={handleManualVerify}
                 disabled={verifying}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-Jost"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-Jost"
               >
                 {verifying ? (
                   <>
@@ -289,20 +288,20 @@ const ThankYou = () => {
               
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-Jost"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-Jost"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Page
               </button>
-              
-              <div className="mt-6">
-                <button
-                  onClick={() => navigate('/')}
-                  className="text-Accent hover:text-Primarycolor font-Jost"
-                >
-                  Return to Homepage
-                </button>
-              </div>
+            </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={() => navigate('/')}
+                className="text-sm md:text-base text-Accent hover:text-Primarycolor font-Jost"
+              >
+                Return to Homepage
+              </button>
             </div>
           </div>
         </div>
@@ -324,16 +323,16 @@ const ThankYou = () => {
         }}
       >
         <Navbar />
-        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           <div className="text-center">
-            <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Order Not Found</h2>
-            <p className="text-Accent mb-6 font-Jost">We couldn't find your order details. Please try verifying your payment manually.</p>
-            <div className="space-y-4">
+            <AlertCircle className="h-12 w-12 md:h-16 md:w-16 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl md:text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Order Not Found</h2>
+            <p className="text-sm md:text-base text-Accent mb-6 font-Jost">We couldn't find your order details. Please try verifying your payment manually.</p>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <button
                 onClick={handleManualVerify}
                 disabled={verifying}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-Jost"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-Jost"
               >
                 {verifying ? (
                   <>
@@ -350,20 +349,20 @@ const ThankYou = () => {
               
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-Jost"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-Jost"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Page
               </button>
-              
-              <div className="mt-6">
-                <button
-                  onClick={() => navigate('/')}
-                  className="text-Accent hover:text-Primarycolor font-Jost"
-                >
-                  Return to Homepage
-                </button>
-              </div>
+            </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={() => navigate('/')}
+                className="text-sm md:text-base text-Accent hover:text-Primarycolor font-Jost"
+              >
+                Return to Homepage
+              </button>
             </div>
           </div>
         </div>
@@ -384,10 +383,10 @@ const ThankYou = () => {
       }}
     >
       <Navbar />
-      <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-Primarycolor mb-4 font-Manrope">
+          <CheckCircle className="h-12 w-12 md:h-16 md:w-16 text-green-600 mx-auto mb-4" />
+          <h2 className="text-2xl md:text-3xl font-bold text-Primarycolor mb-4 font-Manrope">
             {isInternational && !order.delivery_fee_paid
               ? 'Order Received - Awaiting Delivery Fee'
               : 'Order Confirmed'}
@@ -400,7 +399,7 @@ const ThankYou = () => {
                   <Loader2 className="h-5 w-5 text-yellow-400 animate-spin" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-yellow-700 font-Jost">
+                  <p className="text-sm md:text-base text-yellow-700 font-Jost">
                     Payment is still being processed. This page will update automatically once payment is confirmed.
                   </p>
                 </div>
@@ -411,17 +410,17 @@ const ThankYou = () => {
           {/* Enhanced Account Conversion Banner for Temporary Users */}
           {showConvertOption && (
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-1 mb-8 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
-              <div className="bg-white rounded-lg p-6">
+              <div className="bg-white rounded-lg p-4 md:p-6">
                 <div className="flex flex-col items-center text-center">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
                     <UserPlus className="h-6 w-6 text-blue-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-Primarycolor mb-2 font-Manrope">Create Your Permanent Account</h3>
-                  <p className="text-Accent mb-6 max-w-md font-Jost">
+                  <h3 className="text-lg md:text-xl font-bold text-Primarycolor mb-2 font-Manrope">Create Your Permanent Account</h3>
+                  <p className="text-sm md:text-base text-Accent mb-6 max-w-md font-Jost">
                     You're currently using a temporary account. Set up a password to convert it to a permanent account and unlock these benefits:
                   </p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 w-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 w-full">
                     <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg">
                       <Shield className="h-8 w-8 text-blue-600 mb-2" />
                       <span className="text-sm font-medium text-Primarycolor font-Manrope">Secure Access</span>
@@ -438,13 +437,13 @@ const ThankYou = () => {
                   
                   <button
                     onClick={handleConvertAccount}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all shadow-lg flex items-center font-Manrope"
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-6 rounded-lg font-medium hover:opacity-90 transition-all shadow-lg flex items-center justify-center font-Manrope"
                   >
                     <Lock className="h-5 w-5 mr-2" />
                     Set Up Password
                   </button>
                   
-                  <p className="text-xs text-Accent mt-3 font-Jost">
+                  <p className="text-xs md:text-sm text-Accent mt-3 font-Jost">
                     This will convert your temporary account to a permanent one
                   </p>
                 </div>
@@ -453,36 +452,36 @@ const ThankYou = () => {
           )}
           
           <div className="max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
-            <p className="text-Accent mb-4 font-Jost">
+            <p className="text-sm md:text-base text-Accent mb-4 font-Jost">
               {isInternational && !order.delivery_fee_paid
                 ? 'Thank you for your order! We will send you a delivery fee quote for your international order soon.'
                 : 'Thank you for your order! You\'ll receive a confirmation email soon.'}
             </p>
             
             {isInternational && !order.delivery_fee_paid && (
-              <p className="text-Accent mb-6 font-Jost">
+              <p className="text-sm md:text-base text-Accent mb-6 font-Jost">
                 Please check your email for the delivery fee payment link.
               </p>
             )}
           </div>
           
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-left w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-auto mb-6">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-md text-left w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-auto mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <p className="text-sm text-Accent font-Jost">Order ID</p>
-                <p className="font-medium text-Primarycolor font-Jost">{order.id}</p>
+                <p className="text-sm md:text-base font-medium text-Primarycolor font-Jost">{order.id}</p>
               </div>
               <div>
                 <p className="text-sm text-Accent font-Jost">Reference</p>
-                <p className="font-medium text-Primarycolor font-Jost">{order.reference}</p>
+                <p className="text-sm md:text-base font-medium text-Primarycolor font-Jost">{order.reference}</p>
               </div>
               <div>
                 <p className="text-sm text-Accent font-Jost">Total</p>
-                <p className="font-medium text-Primarycolor font-Jost">{formatTotal()}</p>
+                <p className="text-sm md:text-base font-medium text-Primarycolor font-Jost">{formatTotal()}</p>
               </div>
               <div>
                 <p className="text-sm text-Accent font-Jost">Payment Status</p>
-                <p className={`font-medium ${
+                <p className={`text-sm md:text-base font-medium ${
                   order.payment_status === 'completed' ? 'text-green-600' : 'text-yellow-600'
                 } font-Jost`}>
                   {order.payment_status}
@@ -493,8 +492,8 @@ const ThankYou = () => {
               </div>
               {isInternational && (
                 <div>
-                  <p className="text-sm text-Primarycolor font-Jost">Delivery Fee</p>
-                  <p className={`font-medium ${
+                  <p className="text-sm text-Accent font-Jost">Delivery Fee</p>
+                  <p className={`text-sm md:text-base font-medium ${
                     order.delivery_fee_paid ? 'text-green-600' : 'text-yellow-600'
                   } font-Jost`}>
                     {order.delivery_fee_paid ? 'Paid' : 'Pending'}
@@ -503,49 +502,49 @@ const ThankYou = () => {
               )}
               <div>
                 <p className="text-sm text-Accent font-Jost">Shipping Country</p>
-                <p className="font-medium text-Primarycolor font-Jost">{order.shipping_country}</p>
+                <p className="text-sm md:text-base font-medium text-Primarycolor font-Jost">{order.shipping_country}</p>
               </div>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 w-full max-w-md mx-auto">
             {user && !user.is_temporary && (
-                   <button
-                     onClick={() => navigate(`/orders?orderId=${order.id}`)}
-                     className="bg-Primarycolor text-Secondarycolor py-2 px-4 sm:px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center text-sm sm:text-base"
-                   >
-                     View Order Details
-                   </button>
-                 )}
-                 {user && user.is_temporary && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center">
-                     <p className="text-blue-800 text-xs sm:text-sm font-Jost mb-2">
-                       To view your order details and track future orders, please convert your guest account to a permanent account.
-                     </p>
-                     <button
-                       onClick={handleConvertAccount}
-                       className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-Jost"
-                     >
-                       Convert Account
-                     </button>
-                   </div>
-                 )}
-                 {!user && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center w-full max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl mx-auto">
-                     <p className="text-blue-800 text-xs sm:text-sm font-Jost mb-2 sm:mb-3">
-                       Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
-                     </p>
-                     <button
-                       onClick={() => navigate('/forgot-password')}
-                       className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-Jost"
-                     >
-                       Reset Password
-                     </button>
-                   </div>
-                 )}
+              <button
+                onClick={() => navigate(`/orders?orderId=${order.id}`)}
+                className="w-full sm:w-auto bg-Primarycolor text-Secondarycolor py-2 px-4 sm:px-6 rounded-md hover:bg-gray-800 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
+              >
+                View Order Details
+              </button>
+            )}
+            {user && user.is_temporary && (
+              <div className="w-full bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center">
+                <p className="text-xs md:text-sm text-blue-800 font-Jost mb-2">
+                  To view your order details and track future orders, please convert your guest account to a permanent account.
+                </p>
+                <button
+                  onClick={handleConvertAccount}
+                  className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs md:text-sm font-Jost"
+                >
+                  Convert Account
+                </button>
+              </div>
+            )}
+            {!user && (
+              <div className="w-full bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center">
+                <p className="text-xs md:text-sm text-blue-800 font-Jost mb-2 sm:mb-3">
+                  Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
+                </p>
+                <button
+                  onClick={() => navigate('/forgot-password')}
+                  className="bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-xs md:text-sm font-Jost"
+                >
+                  Reset Password
+                </button>
+              </div>
+            )}
             <button
               onClick={() => navigate('/')}
-              className="bg-white text-Primarycolor border border-gray-300 py-2 px-4 sm:px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center text-sm sm:text-base"
+              className="w-full sm:w-auto bg-white text-Primarycolor border border-gray-300 py-2 px-4 sm:px-6 rounded-md hover:bg-gray-50 transition-colors font-Jost flex items-center justify-center text-sm md:text-base"
             >
               Continue Shopping
             </button>
