@@ -2106,39 +2106,39 @@ const CheckoutPage = () => {
                         </div>
                       )}
                     </div>
+                    
+                    {/* Shipping Address Form for Logged-in Users */}
+                    {showShippingForm && (
+                      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Shipping Address</h3>
+                        <ShippingAddressForm
+                          address={{ state: shippingForm, setState: setShippingForm }}
+                          onSubmit={handleShippingSubmit}
+                          onCancel={() => setShowShippingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                          isGuest={false}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Billing Address Form for Logged-in Users */}
+                    {showBillingForm && (
+                      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Billing Address</h3>
+                        <BillingAddressForm
+                          address={{ state: billingForm, setState: setBillingForm }}
+                          onSubmit={handleBillingSubmit}
+                          onCancel={() => setShowBillingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={loading}
+                          isGuest={false}
+                        />
+                      </div>
+                    )}
                   </>
-                )}
-                
-                {/* Shipping Address Form for Logged-in Users */}
-                {showShippingForm && (
-                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
-                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Shipping Address</h3>
-                    <ShippingAddressForm
-                      address={{ state: shippingForm, setState: setShippingForm }}
-                      onSubmit={handleShippingSubmit}
-                      onCancel={() => setShowShippingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                      isGuest={false}
-                    />
-                  </div>
-                )}
-                
-                {/* Billing Address Form for Logged-in Users */}
-                {showBillingForm && (
-                  <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
-                    <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Billing Address</h3>
-                    <BillingAddressForm
-                      address={{ state: billingForm, setState: setBillingForm }}
-                      onSubmit={handleBillingSubmit}
-                      onCancel={() => setShowBillingForm(false)}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      actionLoading={loading}
-                      isGuest={false}
-                    />
-                  </div>
                 )}
                 
                 {/* Order Note */}
