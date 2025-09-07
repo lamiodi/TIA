@@ -94,8 +94,8 @@ export const getMe = async (req, res) => {
 };
 
 export const signupUser = async (req, res) => {
-  const { first_name, last_name, username, email, password, phone_number } = req.body;
-  if (!first_name || !last_name || !username || !email || !password) {
+  const { first_name, last_name, email, password, phone_number } = req.body;
+  if (!first_name || !last_name || !email || !password) {
     return res.status(400).json({ error: 'All required fields must be filled' });
   }
   
@@ -111,9 +111,9 @@ export const signupUser = async (req, res) => {
     await sql.begin(async (sql) => {
       const [user] = await sql`
         INSERT INTO users
-        (first_name, last_name, username, email, password, phone_number, created_at, updated_at, is_admin, first_order)
-        VALUES (${first_name}, ${last_name}, ${username}, LOWER(${email}), ${hashedPassword}, ${phone_number}, NOW(), NOW(), ${false}, ${true})
-        RETURNING id, email, username, is_admin, first_order
+        (first_name, last_name, email, password, phone_number, created_at, updated_at, is_admin, first_order)
+        VALUES (${first_name}, ${last_name}, LOWER(${email}), ${hashedPassword}, ${phone_number}, NOW(), NOW(), ${false}, ${true})
+        RETURNING id, email, is_admin, first_order
       `;
       
       await sql`INSERT INTO cart (user_id, total) VALUES (${user.id}, 0)`;
@@ -124,7 +124,6 @@ export const signupUser = async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          username: user.username,
           role: user.is_admin ? 'admin' : 'user',
           first_order: user.first_order,
         },
