@@ -261,7 +261,7 @@ const ThankYou = () => {
         }}
       >
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Payment Verification Issue</h2>
@@ -324,7 +324,7 @@ const ThankYou = () => {
         }}
       >
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-Primarycolor mb-4 font-Manrope">Order Not Found</h2>
@@ -384,7 +384,7 @@ const ThankYou = () => {
       }}
     >
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
           <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-Primarycolor mb-4 font-Manrope">
@@ -410,7 +410,7 @@ const ThankYou = () => {
           
           {/* Enhanced Account Conversion Banner for Temporary Users */}
           {showConvertOption && (
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-1 mb-8 max-w-2xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-1 mb-8 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
               <div className="bg-white rounded-lg p-6">
                 <div className="flex flex-col items-center text-center">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
@@ -452,7 +452,7 @@ const ThankYou = () => {
             </div>
           )}
           
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
             <p className="text-Accent mb-4 font-Jost">
               {isInternational && !order.delivery_fee_paid
                 ? 'Thank you for your order! We will send you a delivery fee quote for your international order soon.'
@@ -466,7 +466,7 @@ const ThankYou = () => {
             )}
           </div>
           
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-left w-full max-w-md sm:max-w-lg mx-auto mb-6">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md text-left w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-auto mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <p className="text-sm text-Accent font-Jost">Order ID</p>
@@ -531,7 +531,7 @@ const ThankYou = () => {
                    </div>
                  )}
                  {!user && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center w-full max-w-xs sm:max-w-md mx-auto">
+                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 sm:p-4 text-center w-full max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl mx-auto">
                      <p className="text-blue-800 text-xs sm:text-sm font-Jost mb-2 sm:mb-3">
                        Made this order as a guest? Reset your password to convert your temporary account to a permanent one and access order history.
                      </p>

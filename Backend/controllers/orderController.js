@@ -660,7 +660,7 @@ export const createOrder = async (req, res) => {
       
       console.log(`✅ Created order ${orderId} for user ${user_id} (${user.is_temporary ? 'temporary' : 'permanent'}) with reference ${reference}, discount ${discount}`);
       res.status(201).json({ order: { id: orderId, reference, discount } });
-    });u
+    });
   } catch (err) {
     console.error('❌ Error creating order:', err.message, err.stack);
     console.error('Request body:', req.body);

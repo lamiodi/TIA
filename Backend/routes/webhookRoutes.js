@@ -169,8 +169,10 @@ async function handleSuccessfulPayment(reference, res) {
         u.is_temporary,
         ba.full_name as billing_full_name,
         ba.email as billing_email,
-        COALESCE(ba.email, u.email) as email,
-        COALESCE(ba.full_name, u.first_name) as first_name
+        u.email as user_email,
+        u.first_name as user_first_name,
+        ba.full_name as billing_full_name,
+        ba.email as billing_email
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
