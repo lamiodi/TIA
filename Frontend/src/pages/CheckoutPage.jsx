@@ -2034,6 +2034,8 @@ const CheckoutPage = () => {
                         </div>
                       )}
                     </div>
+
+
                     
                     {/* Billing Address Section */}
                     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2121,23 +2123,13 @@ const CheckoutPage = () => {
                       )}
                     </div>
                     
-                    {/* Shipping Address Form for Logged-in Users */}
-                    {showShippingForm && (
-                      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
-                        <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Shipping Address</h3>
-                        <ShippingAddressForm
-                          address={{ state: shippingForm, setState: setShippingForm }}
-                          onSubmit={handleShippingSubmit}
-                          onCancel={() => setShowShippingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={shippingAddressLoading}
-                          isGuest={false}
-                        />
-                      </div>
-                    )}
+
                     
-                    {/* Billing Address Form for Logged-in Users */}
+
+                  </>
+                )}
+                
+                {/* Billing Address Form for Logged-in Users */}
                     {showBillingForm && (
                       <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
                         <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Add Billing Address</h3>
@@ -2152,11 +2144,9 @@ const CheckoutPage = () => {
                         />
                       </div>
                     )}
-                  </>
-                )}
-                
-                {/* Order Note */}
-                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+
+                    {/* Order Note */}
+                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                   <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
                   <textarea
                     value={orderNote}

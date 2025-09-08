@@ -273,7 +273,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         const imageUrl = item.image_url || 'https://via.placeholder.com/100';
         let itemDetails = `
           <li style="margin-bottom: 24px; display: flex; gap: 16px; align-items: flex-start;">
-            <img src="${imageUrl}" alt="${item.product_name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;" onerror="this.src='https://via.placeholder.com/100';" />
+            <img src="${imageUrl}" alt="${item.product_name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; margin-right: 16px;" onerror="this.src='https://via.placeholder.com/100';" />
             <div style="flex: 1;">
               <p style="font-size: 16px; color: #1f2937; margin: 0 0 8px 0; font-weight: 600;">
                 ${item.product_name}
@@ -361,13 +361,8 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Billing Address</h3>
         <div style="font-size: 14px; color: #6b7280;">
           <p style="margin: 0 0 4px 0;">${order.billing_address_full_name}</p>
-          <p style="margin: 0 0 4px 0;">${order.billing_address_line_1}</p>
-          <p style="margin: 0 0 4px 0;">${order.billing_address_city}, ${order.billing_address_state || ''} ${
-            order.billing_address_zip_code
-          }</p>
+          <p style="margin: 0 0 4px 0;">${order.billing_address_city}, ${order.billing_address_state || ''}</p>
           <p style="margin: 0 0 4px 0;">${order.billing_address_country}</p>
-          <p style="margin: 0 0 4px 0;">Email: ${order.billing_address_email}</p>
-          <p style="margin: 0 0 4px 0;">Phone: ${order.billing_address_phone_number}</p>
         </div>
       </div>
     ` : `
