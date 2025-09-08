@@ -29,26 +29,41 @@ const GuestCheckoutModal = React.memo(({
   loading,
   navigate
 }) => (
-  // Increased blur effect
-  <div className="fixed inset-0 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-Primarycolor font-Manrope flex items-center">
-          <User className="h-5 w-5 mr-2" />
-          Guest Checkout
-        </h3>
-        <button 
-          onClick={() => {}} // Prevent closing the modal
-          className="text-gray-400 hover:text-gray-600 cursor-not-allowed"
-          title="Please complete the form to continue"
-        >
-          <X className="h-5 w-5" />
-        </button>
+  // Enhanced backdrop with gradient overlay
+  <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+    <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
+      {/* Enhanced header with gradient background */}
+      <div className="relative mb-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl opacity-50"></div>
+        <div className="relative flex justify-between items-center p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg mr-3">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 font-Manrope">
+                Guest Checkout
+              </h3>
+              <p className="text-sm text-gray-500 font-Jost">
+                Quick & secure checkout
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => {}} // Prevent closing the modal
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
+            title="Please complete the form to continue"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
       
-      <p className="text-sm text-Accent mb-4 font-Jost">
-        Enter your details to create a temporary account and complete your purchase.
-      </p>
+      <div className="mb-6">
+        <p className="text-gray-600 font-Jost leading-relaxed">
+          Create a temporary account to complete your purchase. We'll send you order updates and account details via email.
+        </p>
+      </div>
       
       {existingUserType && (
         <div className={`mb-4 p-3 rounded-lg ${
@@ -102,113 +117,180 @@ const GuestCheckoutModal = React.memo(({
         </div>
       )}
       
-      <form onSubmit={onSubmitGuestForm} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+      <form onSubmit={onSubmitGuestForm} className="space-y-6">
+        {/* Enhanced form fields with better styling */}
+        <div className="space-y-1">
+          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
+            <User className="h-4 w-4 mr-2 text-gray-500" />
             Full Name *
           </label>
-          <input
-            type="text"
-            name="name"
-            value={guestForm.name}
-            onChange={(e) => onGuestFormChange('name', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.name ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your full name"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="name"
+              value={guestForm.name}
+              onChange={(e) => onGuestFormChange('name', e.target.value)}
+              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                guestFormErrors.name 
+                  ? 'border-red-400 bg-red-50 focus:border-red-500' 
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+              }`}
+              placeholder="Enter your full name"
+            />
+            {guestFormErrors.name && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+            )}
+          </div>
           {guestFormErrors.name && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.name}</p>
+            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {guestFormErrors.name}
+            </p>
           )}
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+        <div className="space-y-1">
+          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
+            <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+            </svg>
             Email Address *
           </label>
-          <input
-            type="email"
-            name="email"
-            value={guestForm.email}
-            onChange={(e) => onGuestFormChange('email', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your email address"
-          />
+          <div className="relative">
+            <input
+              type="email"
+              name="email"
+              value={guestForm.email}
+              onChange={(e) => onGuestFormChange('email', e.target.value)}
+              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                guestFormErrors.email 
+                  ? 'border-red-400 bg-red-50 focus:border-red-500' 
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+              }`}
+              placeholder="Enter your email address"
+            />
+            {guestFormErrors.email && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+            )}
+          </div>
           {guestFormErrors.email && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.email}</p>
+            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {guestFormErrors.email}
+            </p>
           )}
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-Accent mb-1 font-Jost">
+        <div className="space-y-1">
+          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
+            <Smartphone className="h-4 w-4 mr-2 text-gray-500" />
             Phone Number *
           </label>
-          <input
-            type="tel"
-            name="phone_number"
-            value={guestForm.phone_number}
-            onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
-            className={`w-full p-2 border rounded-md font-Jost ${
-              guestFormErrors.phone_number ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter your phone number"
-          />
+          <div className="relative">
+            <input
+              type="tel"
+              name="phone_number"
+              value={guestForm.phone_number}
+              onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
+              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                guestFormErrors.phone_number 
+                  ? 'border-red-400 bg-red-50 focus:border-red-500' 
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+              }`}
+              placeholder="Enter your phone number"
+            />
+            {guestFormErrors.phone_number && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+            )}
+          </div>
           {guestFormErrors.phone_number && (
-            <p className="text-sm text-red-600 mt-1 font-Jost">{guestFormErrors.phone_number}</p>
+            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {guestFormErrors.phone_number}
+            </p>
           )}
         </div>
         
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-700 font-Jost">
-            <strong>Note:</strong> A temporary account will be created with your information. 
-            You'll receive an email with instructions to set a password and access your order history.
-          </p>
+        {/* Enhanced info box with better visual design */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100 rounded-full -mr-10 -mt-10 opacity-50"></div>
+          <div className="relative flex items-start">
+            <div className="p-1 bg-blue-500 rounded-lg mr-3 mt-0.5">
+              <CheckCircle className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-800 font-Jost mb-1">
+                Temporary Account Creation
+              </p>
+              <p className="text-xs text-blue-700 font-Jost leading-relaxed">
+                We'll create a secure temporary account and send you order updates plus instructions to set a password for future access.
+              </p>
+            </div>
+          </div>
         </div>
         
         {existingUserType === 'permanent' && (
-          <div className="mt-3 text-center">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 text-center">
+            <p className="text-sm text-amber-800 font-Jost mb-2">
+              Account already exists with this email
+            </p>
             <button
               type="button"
               onClick={onLoginRedirect}
-              className="text-sm text-blue-600 hover:text-blue-800 font-Jost"
+              className="inline-flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-Jost font-medium transition-colors"
             >
+              <User className="h-4 w-4 mr-2" />
               Log in to your existing account
             </button>
           </div>
         )}
         
-        <div className="flex justify-between pt-4">
+        {/* Enhanced button section with better spacing and styling */}
+        <div className="pt-6 space-y-4">
+          {/* Primary action button */}
           <button
-            type="button"
-            onClick={() => navigate('/cart')}
-            className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+            type="submit"
+            disabled={loading}
+            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Return to Cart
+            {loading ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                Creating Account...
+              </>
+            ) : (
+              <>
+                Continue to Checkout
+                <svg className="h-5 w-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </>
+            )}
           </button>
-          <div className="flex space-x-3">
+          
+          {/* Secondary actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/cart')}
+              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Return to Cart
+            </button>
             <button
               type="button"
               onClick={onLoginRedirect}
-              className="px-4 py-2 border border-gray-300 rounded-md text-Accent hover:bg-gray-50 flex items-center font-Jost"
+              className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-xl text-blue-600 hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
             >
+              <User className="h-4 w-4 mr-2" />
               Log In Instead
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-Primarycolor text-white rounded-md hover:bg-gray-800 flex items-center disabled:opacity-50 font-Jost"
-            >
-              {loading ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
-                  Creating Account...
-                </>
-              ) : (
-                'Continue to Checkout'
-              )}
             </button>
           </div>
         </div>
