@@ -106,8 +106,8 @@ export const signupUser = async (req, res) => {
     
     if (existing) {
       if (existing.is_temporary) {
-        return res.status(409).json({ 
-          error: 'You already have a temporary account with this email',
+        return res.status(409).json({
+          error: 'You already have a temporary account with this email. Please click <a href="/forgot-password" style="color: #007bff; text-decoration: underline;">Forgot Password</a> to reset your password using this email address, then login to convert your temporary account to a permanent one.',
           suggestion: 'Use the password reset option with this email to convert your temporary account to a permanent account'
         });
       } else {

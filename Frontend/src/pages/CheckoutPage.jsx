@@ -1350,18 +1350,29 @@ const CheckoutPage = () => {
         // Remove from local state
         const remaining = shippingAddresses.filter(addr => String(addr.id) !== String(addressId));
         setShippingAddresses(remaining);
-  
+
         // If deleted address was selected, pick first remaining or null
         if (String(shippingAddressId) === String(addressId)) {
           const newShippingId = remaining.length ? String(remaining[0].id) : null;
           setShippingAddressId(newShippingId);
+          
+          // If no addresses remain, automatically show the shipping form
+          if (remaining.length === 0) {
+            setShowShippingForm(true);
+          }
         }
       } else {
         // Type = 'billing-addresses'
         const remaining = billingAddresses.filter(addr => String(addr.id) !== String(addressId));
         setBillingAddresses(remaining);
         if (String(billingAddressId) === String(addressId)) {
-          setBillingAddressId(remaining.length ? String(remaining[0].id) : null);
+          const newBillingId = remaining.length ? String(remaining[0].id) : null;
+          setBillingAddressId(newBillingId);
+          
+          // If no addresses remain, automatically show the billing form
+          if (remaining.length === 0) {
+            setShowBillingForm(true);
+          }
         }
       }
   
