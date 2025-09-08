@@ -259,6 +259,8 @@ const CheckoutPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shippingAddressLoading, setShippingAddressLoading] = useState(false);
+  const [billingAddressLoading, setBillingAddressLoading] = useState(false);
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [showBillingForm, setShowBillingForm] = useState(false);
   const [editingShippingAddress, setEditingShippingAddress] = useState(null);
@@ -682,7 +684,7 @@ const CheckoutPage = () => {
       
       return false;
     } finally {
-      setLoading(false);
+      setShippingAddressLoading(false);
     }
   };
   
@@ -1041,7 +1043,7 @@ const CheckoutPage = () => {
   // Fixed handleShippingSubmit to close the form after saving
   const handleShippingSubmit = async (data) => {
     try {
-      setLoading(true);
+      setShippingAddressLoading(true);
       
       // For authenticated users, save address to backend
       if (isAuthenticated()) {
@@ -1122,13 +1124,13 @@ const CheckoutPage = () => {
       setShowShippingForm(false);
       setEditingShippingAddress(null);
     } finally {
-      setLoading(false);
+      setShippingAddressLoading(false);
     }
   };
   
   const handleBillingSubmit = async (data) => {
     try {
-      setLoading(true);
+      setBillingAddressLoading(true);
       
       // For authenticated users, save billing address to backend
       if (isAuthenticated()) {
@@ -1190,7 +1192,7 @@ const CheckoutPage = () => {
       setShowBillingForm(false);
       setEditingBillingAddress(null);
     } finally {
-      setLoading(false);
+      setBillingAddressLoading(false);
     }
   };
   
@@ -2129,7 +2131,7 @@ const CheckoutPage = () => {
                           onCancel={() => setShowShippingForm(false)}
                           formErrors={formErrors}
                           setFormErrors={setFormErrors}
-                          actionLoading={loading}
+                          actionLoading={shippingAddressLoading}
                           isGuest={false}
                         />
                       </div>
@@ -2145,7 +2147,7 @@ const CheckoutPage = () => {
                           onCancel={() => setShowBillingForm(false)}
                           formErrors={formErrors}
                           setFormErrors={setFormErrors}
-                          actionLoading={loading}
+                          actionLoading={billingAddressLoading}
                           isGuest={false}
                         />
                       </div>
