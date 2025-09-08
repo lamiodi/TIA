@@ -72,13 +72,13 @@ const Orders = () => {
           shipping_country: order.shipping_country || 'Unknown',
           currency: order.currency || 'NGN',
           shipping_method: order.shipping_method || 'N/A',
-          first_name: order.guest_name || order.first_name || 'Unknown',
+          first_name: order.first_name || 'Unknown',
           last_name: order.last_name || 'Customer',
-          user_email: order.guest_email || order.user_email || 'N/A',
+          user_email: order.user_email || 'N/A',
           payment_status: order.payment_status || 'pending',
           delivery_fee_paid: order.delivery_fee_paid || false,
           delivery_fee: order.delivery_fee || 0,
-          is_guest_order: order.is_guest_order || false
+          is_guest_order: order.is_temporary || false
         }));
         setOrders(processedOrders);
         toast.success('Orders loaded successfully');
@@ -149,10 +149,21 @@ const Orders = () => {
       
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
+      const billingAddress = details.billingAddress || {};
+      
+      // For guest users, prioritize billing address email, for logged-in users use user email
+      const userEmail = selectedOrder.is_guest_order 
+        ? (billingAddress.email || user.email || selectedOrder.user_email)
+        : (user.email || selectedOrder.user_email);
+      
+      const userName = selectedOrder.is_guest_order
+        ? (billingAddress.full_name || `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`)
+        : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`;
+      
       await authAxios.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
-        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
-        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        userEmail: userEmail,
+        userName: userName,
         status: newStatus,
         isGuest: selectedOrder.is_guest_order
       });
@@ -274,14 +285,9 @@ const Orders = () => {
     const matchesSearch = 
       order.id.toString().includes(searchTerm) ||
       order.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.is_guest_order ? 
-        order.guest_email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        order.guest_name?.toLowerCase().includes(searchTerm.toLowerCase()) 
-        : 
-        order.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      order.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.last_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesPaymentStatus = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
     const matchesCountry = countryFilter === 'all' || order.shipping_country === countryFilter;

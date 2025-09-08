@@ -117,7 +117,7 @@ export const getCompleteOrderDetails = async (req, res) => {
       const [order] = await sql`
         SELECT 
           o.*, 
-          u.first_name, u.last_name, u.email, u.phone_number
+          u.first_name, u.last_name, u.email, u.phone_number, u.is_temporary
         FROM orders o
         JOIN users u ON o.user_id = u.id
         WHERE o.id = ${orderId} AND o.deleted_at IS NULL
@@ -252,6 +252,7 @@ export const getCompleteOrderDetails = async (req, res) => {
           last_name: order.last_name || 'N/A',
           email: order.email || 'N/A',
           phone_number: order.phone_number || 'N/A',
+          is_temporary: order.is_temporary || false,
         },
         shippingAddress,
         billingAddress,

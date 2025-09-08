@@ -643,7 +643,7 @@ const MorePage = () => {
                 </div>
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <p className="font-Jost text-blue-800 text-sm">
-                    <strong>To exercise your rights:</strong> Contact us at Thetiabrand1@gmail.com or call +234 810 411 7122. We'll respond within 30 days.
+                    <strong>To exercise your rights:</strong> Contact us at Thetiabrand1@gmail.com or call +2348104117122. We'll respond within 30 days.
                   </p>
                 </div>
               </div>

@@ -29,37 +29,38 @@ const GuestCheckoutModal = React.memo(({
   loading,
   navigate
 }) => (
-  // Enhanced backdrop with gradient overlay
+  // Enhanced backdrop with solid colors
   <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
-      {/* Enhanced header with gradient background */}
-      <div className="relative mb-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-Primarycolor/10 to-Secondarycolor/10 rounded-xl opacity-50"></div>
-        <div className="relative flex justify-between items-center p-3">
-          <div className="flex items-center">
-            <div className="p-2 bg-gradient-to-r from-Primarycolor to-Secondarycolor rounded-lg mr-3">
-              <User className="h-4 w-4 text-white" />
+    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-5 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
+      {/* Enhanced header with solid background */}
+      <div className="relative mb-3">
+        <div className="bg-Primarycolor/10 rounded-xl">
+          <div className="flex justify-between items-center p-3">
+            <div className="flex items-center">
+              <div className="p-2 bg-Primarycolor rounded-lg mr-3">
+                <User className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-Primarycolor font-Manrope">
+                  Guest Checkout
+                </h3>
+                <p className="text-xs text-Accent font-Jost">
+                  Quick & secure checkout
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-Primarycolor font-Manrope">
-                Guest Checkout
-              </h3>
-              <p className="text-xs text-Accent font-Jost">
-                Quick & secure checkout
-              </p>
-            </div>
+            <button 
+              onClick={() => {}} // Prevent closing the modal
+              className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
+              title="Please complete the form to continue"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button 
-            onClick={() => {}} // Prevent closing the modal
-            className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
-            title="Please complete the form to continue"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       </div>
       
-      <div className="mb-4">
+      <div className="mb-3">
         <p className="text-Accent font-Jost leading-relaxed text-sm">
           Create a temporary account to complete your purchase. We'll send you order updates and account details via email.
         </p>
@@ -217,10 +218,9 @@ const GuestCheckoutModal = React.memo(({
           )}
         </div>
         
-        {/* Enhanced info box with better visual design */}
-        <div className="bg-gradient-to-r from-Primarycolor/10 to-Secondarycolor/10 border border-Primarycolor/20 rounded-xl p-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-Primarycolor/10 rounded-full -mr-8 -mt-8 opacity-50"></div>
-          <div className="relative flex items-start">
+        {/* Enhanced info box with solid colors */}
+        <div className="bg-Primarycolor/10 border border-Primarycolor/20 rounded-xl p-3">
+          <div className="flex items-start">
             <div className="p-1 bg-Primarycolor rounded-lg mr-3 mt-0.5">
               <CheckCircle className="h-3 w-3 text-white" />
             </div>
@@ -236,7 +236,7 @@ const GuestCheckoutModal = React.memo(({
         </div>
         
         {existingUserType === 'permanent' && (
-          <div className="bg-gradient-to-r from-Secondarycolor/10 to-Primarycolor/10 border border-Secondarycolor/20 rounded-xl p-3 text-center">
+          <div className="bg-Secondarycolor/10 border border-Secondarycolor/20 rounded-xl p-3 text-center">
             <p className="text-sm text-Secondarycolor font-Jost mb-2">
               Account already exists with this email
             </p>
@@ -251,13 +251,13 @@ const GuestCheckoutModal = React.memo(({
           </div>
         )}
         
-        {/* Enhanced button section with better spacing and styling */}
-        <div className="pt-4 space-y-3">
+        {/* Enhanced button section with compact spacing */}
+        <div className="pt-3 space-y-2">
           {/* Primary action button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 bg-gradient-to-r from-Primarycolor to-Secondarycolor text-white rounded-xl hover:from-Primarycolor/90 hover:to-Secondarycolor/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+            className="w-full px-4 py-2.5 bg-Primarycolor text-white rounded-xl hover:bg-Primarycolor/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             {loading ? (
               <>
@@ -822,9 +822,9 @@ const CheckoutPage = () => {
       return;
     }
     
-    // Check if user has provided billing address (either form data or selected address ID)
+    // Check if user has provided billing address (either form data, selected address ID, or same as shipping)
     const hasBillingAddress = isAuthenticated() 
-      ? billingAddressId && billingAddresses.length > 0
+      ? (billingAddressOption === 'same' && hasShippingAddress) || (billingAddressId && billingAddresses.length > 0)
       : billingForm.address_line_1;
     
     if (!hasBillingAddress) {
@@ -874,7 +874,8 @@ const CheckoutPage = () => {
         shipping_data: !isAuthenticated() ? shippingForm : null,
         billing_data: !isAuthenticated() ? billingForm : null,
         address_id: isAuthenticated() ? parseInt(shippingAddressId) : null,
-        billing_address_id: isAuthenticated() ? parseInt(billingAddressId) : null,
+        billing_address_id: isAuthenticated() ? 
+          (billingAddressOption === 'same' ? parseInt(shippingAddressId) : parseInt(billingAddressId)) : null,
         cart_id: isAuthenticated() ? cart.cartId : null,
         total: baseTotal,
         discount: baseFinalDiscount,
@@ -2152,7 +2153,65 @@ const CheckoutPage = () => {
                     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>
                       
-                      {billingAddresses.length > 0 ? (
+                      {/* Billing Address Option Selector for Logged-in Users */}
+                      <div className="mb-6">
+                        <div className="flex items-center space-x-6">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="billingAddressOption"
+                              value="same"
+                              checked={billingAddressOption === 'same'}
+                              onChange={() => setBillingAddressOption('same')}
+                              className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                            />
+                            <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="billingAddressOption"
+                              value="different"
+                              checked={billingAddressOption === 'different'}
+                              onChange={() => setBillingAddressOption('different')}
+                              className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
+                            />
+                            <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      {billingAddressOption === 'same' ? (
+                        /* Same as Shipping Address Display */
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <div className="flex items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Billing Address (Same as Shipping)</h4>
+                              {shippingAddresses.length > 0 && shippingAddressId ? (
+                                <div className="text-sm text-black font-Jost">
+                                  {shippingAddresses
+                                    .filter(addr => String(addr.id) === String(shippingAddressId))
+                                    .map(address => (
+                                      <div key={address.id}>
+                                        <p className="text-sm text-Primarycolor font-Manrope">{address.title}</p>
+                                        <p className="text-sm text-Primarycolor font-Manrope">{address.address_line_1}</p>
+                                        {address.landmark && <p>{address.landmark}</p>}
+                                        <p className="text-sm text-Primarycolor font-Manrope">{address.city}, {address.state} {address.zip_code}</p>
+                                        <p className="text-sm text-Primarycolor font-Manrope">{address.country}</p>
+                                        {address.phone_number && <p className="text-sm text-Primarycolor font-Manrope">{address.phone_number}</p>}
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 font-Jost">Please select a shipping address first</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Different Billing Address Selection */
+                        billingAddresses.length > 0 ? (
                         <>
                           {/* Address Selection Dropdown */}
                           {billingAddresses.length > 1 && (
@@ -2231,6 +2290,7 @@ const CheckoutPage = () => {
                             Add Billing Address
                           </button>
                         </div>
+                      )
                       )}
                     </div>
                     

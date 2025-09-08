@@ -15,7 +15,7 @@ const DeliveryFeeThankYou = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       const params = new URLSearchParams(location.search);
-      const reference = params.get('reference');
+      const reference = params.get('reference') || params.get('trxref');
 
       if (!reference) {
         toast.error('No payment reference provided');
