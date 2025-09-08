@@ -346,7 +346,8 @@ async function sendOrderConfirmationEmailHelper(orderDetails) {
         orderDetails.id, 
         orderDetails.total, 
         orderDetails.currency,
-        'completed'
+        'completed',
+        orderDetails.is_temporary
       );
       console.log(`✅ Sent order confirmation email to ${finalEmail} for order ${orderDetails.id} (${orderDetails.is_temporary ? 'guest' : 'logged-in'} user)`);
     } else {

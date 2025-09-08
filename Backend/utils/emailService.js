@@ -167,7 +167,7 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
   }
 };
 
-export const sendOrderConfirmationEmail = async (to, name, orderId, total, currency, paymentStatus = null) => {
+export const sendOrderConfirmationEmail = async (to, name, orderId, total, currency, paymentStatus = null, isTemporary = false) => {
   try {
     const [orderDetails, itemsResult] = await Promise.all([
       sql`
@@ -272,8 +272,8 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         const formattedItemTotal = formatCurrency(itemTotal, currency);
         const imageUrl = item.image_url || 'https://via.placeholder.com/100';
         let itemDetails = `
-          <li style="margin-bottom: 24px; display: flex; gap: 16px; align-items: flex-start;">
-            <img src="${imageUrl}" alt="${item.product_name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; margin-right: 16px;" onerror="this.src='https://via.placeholder.com/100';" />
+          <li style="margin-bottom: 24px; display: flex; gap: 20px; align-items: flex-start;">
+            <img src="${imageUrl}" alt="${item.product_name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;" onerror="this.src='https://via.placeholder.com/100';" />
             <div style="flex: 1;">
               <p style="font-size: 16px; color: #1f2937; margin: 0 0 8px 0; font-weight: 600;">
                 ${item.product_name}
@@ -400,14 +400,29 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
           <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
             ${itemsHtml}
           </ul>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${frontendUrl}/orders?orderId=${orderId}" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-              View Order Details
-            </a>
-          </div>
-          <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-            You can track your order status in your account. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
-          </p>
+          ${isTemporary ? `
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+              <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px;">🔐 Create Your Permanent Account</h3>
+              <p style="color: #92400e; margin: 0 0 12px 0; font-size: 14px;">
+                To view your order details and track your purchase, please reset your password to convert your temporary account to a permanent one.
+              </p>
+              <a href="${frontendUrl}/reset-password" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600;">
+                Reset Password & View Order
+              </a>
+            </div>
+            <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+              Once you set your password, you'll be able to track all your orders. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+            </p>
+          ` : `
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="${frontendUrl}/orders?orderId=${orderId}" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+                View Order Details
+              </a>
+            </div>
+            <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+              You can track your order status in your account. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+            </p>
+          `}
           <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
             — The Tia Brand Team
           </p>
@@ -571,6 +586,56 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
     console.log(`✅ Sent admin payment confirmation notification for order ${orderId}`);
   } catch (error) {
     console.error(`❌ Error sending admin payment confirmation notification for order ${orderId}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+    throw error;
+  }
+};
+
+export const sendDeliveryFeePaymentLinkEmail = async (to, userName, orderId, deliveryFee, currency, paymentLink) => {
+  const formattedFee = currency === 'NGN' 
+    ? `₦${deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+    : `$${deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  
+  const html = `
+    <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">International Delivery Fee Payment</h2>
+        <p style="font-size: 16px; color: #444444; margin-bottom: 24px; text-align: center;">
+          Dear ${userName},<br>Please complete your delivery fee payment for order #${orderId}.
+        </p>
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
+            <strong>Order ID:</strong> ${orderId}
+          </p>
+          <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
+            <strong>Delivery Fee:</strong> ${formattedFee}
+          </p>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${paymentLink}" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+            Pay Delivery Fee Now
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
+          Please complete your payment to proceed with your order. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+        </p>
+        <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
+          — The Tia Brand Team
+        </p>
+      </div>
+    </div>
+  `;
+  
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <support@thetiabrand.org>',
+      to,
+      subject: `Delivery Fee Payment Required - Order #${orderId}`,
+      html,
+    });
+    console.log(`✅ Sent delivery fee payment link email to ${to} for order ${orderId}`);
+  } catch (error) {
+    console.error(`❌ Error sending delivery fee payment link email to ${to} for order ${orderId}:`, error.message);
     console.error('Email error details:', error.response?.data || error);
     throw error;
   }

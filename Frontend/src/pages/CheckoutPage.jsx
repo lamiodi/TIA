@@ -31,36 +31,36 @@ const GuestCheckoutModal = React.memo(({
 }) => (
   // Enhanced backdrop with gradient overlay
   <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-    <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
+    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
       {/* Enhanced header with gradient background */}
-      <div className="relative mb-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl opacity-50"></div>
-        <div className="relative flex justify-between items-center p-4">
+      <div className="relative mb-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-Primarycolor/10 to-Secondarycolor/10 rounded-xl opacity-50"></div>
+        <div className="relative flex justify-between items-center p-3">
           <div className="flex items-center">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg mr-3">
-              <User className="h-5 w-5 text-white" />
+            <div className="p-2 bg-gradient-to-r from-Primarycolor to-Secondarycolor rounded-lg mr-3">
+              <User className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800 font-Manrope">
+              <h3 className="text-lg font-bold text-Primarycolor font-Manrope">
                 Guest Checkout
               </h3>
-              <p className="text-sm text-gray-500 font-Jost">
+              <p className="text-xs text-Accent font-Jost">
                 Quick & secure checkout
               </p>
             </div>
           </div>
           <button 
             onClick={() => {}} // Prevent closing the modal
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
+            className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
             title="Please complete the form to continue"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
       
-      <div className="mb-6">
-        <p className="text-gray-600 font-Jost leading-relaxed">
+      <div className="mb-4">
+        <p className="text-Accent font-Jost leading-relaxed text-sm">
           Create a temporary account to complete your purchase. We'll send you order updates and account details via email.
         </p>
       </div>
@@ -117,11 +117,11 @@ const GuestCheckoutModal = React.memo(({
         </div>
       )}
       
-      <form onSubmit={onSubmitGuestForm} className="space-y-6">
+      <form onSubmit={onSubmitGuestForm} className="space-y-4">
         {/* Enhanced form fields with better styling */}
         <div className="space-y-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
-            <User className="h-4 w-4 mr-2 text-gray-500" />
+          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
+            <User className="h-4 w-4 mr-2 text-Accent" />
             Full Name *
           </label>
           <div className="relative">
@@ -130,30 +130,30 @@ const GuestCheckoutModal = React.memo(({
               name="name"
               value={guestForm.name}
               onChange={(e) => onGuestFormChange('name', e.target.value)}
-              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
                 guestFormErrors.name 
                   ? 'border-red-400 bg-red-50 focus:border-red-500' 
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
               }`}
               placeholder="Enter your full name"
             />
             {guestFormErrors.name && (
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-5 w-5 text-red-500" />
+                <AlertCircle className="h-4 w-4 text-red-500" />
               </div>
             )}
           </div>
           {guestFormErrors.name && (
-            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
+            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
+              <AlertCircle className="h-3 w-3 mr-1" />
               {guestFormErrors.name}
             </p>
           )}
         </div>
         
         <div className="space-y-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
-            <svg className="h-4 w-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
+            <svg className="h-4 w-4 mr-2 text-Accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
             </svg>
             Email Address *
@@ -164,30 +164,30 @@ const GuestCheckoutModal = React.memo(({
               name="email"
               value={guestForm.email}
               onChange={(e) => onGuestFormChange('email', e.target.value)}
-              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
                 guestFormErrors.email 
                   ? 'border-red-400 bg-red-50 focus:border-red-500' 
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
               }`}
               placeholder="Enter your email address"
             />
             {guestFormErrors.email && (
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-5 w-5 text-red-500" />
+                <AlertCircle className="h-4 w-4 text-red-500" />
               </div>
             )}
           </div>
           {guestFormErrors.email && (
-            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
+            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
+              <AlertCircle className="h-3 w-3 mr-1" />
               {guestFormErrors.email}
             </p>
           )}
         </div>
         
         <div className="space-y-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 font-Jost flex items-center">
-            <Smartphone className="h-4 w-4 mr-2 text-gray-500" />
+          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
+            <Smartphone className="h-4 w-4 mr-2 text-Accent" />
             Phone Number *
           </label>
           <div className="relative">
@@ -196,39 +196,39 @@ const GuestCheckoutModal = React.memo(({
               name="phone_number"
               value={guestForm.phone_number}
               onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
-              className={`w-full px-4 py-3 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
                 guestFormErrors.phone_number 
                   ? 'border-red-400 bg-red-50 focus:border-red-500' 
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-blue-400 focus:bg-white'
+                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
               }`}
               placeholder="Enter your phone number"
             />
             {guestFormErrors.phone_number && (
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-5 w-5 text-red-500" />
+                <AlertCircle className="h-4 w-4 text-red-500" />
               </div>
             )}
           </div>
           {guestFormErrors.phone_number && (
-            <p className="text-sm text-red-600 mt-2 font-Jost flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
+            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
+              <AlertCircle className="h-3 w-3 mr-1" />
               {guestFormErrors.phone_number}
             </p>
           )}
         </div>
         
         {/* Enhanced info box with better visual design */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100 rounded-full -mr-10 -mt-10 opacity-50"></div>
+        <div className="bg-gradient-to-r from-Primarycolor/10 to-Secondarycolor/10 border border-Primarycolor/20 rounded-xl p-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-Primarycolor/10 rounded-full -mr-8 -mt-8 opacity-50"></div>
           <div className="relative flex items-start">
-            <div className="p-1 bg-blue-500 rounded-lg mr-3 mt-0.5">
-              <CheckCircle className="h-4 w-4 text-white" />
+            <div className="p-1 bg-Primarycolor rounded-lg mr-3 mt-0.5">
+              <CheckCircle className="h-3 w-3 text-white" />
             </div>
             <div>
-              <p className="text-sm font-medium text-blue-800 font-Jost mb-1">
+              <p className="text-sm font-medium text-Primarycolor font-Jost mb-1">
                 Temporary Account Creation
               </p>
-              <p className="text-xs text-blue-700 font-Jost leading-relaxed">
+              <p className="text-xs text-Accent font-Jost leading-relaxed">
                 We'll create a secure temporary account and send you order updates plus instructions to set a password for future access.
               </p>
             </div>
@@ -236,14 +236,14 @@ const GuestCheckoutModal = React.memo(({
         </div>
         
         {existingUserType === 'permanent' && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 text-center">
-            <p className="text-sm text-amber-800 font-Jost mb-2">
+          <div className="bg-gradient-to-r from-Secondarycolor/10 to-Primarycolor/10 border border-Secondarycolor/20 rounded-xl p-3 text-center">
+            <p className="text-sm text-Secondarycolor font-Jost mb-2">
               Account already exists with this email
             </p>
             <button
               type="button"
               onClick={onLoginRedirect}
-              className="inline-flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-Jost font-medium transition-colors"
+              className="inline-flex items-center px-3 py-2 bg-Secondarycolor text-white rounded-lg hover:bg-Secondarycolor/90 font-Jost font-medium transition-colors"
             >
               <User className="h-4 w-4 mr-2" />
               Log in to your existing account
@@ -252,22 +252,22 @@ const GuestCheckoutModal = React.memo(({
         )}
         
         {/* Enhanced button section with better spacing and styling */}
-        <div className="pt-6 space-y-4">
+        <div className="pt-4 space-y-3">
           {/* Primary action button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold text-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+            className="w-full px-4 py-3 bg-gradient-to-r from-Primarycolor to-Secondarycolor text-white rounded-xl hover:from-Primarycolor/90 hover:to-Secondarycolor/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
           >
             {loading ? (
               <>
-                <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
                 Creating Account...
               </>
             ) : (
               <>
                 Continue to Checkout
-                <svg className="h-5 w-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </>
@@ -275,11 +275,11 @@ const GuestCheckoutModal = React.memo(({
           </button>
           
           {/* Secondary actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={() => navigate('/cart')}
-              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
+              className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl text-Accent hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Return to Cart
@@ -287,7 +287,7 @@ const GuestCheckoutModal = React.memo(({
             <button
               type="button"
               onClick={onLoginRedirect}
-              className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-xl text-blue-600 hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
+              className="flex-1 px-3 py-2 border-2 border-Primarycolor/20 rounded-xl text-Primarycolor hover:bg-Primarycolor/10 hover:border-Primarycolor/30 flex items-center justify-center font-Jost font-medium transition-all duration-200"
             >
               <User className="h-4 w-4 mr-2" />
               Log In Instead

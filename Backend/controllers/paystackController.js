@@ -1,7 +1,7 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import sql from '../db/index.js';
-import { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation } from '../utils/emailService.js';
+import { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation, sendDeliveryFeePaymentLinkEmail } from '../utils/emailService.js';
 
 dotenv.config();
 
