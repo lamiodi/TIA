@@ -2119,6 +2119,24 @@ const CheckoutPage = () => {
 
 
                     
+                    {/* Shipping Address Form for Logged-in Users */}
+                    {showShippingForm && (
+                      <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">
+                          {editingShippingAddress ? 'Edit Shipping Address' : 'Add Shipping Address'}
+                        </h3>
+                        <ShippingAddressForm
+                          address={{ state: shippingForm, setState: setShippingForm }}
+                          onSubmit={handleShippingSubmit}
+                          onCancel={() => setShowShippingForm(false)}
+                          formErrors={formErrors}
+                          setFormErrors={setFormErrors}
+                          actionLoading={shippingAddressLoading}
+                          isGuest={false}
+                        />
+                      </div>
+                    )}
+
                     {/* Billing Address Section */}
                     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Billing Address</h3>

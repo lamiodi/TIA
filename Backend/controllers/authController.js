@@ -101,10 +101,22 @@ export const signupUser = async (req, res) => {
   
   try {
     const [existing] = await sql`
-      SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
+      SELECT id, is_temporary FROM users WHERE LOWER(email) = LOWER(${email}) AND deleted_at IS NULL
     `;
     
-    if (existing) return res.status(409).json({ error: 'Email is already registered' });
+    if (existing) {
+      if (existing.is_temporary) {
+        return res.status(409).json({ 
+          error: 'You already have a temporary account with this email',
+          suggestion: 'Use the password reset option with this email to convert your temporary account to a permanent account'
+        });
+      } else {
+        return res.status(409).json({ 
+          error: 'This email is already registered with a permanent account',
+          suggestion: 'If you already have an account, please log in instead. If you forgot your password, you can reset it.'
+        });
+      }
+    }
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
