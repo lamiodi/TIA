@@ -14,18 +14,21 @@ const CtaSlideshow = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, success, error
   const [message, setMessage] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const ctaimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112992/ctaimage_md7l1k.png";
 const Newsletterimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756114935/Newsletterimage_uxjkup.webp";
 const bundleImage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_1200/v1756112980/bundleImage_wonzss.png";
 const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1756116485/tinywow_change_bg_photo_83585550_jtewv2.png";
   
-  // Auto-advance slides
+  // Auto-advance slides (pause when input is focused)
   useEffect(() => {
+    if (isInputFocused) return; // Don't auto-advance when user is typing
+    
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % 4);
     }, 5000); // Change slide every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [isInputFocused]);
   
   const handleNextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % 4);
@@ -107,7 +110,7 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
               variant="primary"
               size="medium"
               stateProp="default"
-              className="w-44 transform hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-xl font-Manrope px-4 "
+              className="w-full sm:w-48 md:w-52 lg:w-56 xl:w-60 transform hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-xl font-Manrope px-4"
             />
           </Link>
         </div>
@@ -322,16 +325,18 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
           )}
           
           {/* Form */}
-          <form onSubmit={handleSubmit} className="w-full max-w-md">
+          <form onSubmit={handleSubmit} className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
             <div className="flex bg-Secondarycolor font-Manrope rounded-md overflow-hidden shadow-sm">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
                 required
                 aria-label="Email address"
                 placeholder="Enter Your Email"
-                className="px-3 py-2.5 w-full text-sm text-[#6e6e6e] font-medium border-none focus:outline-none font-manrope-medium placeholder:text-sm"
+                className="px-3 py-2.5 w-full text-sm text-[#6e6e6e] font-medium border-none focus:outline-none font-manrope-medium placeholder:text-sm lg:text-base lg:px-4 lg:py-3"
               />
               <button
                 type="submit"
