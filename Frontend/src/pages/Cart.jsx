@@ -34,31 +34,32 @@ const CartItemSkeleton = () => (
   </div>
 );
 
+// Spinner component without text
+const Spinner = () => (
+  <div className="flex justify-center items-center py-12">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
+  </div>
+);
+
 const Cart = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Safely access CurrencyContext with error handling
-  let currencyContext;
-  try {
-    currencyContext = useContext(CurrencyContext);
-  } catch (error) {
-    console.error('Error accessing CurrencyContext:', error);
-    currencyContext = {
-      currency: 'NGN',
-      exchangeRate: 1,
-      country: 'Nigeria',
-      contextLoading: false,
-    };
-  }
+  const currencyContext = useContext(CurrencyContext) || {
+    currency: 'NGN',
+    exchangeRate: 1,
+    country: 'Nigeria',
+    contextLoading: false,
+  };
   
   const {
     currency = 'NGN',
     exchangeRate = 1,
     country = 'Nigeria',
     contextLoading = false,
-  } = currencyContext || {};
+  } = currencyContext;
   
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
   const [error, setError] = useState('');
@@ -880,205 +881,204 @@ const Cart = () => {
             </div>
           )}
           
-          {/* Empty Cart State */}
-          {cart.items.length === 0 ? (
-            <div className="text-center py-16 md:py-24">
-              <div className="max-w-md mx-auto">
-                <div className="mb-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-full mb-4">
-                    <ShoppingBag className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-bold font-Manrope text-gray-900 mb-3">Your cart is empty</h2>
-                  <p className="font-Jost text-gray-600 mb-8 text-sm md:text-base">
-                    Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
-                  </p>
+          {/* Main Content Area */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Cart Items Section */}
+            <div className="lg:col-span-2">
+              <div className="space-y-4">
+                {/* Your Items Header with Clear All Items Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                  <h2 className="text-lg md:text-xl font-semibold font-Manrope text-gray-900">Your Items</h2>
+                  <button
+                    onClick={clearCart}
+                    className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium font-Jost flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear All Items
+                  </button>
                 </div>
-                <div className="space-y-3">
-                  <Link to="/shop">
-                    <button className="w-full bg-gray-900 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-medium font-Jost">
-                      Continue Shopping
-                    </button>
-                  </Link>
-                  
-                  {isGuest && (
-                    <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                      <p className="text-sm text-blue-700 font-Jost">
-                        <span className="font-medium">Shopping as a guest?</span> Your cart will be saved until you complete your purchase.
-                      </p>
+                
+                {/* Cart Items List */}
+                <div className="space-y-4">
+                  {isCartLoading ? (
+                    // Show spinner without text while cart is loading
+                    <Spinner />
+                  ) : cart.items.length === 0 ? (
+                    // Empty cart state
+                    <div className="text-center py-16 md:py-24">
+                      <div className="max-w-md mx-auto">
+                        <div className="mb-6">
+                          <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-full mb-4">
+                            <ShoppingBag className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
+                          </div>
+                          <h2 className="text-xl md:text-2xl font-bold font-Manrope text-gray-900 mb-3">Your cart is empty</h2>
+                          <p className="font-Jost text-gray-600 mb-8 text-sm md:text-base">
+                            Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          <Link to="/shop">
+                            <button className="w-full bg-gray-900 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-medium font-Jost">
+                              Continue Shopping
+                            </button>
+                          </Link>
+                          
+                          {isGuest && (
+                            <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                              <p className="text-sm text-blue-700 font-Jost">
+                                <span className="font-medium">Shopping as a guest?</span> Your cart will be saved until you complete your purchase.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  ) : (
+                    // Cart with items
+                    cart.items.map((item) => (
+                      <CartItem key={`${item.id}-${item.item.is_product ? 'product' : 'bundle'}`} item={item} />
+                    ))
                   )}
                 </div>
               </div>
             </div>
-          ) : (
-            /* Cart with Items */
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* Cart Items Section */}
-              <div className="lg:col-span-2">
-                <div className="space-y-4">
-                  {/* Your Items Header with Clear All Items Button */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                    <h2 className="text-lg md:text-xl font-semibold font-Manrope text-gray-900">Your Items</h2>
-                    <button
-                      onClick={clearCart}
-                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium font-Jost flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Clear All Items
-                    </button>
-                  </div>
-                  
-                  {/* Cart Items List */}
-                  <div className="space-y-4">
-                    {isCartLoading ? (
-                      // Show skeleton loaders while cart is loading
-                      Array.from({ length: 3 }).map((_, index) => <CartItemSkeleton key={index} />)
-                    ) : (
-                      cart.items.map((item) => (
-                        <CartItem key={`${item.id}-${item.item.is_product ? 'product' : 'bundle'}`} item={item} />
-                      ))
-                    )}
-                  </div>
+            
+            {/* Order Summary Section */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold font-Manrope text-gray-900">Order Summary</h2>
                 </div>
-              </div>
-              
-              {/* Order Summary Section */}
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
-                  {/* Header */}
-                  <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold font-Manrope text-gray-900">Order Summary</h2>
+                
+                {/* Summary Details */}
+                <div className="p-6 space-y-4">
+                  {/* Items Count */}
+                  <div className="flex justify-between text-sm">
+                    <span className="font-Jost text-gray-600">Items ({cart.items.length})</span>
+                    <span className="font-medium font-Manrope text-gray-900">
+                      {displaySubtotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                        style: 'currency',
+                        currency: currency,
+                        minimumFractionDigits: 0,
+                      })}
+                    </span>
                   </div>
                   
-                  {/* Summary Details */}
-                  <div className="p-6 space-y-4">
-                    {/* Items Count */}
+                  {/* Shipping Info */}
+                  <div className="flex justify-between text-sm">
+                    <span className="font-Jost text-gray-600">Shipping</span>
+                    <span className="font-medium font-Manrope text-gray-900">Calculated at checkout</span>
+                  </div>
+                  
+                  {/* Free Shipping Progress */}
+                  {country === 'Nigeria' && subtotal < 7500 && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span className="text-xs font-semibold text-blue-800">Free Shipping Progress</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-blue-700">
+                            Current: {subtotal.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })}
+                          </span>
+                          <span className="text-blue-700">Target: ₦7,500</span>
+                        </div>
+                        <div className="w-full bg-blue-100 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min((subtotal / 7500) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-blue-700">
+                          Add {(7500 - subtotal).toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })} more for free shipping!
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Tax (for international) */}
+                  {displayTax > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="font-Jost text-gray-600">Items ({cart.items.length})</span>
+                      <span className="font-Jost text-gray-600">Tax (5%)</span>
                       <span className="font-medium font-Manrope text-gray-900">
-                        {displaySubtotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                        {displayTax.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
                           style: 'currency',
                           currency: currency,
                           minimumFractionDigits: 0,
                         })}
                       </span>
                     </div>
-                    
-                    {/* Shipping Info */}
-                    <div className="flex justify-between text-sm">
-                      <span className="font-Jost text-gray-600">Shipping</span>
-                      <span className="font-medium font-Manrope text-gray-900">Calculated at checkout</span>
+                  )}
+                  
+                  {/* Divider */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span className="font-Manrope text-gray-900">Total</span>
+                      <span className="font-Manrope text-gray-900">
+                        {displayTotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                          style: 'currency',
+                          currency: currency,
+                          minimumFractionDigits: 0,
+                        })}
+                      </span>
                     </div>
-                    
-                    {/* Free Shipping Progress */}
-                    {country === 'Nigeria' && subtotal < 7500 && (
-                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="h-4 w-4 text-blue-600" />
-                          <span className="text-xs font-semibold text-blue-800">Free Shipping Progress</span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-blue-700">
-                              Current: {subtotal.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })}
-                            </span>
-                            <span className="text-blue-700">Target: ₦7,500</span>
-                          </div>
-                          <div className="w-full bg-blue-100 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min((subtotal / 7500) * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs text-blue-700">
-                            Add {(7500 - subtotal).toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })} more for free shipping!
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Tax (for international) */}
-                    {displayTax > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="font-Jost text-gray-600">Tax (5%)</span>
-                        <span className="font-medium font-Manrope text-gray-900">
-                          {displayTax.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
-                            style: 'currency',
-                            currency: currency,
-                            minimumFractionDigits: 0,
-                          })}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Divider */}
-                    <div className="border-t border-gray-200 pt-4">
-                      <div className="flex justify-between text-lg font-bold">
-                        <span className="font-Manrope text-gray-900">Total</span>
-                        <span className="font-Manrope text-gray-900">
-                          {displayTotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
-                            style: 'currency',
-                            currency: currency,
-                            minimumFractionDigits: 0,
-                          })}
-                        </span>
+                  </div>
+                  
+                  {/* Checkout Button */}
+                  <Link to="/checkout">
+                    <button
+                      className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
+                    >
+                      <span>Proceed to Checkout</span>
+                      <ArrowRight className="h-5 w-5" />
+                    </button>
+                  </Link>
+                  
+                  {/* Warning for out of stock items */}
+                  {cart.items.some((item) => item.item.stock_quantity === 0) && (
+                    <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                        <p className="text-xs text-red-700 font-Jost">Remove out of stock items to continue checkout</p>
                       </div>
                     </div>
-                    
-                    {/* Checkout Button */}
-                    <Link to="/checkout">
-                      <button
-                        className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
-                      >
-                        <span>Proceed to Checkout</span>
-                        <ArrowRight className="h-5 w-5" />
-                      </button>
-                    </Link>
-                    
-                    {/* Warning for out of stock items */}
-                    {cart.items.some((item) => item.item.stock_quantity === 0) && (
-                      <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <p className="text-xs text-red-700 font-Jost">Remove out of stock items to continue checkout</p>
-                        </div>
+                  )}
+                  
+                  {/* Guest Notice */}
+                  {isGuest && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <p className="text-xs text-blue-700 font-Jost">
+                          You're shopping as a guest. You'll have the option to create an account during checkout.
+                        </p>
                       </div>
-                    )}
-                    
-                    {/* Guest Notice */}
-                    {isGuest && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                          <p className="text-xs text-blue-700 font-Jost">
-                            You're shopping as a guest. You'll have the option to create an account during checkout.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Shipping Note */}
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600 font-Jost text-center">
-                        {country === 'Nigeria'
-                          ? '🚚 Local delivery fees will be calculated at checkout based on your location.'
-                          : '✈️ International shipping fees will be provided via email after order confirmation.'}
-                      </p>
                     </div>
-                    
-                    {/* Security Badge */}
-                    <div className="flex items-center justify-center gap-2 pt-2">
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-Jost">Secure Checkout</span>
-                      </div>
+                  )}
+                  
+                  {/* Shipping Note */}
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-600 font-Jost text-center">
+                      {country === 'Nigeria'
+                        ? '🚚 Local delivery fees will be calculated at checkout based on your location.'
+                        : '✈️ International shipping fees will be provided via email after order confirmation.'}
+                    </p>
+                  </div>
+                  
+                  {/* Security Badge */}
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="font-Jost">Secure Checkout</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
       <Suspense fallback={null}>

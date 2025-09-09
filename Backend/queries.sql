@@ -50,8 +50,8 @@ CREATE TABLE public.bundle_items (
   variant_id integer NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT bundle_items_pkey PRIMARY KEY (id),
-  CONSTRAINT bundle_items_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundles(id),
-  CONSTRAINT bundle_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
+  CONSTRAINT bundle_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
+  CONSTRAINT bundle_items_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundles(id)
 );
 CREATE TABLE public.bundles (
   id integer NOT NULL DEFAULT nextval('bundles_id_seq'::regclass),
@@ -86,9 +86,9 @@ CREATE TABLE public.cart_bundle_items (
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   price numeric,
   CONSTRAINT cart_bundle_items_pkey PRIMARY KEY (id),
-  CONSTRAINT cart_bundle_items_cart_item_id_fkey FOREIGN KEY (cart_item_id) REFERENCES public.cart_items(id),
   CONSTRAINT cart_bundle_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
-  CONSTRAINT cart_bundle_items_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id)
+  CONSTRAINT cart_bundle_items_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id),
+  CONSTRAINT cart_bundle_items_cart_item_id_fkey FOREIGN KEY (cart_item_id) REFERENCES public.cart_items(id)
 );
 CREATE TABLE public.cart_items (
   id integer NOT NULL DEFAULT nextval('cart_items_id_seq'::regclass),
@@ -150,10 +150,10 @@ CREATE TABLE public.order_items (
   size_name text,
   bundle_details jsonb,
   CONSTRAINT order_items_pkey PRIMARY KEY (id),
-  CONSTRAINT order_items_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id),
-  CONSTRAINT order_items_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundles(id),
   CONSTRAINT order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
-  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
+  CONSTRAINT order_items_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundles(id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT order_items_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id)
 );
 CREATE TABLE public.orders (
   id integer NOT NULL DEFAULT nextval('orders_id_seq'::regclass),
@@ -184,6 +184,7 @@ CREATE TABLE public.orders (
   delivery_fee numeric DEFAULT 0.00,
   discount numeric DEFAULT 0,
   email_sent boolean DEFAULT false,
+  idempotency_key character varying,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -252,8 +253,8 @@ CREATE TABLE public.review_votes (
   vote_type character varying NOT NULL CHECK (vote_type::text = ANY (ARRAY['helpful'::character varying::text, 'not_helpful'::character varying::text])),
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT review_votes_pkey PRIMARY KEY (id),
-  CONSTRAINT review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.reviews(id),
-  CONSTRAINT review_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT review_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.reviews(id)
 );
 CREATE TABLE public.reviews (
   id integer NOT NULL DEFAULT nextval('reviews_id_seq'::regclass),
@@ -269,9 +270,9 @@ CREATE TABLE public.reviews (
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   bundle_id integer,
   CONSTRAINT reviews_pkey PRIMARY KEY (id),
-  CONSTRAINT reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT reviews_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundles(id),
-  CONSTRAINT reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
 CREATE TABLE public.sizes (
   id integer NOT NULL DEFAULT nextval('sizes_id_seq'::regclass),
@@ -306,8 +307,8 @@ CREATE TABLE public.variant_sizes (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT variant_sizes_pkey PRIMARY KEY (id),
-  CONSTRAINT variant_sizes_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id),
-  CONSTRAINT variant_sizes_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
+  CONSTRAINT variant_sizes_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
+  CONSTRAINT variant_sizes_size_id_fkey FOREIGN KEY (size_id) REFERENCES public.sizes(id)
 );
 CREATE TABLE public.wishlist (
   id integer NOT NULL DEFAULT nextval('wishlist_id_seq'::regclass),

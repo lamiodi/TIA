@@ -8,7 +8,7 @@ export const cleanupOldOrders = async () => {
       SELECT id, cart_id
       FROM orders
       WHERE (payment_status = 'pending' OR payment_status = 'failed')
-      AND created_at < NOW() - INTERVAL '48 hours'
+      AND created_at < NOW() - INTERVAL '72 hours'
       AND deleted_at IS NULL
     `;
 

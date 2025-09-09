@@ -3,7 +3,7 @@ import express from 'express';
 import sql from '../db/index.js';
 import { authenticateToken, requireAdmin } from '../middleware/authMiddleware.js';
 import { 
-  sendDeliveryFeeEmail, 
+  sendDeliveryFeePaymentLinkEmail, 
   sendAdminDeliveryFeeNotification,
   sendOrderStatusUpdateEmail 
 } from '../utils/emailService.js';
@@ -53,15 +53,17 @@ router.post('/send-delivery-fee-email', authenticateToken, requireAdmin, async (
   }
 
   try {
-    // Fetch order details
+    // Fetch order details with support for both guest and logged users
     const [order] = await sql`
       SELECT 
-        o.id, o.user_id, o.shipping_country, o.delivery_fee_paid,
-        u.first_name, u.last_name, u.email,
+        o.id, o.user_id, o.shipping_country, o.delivery_fee_paid, o.is_temporary,
+        u.first_name, u.last_name, u.email as user_email,
+        ba.full_name as billing_full_name, ba.email as billing_email,
         a.address_line_1, a.city, a.state, a.zip_code
       FROM orders o
-      JOIN users u ON o.user_id = u.id
-      JOIN addresses a ON o.address_id = a.id
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
+      LEFT JOIN addresses a ON o.address_id = a.id
       WHERE o.id = ${orderId}
     `;
 
@@ -87,19 +89,37 @@ router.post('/send-delivery-fee-email', authenticateToken, requireAdmin, async (
       WHERE id = ${orderId}
     `;
 
-    const userName = `${order.first_name} ${order.last_name}`;
+    // Determine email and name based on user type (guest vs logged-in)
+    let finalEmail, finalName;
+    
+    if (order.is_temporary) {
+      // For guest users (temporary), prioritize billing address email
+      finalEmail = order.billing_email || order.user_email;
+      finalName = order.billing_full_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Customer';
+      console.log(`📧 Guest user delivery fee for order ${orderId}: Using billing email ${finalEmail}`);
+    } else {
+      // For logged-in users, prioritize user email
+      finalEmail = order.user_email || order.billing_email;
+      finalName = `${order.first_name || ''} ${order.last_name || ''}`.trim() || order.billing_full_name || 'Customer';
+      console.log(`📧 Logged-in user delivery fee for order ${orderId}: Using user email ${finalEmail}`);
+    }
 
-    // Send delivery fee email to user
-    await sendDeliveryFeeEmail(
-      order.email,
-      userName,
-      order.shipping_country,
+    if (!finalEmail) {
+      return res.status(400).json({ error: 'No email address found for this order' });
+    }
+
+    // Send delivery fee payment link email to user
+    await sendDeliveryFeePaymentLinkEmail(
+      finalEmail,
+      finalName,
+      orderId,
       fee,
+      'USD', // Default currency for admin-set fees
       finalPaymentLink
     );
 
     // Send admin notification
-    await sendAdminDeliveryFeeNotification(orderId, userName, order.shipping_country, {
+    await sendAdminDeliveryFeeNotification(orderId, finalName, order.shipping_country, {
       address_line_1: order.address_line_1,
       city: order.city,
       state: order.state || '',

@@ -89,46 +89,7 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
   }
 };
 
-export const sendDeliveryFeeEmail = async (to, userName, country, deliveryFee, paymentLink, currency) => {
-  const formattedFee = currency === 'NGN' 
-    ? `₦${deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
-    : `$${deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-  
-  const html = `
-    <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">International Delivery Fee</h2>
-        <p style="font-size: 16px; color: #444444; margin-bottom: 24px; text-align: center;">
-          Dear ${userName},<br>Your delivery fee for your order to ${country} is ${formattedFee}.
-        </p>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${paymentLink}" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-            Pay Delivery Fee
-          </a>
-        </div>
-        <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
-          Please pay the delivery fee to complete your order. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
-        </p>
-        <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-          — The Tia Brand Team
-        </p>
-      </div>
-    </div>
-  `;
-  try {
-    const response = await resend.emails.send({
-      from: 'The Tia Brand <support@thetiabrand.org>',
-      to,
-      subject: 'Your International Delivery Fee',
-      html,
-    });
-    console.log(`✅ Sent delivery fee email to ${to} with response:`, response.data);
-  } catch (error) {
-    console.error(`❌ Error sending delivery fee email to ${to}:`, error.message);
-    console.error('Email error details:', error.response?.data || error);
-    throw error; // Rethrow to allow caller to handle
-  }
-};
+
 
 export const sendAdminDeliveryFeeNotification = async (orderId, userName, country, address) => {
   const html = `
@@ -272,37 +233,51 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
         const formattedItemTotal = formatCurrency(itemTotal, currency);
         const imageUrl = item.image_url || 'https://via.placeholder.com/100';
         let itemDetails = `
-          <li style="margin-bottom: 24px; display: flex; gap: 20px; align-items: flex-start;">
-            <img src="${imageUrl}" alt="${item.product_name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;" onerror="this.src='https://via.placeholder.com/100';" />
-            <div style="flex: 1;">
-              <p style="font-size: 16px; color: #1f2937; margin: 0 0 8px 0; font-weight: 600;">
+          <li style="margin-bottom: 32px; display: flex; gap: 16px; align-items: flex-start; padding: 16px; background-color: #fafafa; border-radius: 8px; border: 1px solid #f0f0f0;">
+            <div style="flex-shrink: 0;">
+              <img src="${imageUrl}" alt="${item.product_name}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; display: block;" onerror="this.src='https://via.placeholder.com/100';" />
+            </div>
+            <div style="flex: 1; min-width: 0; padding-left: 8px;">
+              <p style="font-size: 16px; color: #1f2937; margin: 0 0 12px 0; font-weight: 600; line-height: 1.4;">
                 ${item.product_name}
               </p>
-              <p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">
-                Quantity: ${item.quantity} | Price: ${formattedItemPrice} | Total: ${formattedItemTotal}
-              </p>
-              ${item.color_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">Color: ${item.color_name}</p>` : ''}
-              ${item.size_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 4px 0;">Size: ${item.size_name}</p>` : ''}
+              <div style="margin-bottom: 8px;">
+                <p style="font-size: 14px; color: #6b7280; margin: 0 0 6px 0; line-height: 1.3;">
+                  <strong>Quantity:</strong> ${item.quantity}
+                </p>
+                <p style="font-size: 14px; color: #6b7280; margin: 0 0 6px 0; line-height: 1.3;">
+                  <strong>Price:</strong> ${formattedItemPrice}
+                </p>
+                <p style="font-size: 14px; color: #1f2937; margin: 0 0 6px 0; font-weight: 600; line-height: 1.3;">
+                  <strong>Total:</strong> ${formattedItemTotal}
+                </p>
+              </div>
+              ${item.color_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 6px 0; line-height: 1.3;"><strong>Color:</strong> ${item.color_name}</p>` : ''}
+              ${item.size_name ? `<p style="font-size: 14px; color: #6b7280; margin: 0 0 6px 0; line-height: 1.3;"><strong>Size:</strong> ${item.size_name}</p>` : ''}
         `;
         
         if (item.bundle_id && item.bundle_details && item.bundle_details.length > 0) {
           itemDetails += `
-            <div style="margin-top: 12px;">
-              <p style="font-size: 14px; color: #1f2937; margin: 0 0 8px 0; font-weight: 500;">Bundle Contents:</p>
-              <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 14px; color: #1f2937; margin: 0 0 12px 0; font-weight: 600;">Bundle Contents:</p>
+              <div style="margin: 0;">
                 ${item.bundle_details
                   .map(
                     (bi) => `
-                      <li style="font-size: 14px; color: #6b7280; margin-bottom: 4px; display: flex; gap: 8px; align-items: center;">
-                        <img src="${bi.image_url}" alt="${bi.product_name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" onerror="this.src='https://via.placeholder.com/50';" />
-                        <span>
-                          ${bi.product_name}${bi.color_name ? `, Color: ${bi.color_name}` : ''}${bi.size_name ? `, Size: ${bi.size_name}` : ''}
-                        </span>
-                      </li>
-                    `
+                      <div style="font-size: 13px; color: #6b7280; margin-bottom: 8px; display: flex; gap: 12px; align-items: center; padding: 8px; background-color: #f9f9f9; border-radius: 6px;">
+                        <div style="flex-shrink: 0;">
+                          <img src="${bi.image_url}" alt="${bi.product_name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; display: block;" onerror="this.src='https://via.placeholder.com/50';" />
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                          <p style="margin: 0 0 4px 0; font-weight: 500; line-height: 1.3;">${bi.product_name}</p>
+                          ${bi.color_name ? `<p style="margin: 0 0 2px 0; font-size: 12px; line-height: 1.2;"><strong>Color:</strong> ${bi.color_name}</p>` : ''}
+                          ${bi.size_name ? `<p style="margin: 0; font-size: 12px; line-height: 1.2;"><strong>Size:</strong> ${bi.size_name}</p>` : ''}
+                        </div>
+                      </div>
+                     `
                   )
                   .join('')}
-              </ul>
+              </div>
             </div>
           `;
         }
@@ -402,13 +377,18 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
           </ul>
           ${isTemporary ? `
             <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
-              <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px;">🔐 Create Your Permanent Account</h3>
+              <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px;">🔐 Guest Account Notice</h3>
               <p style="color: #92400e; margin: 0 0 12px 0; font-size: 14px;">
-                To view your order details and track your purchase, please reset your password to convert your temporary account to a permanent one.
+                You checked out as a guest. To view your order history and manage future orders, please set up your account password.
               </p>
-              <a href="${frontendUrl}/reset-password" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600;">
-                Reset Password & View Order
-              </a>
+              <div style="text-align: center; margin-top: 16px;">
+                <a href="${frontendUrl}/guest-order-lookup?email=${encodeURIComponent(to)}&reference=${order.reference}" style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600; margin-right: 12px;">
+                  View Order Details
+                </a>
+                <a href="${frontendUrl}/forgot-password?email=${encodeURIComponent(to)}" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600;">
+                  Set Password & Create Account
+                </a>
+              </div>
             </div>
             <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
               Once you set your password, you'll be able to track all your orders. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
