@@ -2036,6 +2036,7 @@ const CheckoutPage = () => {
                           actionLoading={loading}
                           isGuest={true}
                           guestData={guestForm}
+                          userData={null}
                         />
                       )}
                     </div>
@@ -2312,6 +2313,7 @@ const CheckoutPage = () => {
                           setFormErrors={setFormErrors}
                           actionLoading={billingAddressLoading}
                           isGuest={false}
+                          userData={user}
                         />
                       </div>
                     )}

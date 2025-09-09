@@ -10,12 +10,13 @@ const BillingAddressForm = ({
   setFormErrors, 
   actionLoading,
   isGuest = false,
-  guestData = null
+  guestData = null,
+  userData = null
 }) => {
   const { state, setState } = address;
   const [formData, setFormData] = useState({
-    full_name: state.full_name || (guestData ? guestData.name : ''),
-    email: state.email || (guestData ? guestData.email : ''),
+    full_name: state.full_name || (guestData ? guestData.name : '') || (userData ? userData.name : ''),
+    email: state.email || (guestData ? guestData.email : '') || (userData ? userData.email : ''),
     phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
     address_line_1: state.address_line_1 || '',
     // address_line_2 removed
@@ -28,8 +29,8 @@ const BillingAddressForm = ({
 
   useEffect(() => {
     setFormData({
-      full_name: state.full_name || (guestData ? guestData.name : ''),
-      email: state.email || (guestData ? guestData.email : ''),
+      full_name: state.full_name || (guestData ? guestData.name : '') || (userData ? userData.name : ''),
+      email: state.email || (guestData ? guestData.email : '') || (userData ? userData.email : ''),
       phone_number: state.phone_number || (guestData ? guestData.phone_number : ''),
       address_line_1: state.address_line_1 || '',
       // address_line_2 removed
@@ -38,7 +39,7 @@ const BillingAddressForm = ({
       zip_code: state.zip_code || '',
       country: state.country || 'Nigeria',
     });
-  }, [state, guestData]);
+  }, [state, guestData, userData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,14 +54,19 @@ const BillingAddressForm = ({
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.full_name.trim()) {
-      newErrors.full_name = 'Full name is required';
+    // Validate full_name and email for guest users and non-logged users
+    // Skip validation only for logged-in users with userData
+    if (!userData || isGuest) {
+      if (!formData.full_name.trim()) {
+        newErrors.full_name = 'Full name is required';
+      }
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email is invalid';
+      }
     }
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
+    
     if (!formData.phone_number.trim()) {
       newErrors.phone_number = 'Phone number is required';
     }
@@ -86,7 +92,19 @@ const BillingAddressForm = ({
     
     if (validateForm()) {
       // For guest users, ensure the email from guestData is included in the form data
-      const finalFormData = isGuest ? { ...formData, email: guestData.email } : formData;
+      // For logged-in users, ensure userData name and email are included
+      let finalFormData = formData;
+      
+      if (isGuest) {
+        finalFormData = { ...formData, email: guestData.email };
+      } else if (userData) {
+        finalFormData = { 
+          ...formData, 
+          full_name: userData.name, 
+          email: userData.email 
+        };
+      }
+      
       setState(finalFormData);
       onSubmit(finalFormData);
     }
@@ -138,45 +156,65 @@ const BillingAddressForm = ({
       {/* For authenticated users, show editable contact fields */}
       {!isGuest && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
-                className={`w-full p-2 border rounded-md ${
-                  errors.full_name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Full name"
-              />
-              {errors.full_name && (
-                <p className="text-sm text-red-600 mt-1">{errors.full_name}</p>
-              )}
+          {/* Only show Full Name and Email fields if userData is not available (for non-logged users) */}
+          {!userData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.full_name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Full name"
+                />
+                {errors.full_name && (
+                  <p className="text-sm text-red-600 mt-1">{errors.full_name}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Email address"
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+                )}
+              </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full p-2 border rounded-md ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Email address"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600 mt-1">{errors.email}</p>
-              )}
+          )}
+          
+          {/* Show user info for logged-in users */}
+          {userData && (
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+              <h4 className="font-medium text-gray-700 mb-2">Account Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Full Name:</span>
+                  <span className="ml-2 font-medium">{userData.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Email:</span>
+                  <span className="ml-2 font-medium">{userData.email}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

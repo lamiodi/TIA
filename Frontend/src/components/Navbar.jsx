@@ -123,14 +123,22 @@ export default function Navbar() {
                 </div>
                 
                 {/* Hamburger menu for desktop - show from lg and above */}
-                <div className="hidden lg:flex relative">
+                <div className="hidden lg:flex relative group">
                   <button
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="flex items-center p-1 hover:opacity-80 transition-opacity"
+                    className="flex items-center p-1 hover:opacity-80 transition-opacity relative"
                     aria-label="User menu"
                   >
                     <User className="h-5 w-5 sm:h-6 sm:w-6 text-Secondarycolor" />
                   </button>
+                  
+                  {/* Tooltip for My Orders */}
+                  {user && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      My Orders
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
                   
                   {/* Desktop dropdown menu */}
                   {isMenuOpen && (
