@@ -29,40 +29,36 @@ const GuestCheckoutModal = React.memo(({
   loading,
   navigate
 }) => (
-  // Enhanced backdrop with solid colors
-  <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-5 shadow-2xl border border-gray-100 transform animate-in slide-in-from-bottom-4 duration-300">
-      {/* Enhanced header with solid background */}
-      <div className="relative mb-3">
-        <div className="bg-Primarycolor/10 rounded-xl">
-          <div className="flex justify-between items-center p-3">
-            <div className="flex items-center">
-              <div className="p-2 bg-Primarycolor rounded-lg mr-3">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-Primarycolor font-Manrope">
-                  Guest Checkout
-                </h3>
-                <p className="text-xs text-Accent font-Jost">
-                  Quick & secure checkout
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={() => {}} // Prevent closing the modal
-              className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
-              title="Please complete the form to continue"
-            >
-              <X className="h-4 w-4" />
-            </button>
+  // Clean backdrop without blur effects
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200">
+      {/* Simplified header */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center">
+          <div className="p-2 bg-Primarycolor rounded-lg mr-3">
+            <User className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-Primarycolor font-Manrope">
+              Complete Your Order
+            </h3>
+            <p className="text-sm text-Accent font-Jost">
+              Enter your details to proceed
+            </p>
           </div>
         </div>
+        <button 
+          onClick={() => {}} // Prevent closing the modal
+          className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
+          title="Please complete the form to continue"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
       
-      <div className="mb-3">
-        <p className="text-Accent font-Jost leading-relaxed text-sm">
-          Create a temporary account to complete your purchase. We'll send you order updates and account details via email.
+      <div className="mb-4">
+        <p className="text-Accent font-Jost text-sm">
+          Your order details will be saved automatically. We'll send you order updates via email.
         </p>
       </div>
       
@@ -632,15 +628,19 @@ const CheckoutPage = () => {
   const validateGuestForm = () => {
     const errors = {};
     if (!guestForm.name.trim()) {
-      errors.name = 'Name is required';
+      errors.name = 'Please enter your full name';
+    } else if (guestForm.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
     }
     if (!guestForm.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = 'Please enter your email address';
     } else if (!/\S+@\S+\.\S+/.test(guestForm.email)) {
-      errors.email = 'Email is invalid';
+      errors.email = 'Please enter a valid email address';
     }
     if (!guestForm.phone_number.trim()) {
-      errors.phone_number = 'Phone number is required';
+      errors.phone_number = 'Please enter your phone number';
+    } else if (guestForm.phone_number.trim().length < 10) {
+      errors.phone_number = 'Phone number must be at least 10 digits';
     }
     
     if (Object.keys(errors).length > 0) {
@@ -1969,7 +1969,7 @@ const CheckoutPage = () => {
                               onChange={() => setBillingAddressOption('same')}
                               className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
                             />
-                            <span className="text-sm font-medium text-Accent font-Jost">Same as shipping address</span>
+                            <span className="text-sm font-medium text-Accent font-Jost">Use my shipping address for billing</span>
                           </label>
                           <label className="flex items-center cursor-pointer">
                             <input
@@ -1980,7 +1980,7 @@ const CheckoutPage = () => {
                               onChange={() => setBillingAddressOption('different')}
                               className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-2"
                             />
-                            <span className="text-sm font-medium text-Accent font-Jost">Use a different billing address</span>
+                            <span className="text-sm font-medium text-Accent font-Jost">Enter a different billing address</span>
                           </label>
                         </div>
                       </div>
@@ -2318,12 +2318,12 @@ const CheckoutPage = () => {
 
                     {/* Order Note */}
                     <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Order Note (optional)</h3>
+                  <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Special Instructions (optional)</h3>
                   <textarea
                     value={orderNote}
                     onChange={handleOrderNoteChange}
                     maxLength={500}
-                    placeholder="Add a note to your order (e.g., special instructions)"
+                    placeholder="Add special delivery instructions, gift message, or other notes for your order"
                     className="w-full p-2 border border-gray-300 rounded-md font-Jost"
                   />
                   <p className="text-sm text-Accent font-Jost">Characters left: {500 - orderNote.length}/500</p>
@@ -2333,7 +2333,7 @@ const CheckoutPage = () => {
                 <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                   <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Manrope">
                     <Truck className="h-5 w-5 inline mr-2" />
-                    Shipping Method
+                    Choose Delivery Method
                   </h3>
                   {isNigeria ? (
                     <div className="grid gap-4">
@@ -2608,7 +2608,10 @@ const CheckoutPage = () => {
                           onChange={() => setPaymentMethod('card')}
                           className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                         />
-                        <span className="text-sm text-Accent font-Jost">Card Payment</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-Accent font-Jost font-medium">Debit/Credit Card</span>
+                          <span className="text-xs text-gray-500 font-Jost">Pay securely with Visa, Mastercard, or Verve</span>
+                        </div>
                       </label>
                       <label
                         className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
@@ -2623,7 +2626,10 @@ const CheckoutPage = () => {
                           onChange={() => setPaymentMethod('bank')}
                           className="h-4 w-4 text-Primarycolor focus:ring-Primarycolor mr-3"
                         />
-                        <span className="text-sm text-Accent font-Jost">Bank Transfer</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-Accent font-Jost font-medium">Bank Transfer</span>
+                          <span className="text-xs text-gray-500 font-Jost">Direct transfer from your bank account</span>
+                        </div>
                       </label>
                       <label
                         className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
@@ -2640,7 +2646,10 @@ const CheckoutPage = () => {
                         />
                         <div className="flex items-center">
                           <Bitcoin className="h-4 w-4 text-orange-500 mr-2" />
-                          <span className="text-sm text-Accent font-Jost">Bitcoin/Crypto</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-Accent font-Jost font-medium">Bitcoin/Crypto</span>
+                            <span className="text-xs text-gray-500 font-Jost">Pay with Bitcoin or other cryptocurrencies</span>
+                          </div>
                         </div>
                       </label>
                     </div>
@@ -2759,12 +2768,14 @@ const CheckoutPage = () => {
                           <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-medium text-yellow-800 font-Jost">
-                              Please complete the required information
+                              {requiredForm === 'guest' && 'Complete Your Details'}
+                              {requiredForm === 'shipping' && 'Add Shipping Address'}
+                              {requiredForm === 'billing' && 'Add Billing Address'}
                             </p>
                             <p className="text-xs mt-1 text-yellow-700 font-Jost">
-                              {requiredForm === 'guest' && 'Please fill in your personal details'}
-                              {requiredForm === 'shipping' && 'Please add a shipping address'}
-                              {requiredForm === 'billing' && 'Please add a billing address'}
+                              {requiredForm === 'guest' && 'Fill in your name, email, and phone number above to continue'}
+                              {requiredForm === 'shipping' && 'Add your shipping address to proceed with checkout'}
+                              {requiredForm === 'billing' && 'Add your billing address or use same as shipping address'}
                             </p>
                           </div>
                         </div>
@@ -2797,7 +2808,7 @@ const CheckoutPage = () => {
                         <div className="flex items-center gap-2">
                           <Bitcoin className="h-4 w-4 text-orange-600" />
                           <p className="text-xs text-orange-800 font-Jost">
-                            Bitcoin payments require manual verification. Click "Place Order" to receive instructions.
+                            <strong>Bitcoin Payment:</strong> After placing your order, you'll receive detailed payment instructions via email.
                           </p>
                         </div>
                       </div>

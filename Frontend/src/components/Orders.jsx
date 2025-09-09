@@ -152,11 +152,11 @@ const Orders = () => {
       const billingAddress = details.billingAddress || {};
       
       // For guest users, prioritize billing address email, for logged-in users use user email
-      const userEmail = selectedOrder.is_guest_order 
+      const userEmail = selectedOrder.is_temporary 
         ? (billingAddress.email || user.email || selectedOrder.user_email)
         : (user.email || selectedOrder.user_email);
       
-      const userName = selectedOrder.is_guest_order
+      const userName = selectedOrder.is_temporary
         ? (billingAddress.full_name || `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`)
         : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`;
       
@@ -165,7 +165,7 @@ const Orders = () => {
         userEmail: userEmail,
         userName: userName,
         status: newStatus,
-        isGuest: selectedOrder.is_guest_order
+        isGuest: selectedOrder.is_temporary
       });
       
       setShowStatusModal(false);
@@ -183,12 +183,23 @@ const Orders = () => {
       if (!orderDetails[selectedOrder.id]) await fetchCompleteOrderDetails(selectedOrder.id);
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
+      const billingAddress = details.billingAddress || {};
+      
+      // For guest users, prioritize billing address email, for logged-in users use user email
+      const userEmail = selectedOrder.is_temporary 
+        ? (billingAddress.email || user.email || selectedOrder.user_email)
+        : (user.email || selectedOrder.user_email);
+      
+      const userName = selectedOrder.is_temporary
+        ? (billingAddress.full_name || `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`)
+        : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`;
+      
       await authAxios.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
-        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
-        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        userEmail: userEmail,
+        userName: userName,
         status: selectedOrder.status,
-        isGuest: selectedOrder.is_guest_order
+        isGuest: selectedOrder.is_temporary
       });
       toast.success('Status update email sent successfully');
     } catch (err) {
@@ -225,12 +236,23 @@ const Orders = () => {
       
       const details = orderDetails[selectedOrder.id] || {};
       const user = details.user || {};
+      const billingAddress = details.billingAddress || {};
+      
+      // For guest users, prioritize billing address email, for logged-in users use user email
+      const userEmail = selectedOrder.is_temporary 
+        ? (billingAddress.email || user.email || selectedOrder.user_email)
+        : (user.email || selectedOrder.user_email);
+      
+      const userName = selectedOrder.is_temporary
+        ? (billingAddress.full_name || `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`)
+        : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`;
+      
       await authAxios.post('/api/email/send-order-status-update', {
         orderId: selectedOrder.id,
-        userEmail: selectedOrder.is_guest_order ? selectedOrder.guest_email : (user.email || selectedOrder.user_email),
-        userName: selectedOrder.is_guest_order ? selectedOrder.guest_name : `${user.first_name || selectedOrder.first_name} ${user.last_name || selectedOrder.last_name}`,
+        userEmail: userEmail,
+        userName: userName,
         status: newStatus,
-        isGuest: selectedOrder.is_guest_order
+        isGuest: selectedOrder.is_temporary
       });
       
       setShowOrderDetail(false);
@@ -457,7 +479,7 @@ const Orders = () => {
                       <td className="py-3 px-4 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="font-medium text-gray-900 font-Manrope">{order.first_name} {order.last_name}</div>
-                          {order.is_guest_order && (
+                          {order.is_temporary && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 font-Jost">
                               Guest
                             </span>
