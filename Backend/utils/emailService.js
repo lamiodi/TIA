@@ -375,43 +375,14 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
           <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
             ${itemsHtml}
           </ul>
-          ${isTemporary ? `
-            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
-              <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px;">🔐 Guest Account Notice</h3>
-              <p style="color: #92400e; margin: 0 0 12px 0; font-size: 14px;">
-                You checked out as a guest. To view your order history and manage future orders, please set up your account password.
-              </p>
-              <div style="text-align: center; margin-top: 16px;">
-                <a href="${frontendUrl}/guest-order-lookup?email=${encodeURIComponent(to)}&reference=${order.reference}" style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600; margin-right: 12px;">
-                  View Order Details
-                </a>
-                <a href="${frontendUrl}/forgot-password?email=${encodeURIComponent(to)}" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; font-weight: 600;">
-                  Convert to Permanent Account
-                </a>
-              </div>
-            </div>
-            <div style="background-color: #e0f2fe; border: 1px solid #0288d1; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
-              <h4 style="color: #01579b; margin: 0 0 8px 0; font-size: 15px;">💡 Quick Account Setup</h4>
-              <p style="color: #01579b; margin: 0 0 12px 0; font-size: 13px;">
-                Convert your temporary account to permanent and never lose access to your orders!
-              </p>
-              <a href="${frontendUrl}/forgot-password?email=${encodeURIComponent(to)}&temp=true" style="background-color: #0288d1; color: #ffffff; text-decoration: none; padding: 10px 18px; font-size: 13px; border-radius: 6px; display: inline-block; font-weight: 600;">
-                🔑 Set Password Now
-              </a>
-            </div>
-            <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-              Once you set your password, you'll be able to track all your orders. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
-            </p>
-          ` : `
-            <div style="text-align: center; margin: 24px 0;">
-              <a href="${frontendUrl}/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-                View Orders
-              </a>
-            </div>
-            <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-              You can track your order status and view all your orders in your account. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
-            </p>
-          `}
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${frontendUrl}${isTemporary ? `/guest-order-lookup?email=${encodeURIComponent(to)}&reference=${order.reference}` : '/orders'}" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+              View Order Details
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
+            You can track your order status ${isTemporary ? 'using the link above' : 'in your account'}. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+          </p>
           <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
             — The Tia Brand Team
           </p>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle, User } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -283,15 +283,6 @@ const Cart = () => {
     }
   }, [user, authLoading, contextLoading, country, navigate, location.pathname, isAuthenticated, getUserId, getAuthAxios, handleAuthError, loadGuestCart]);
   
-  // Debounce function
-  const debounce = useCallback((func, wait) => {
-    let timeout;
-    return (...args) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  }, []);
-  
   // Update quantity
   const updateQuantity = useCallback(
     async (itemId, newQuantity) => {
@@ -419,7 +410,17 @@ const Cart = () => {
     [isUpdating, isGuest, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, saveGuestCart]
   );
   
-  const debouncedUpdateQuantity = useMemo(() => debounce(updateQuantity, 500), [updateQuantity, debounce]);
+  // Debounced update quantity with useRef to maintain stable reference
+  const timeoutRef = useRef(null);
+  const debouncedUpdateQuantity = useCallback(
+    (itemId, newQuantity) => {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        updateQuantity(itemId, newQuantity);
+      }, 500);
+    },
+    [updateQuantity]
+  );
   
   // Remove item
   const removeItem = useCallback(
@@ -619,9 +620,8 @@ const Cart = () => {
   const displayTotal = country === 'Nigeria' ? total : total * exchangeRate;
   
   // Memoized Cart Item Component
-  const CartItem = useMemo(
-    () =>
-      ({ item }) => {
+  const CartItem = useCallback(
+    ({ item }) => {
         const bundleItems = item.item.is_product ? [] : item.item.items || [];
         console.log(`Cart: Rendering cart_item_id ${item.id}, bundle items:`, JSON.stringify(bundleItems, null, 2));
         const basePrice = Number(item.item.price) || 0;
@@ -828,7 +828,7 @@ const Cart = () => {
             </div>
           </div>
         );
-      },
+    },
     [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]
   );
   
@@ -971,32 +971,7 @@ const Cart = () => {
                     <span className="font-medium font-Manrope text-gray-900">Calculated at checkout</span>
                   </div>
                   
-                  {/* Free Shipping Progress */}
-                  {country === 'Nigeria' && subtotal < 7500 && (
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs font-semibold text-blue-800">Free Shipping Progress</span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-blue-700">
-                            Current: {subtotal.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })}
-                          </span>
-                          <span className="text-blue-700">Target: ₦7,500</span>
-                        </div>
-                        <div className="w-full bg-blue-100 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min((subtotal / 7500) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-blue-700">
-                          Add {(7500 - subtotal).toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 })} more for free shipping!
-                        </p>
-                      </div>
-                    </div>
-                  )}
+
                   
                   {/* Tax (for international) */}
                   {displayTax > 0 && (

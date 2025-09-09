@@ -342,12 +342,12 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
                 type="submit"
                 disabled={isLoading}
                 aria-label="Submit newsletter form"
-                className="w-12 h-[42px] bg-[#d9d9d9] flex justify-center items-center hover:bg-[#c9c9c9] transition-colors duration-200 disabled:opacity-50"
+                className="w-12 sm:w-14 md:w-16 lg:w-20 xl:w-24 h-full bg-[#d9d9d9] flex justify-center items-center hover:bg-[#c9c9c9] transition-colors duration-200 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 text-Primarycolor animate-spin" />
+                  <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 text-Primarycolor animate-spin" />
                 ) : (
-                  <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 lg:w-5 lg:h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                   </svg>
                 )}

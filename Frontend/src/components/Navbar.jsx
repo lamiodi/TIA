@@ -132,10 +132,10 @@ export default function Navbar() {
                     <User className="h-5 w-5 sm:h-6 sm:w-6 text-Secondarycolor" />
                   </button>
                   
-                  {/* Tooltip for My Orders */}
+                  {/* Tooltip for Order History */}
                   {user && (
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                      My Orders
+                      Order History
                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
                     </div>
                   )}
@@ -159,7 +159,7 @@ export default function Navbar() {
                             onClick={() => handleMenuNavigation('/orders')}
                           >
                             <Package className="h-4 w-4 mr-3 text-gray-500" />
-                            My Orders
+                            Order History
                           </Link>
                           <div className="border-t border-gray-100 my-1"></div>
                           <button
@@ -268,7 +268,7 @@ export default function Navbar() {
                   <Link to="/orders">
                     <button className="flex items-center w-full text-left px-3 py-2 text-sm rounded transition-colors text-Secondarycolor hover:text-Softcolor hover:bg-white/5">
                       <Package className="h-3 w-3 sm:h-4 sm:w-4 text-Secondarycolor hover:text-Softcolor mr-2" />
-                      My Orders
+                      Order History
                     </button>
                   </Link>
                 </>

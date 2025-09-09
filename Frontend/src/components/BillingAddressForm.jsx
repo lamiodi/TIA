@@ -54,9 +54,9 @@ const BillingAddressForm = ({
   const validateForm = () => {
     const newErrors = {};
     
-    // Validate full_name and email for guest users and non-logged users
-    // Skip validation only for logged-in users with userData
-    if (!userData || isGuest) {
+    // Validate full_name and email only for guest users
+    // Skip validation for logged-in users with userData
+    if (isGuest || !userData) {
       if (!formData.full_name.trim()) {
         newErrors.full_name = 'Full name is required';
       }

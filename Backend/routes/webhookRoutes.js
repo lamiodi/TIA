@@ -4,7 +4,7 @@ import sql from '../db/index.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { sendOrderConfirmationEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation } from '../utils/emailService.js';
+import { sendOrderConfirmationEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation, sendAdminPaymentConfirmationNotification } from '../utils/emailService.js';
 
 dotenv.config();
 
@@ -357,6 +357,19 @@ async function sendOrderConfirmationEmailHelper(orderDetails) {
         billing_email: orderDetails.billing_email,
         is_temporary: orderDetails.is_temporary
       });
+    }
+    
+    // Send admin notification for new order
+    try {
+      await sendAdminPaymentConfirmationNotification(
+        orderDetails.id,
+        finalName,
+        orderDetails.total,
+        orderDetails.currency
+      );
+      console.log(`✅ Sent admin payment confirmation notification for order ${orderDetails.id}`);
+    } catch (adminEmailError) {
+      console.error(`Failed to send admin payment confirmation for order ${orderDetails.id}:`, adminEmailError.message);
     }
     
     // Mark email as sent
