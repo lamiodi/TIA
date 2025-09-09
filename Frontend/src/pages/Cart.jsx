@@ -221,7 +221,8 @@ const Cart = () => {
   // Fetch cart data
   useEffect(() => {
     const fetchCart = async (retries = 3, delay = 1000) => {
-      if (!isAuthenticated()) {
+      const token = getToken();
+      if (!token) {
         console.log('Cart: No valid user session, loading guest cart');
         loadGuestCart();
         return;
@@ -281,7 +282,7 @@ const Cart = () => {
     if (!authLoading && !contextLoading) {
       fetchCart();
     }
-  }, [user, authLoading, contextLoading, country, navigate, location.pathname, isAuthenticated, getUserId, getAuthAxios, handleAuthError, loadGuestCart]);
+  }, [user, authLoading, contextLoading, country]);
   
   // Update quantity
   const updateQuantity = useCallback(
@@ -329,7 +330,8 @@ const Cart = () => {
         }
         
         // Handle authenticated user cart update
-        if (!isAuthenticated()) {
+        const token = getToken();
+        if (!token) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
           toast.error('Please log in to update your cart.');
@@ -407,7 +409,7 @@ const Cart = () => {
         setIsUpdating(null);
       }
     },
-    [isUpdating, isGuest, isAuthenticated, cart.items, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, saveGuestCart]
+    [isUpdating, isGuest, cart.items, country]
   );
   
   // Debounced update quantity with useRef to maintain stable reference
@@ -447,7 +449,8 @@ const Cart = () => {
         }
         
         // Handle authenticated user cart item removal
-        if (!isAuthenticated()) {
+        const token = getToken();
+        if (!token) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
           toast.error('Please log in to update your cart.');
@@ -502,7 +505,7 @@ const Cart = () => {
         }
       }
     },
-    [isGuest, isAuthenticated, cart, country, navigate, location.pathname, getAuthAxios, handleAuthError, getUserId, saveGuestCart]
+    [isGuest, cart, country]
   );
   
   // Clear cart
@@ -521,7 +524,8 @@ const Cart = () => {
         }
         
         // Handle authenticated user cart clearing
-        if (!isAuthenticated()) {
+        const token = getToken();
+        if (!token) {
           console.log('Cart: No valid user session, redirecting to /login');
           setError('Please log in to update your cart.');
           toast.error('Please log in to update your cart.');
@@ -580,7 +584,7 @@ const Cart = () => {
         toast.error(errorMessage);
       }
     },
-    [isGuest, isAuthenticated, getUserId, navigate, location.pathname, getAuthAxios, handleAuthError, saveGuestCart]
+    [isGuest]
   );
   
   // Loading state

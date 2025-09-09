@@ -4,7 +4,13 @@ import sql from '../db/index.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { sendOrderConfirmationEmail, sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation, sendAdminPaymentConfirmationNotification } from '../utils/emailService.js';
+import { 
+  sendOrderConfirmationEmail, 
+  sendDeliveryFeePaymentConfirmation, 
+  sendAdminDeliveryFeePaymentConfirmation,
+  sendAdminPaymentConfirmationNotification,
+  sendAdminDeliveryFeeNotification
+} from '../utils/emailService.js';
 
 dotenv.config();
 
@@ -163,19 +169,21 @@ async function handleSuccessfulPayment(reference, res) {
         o.cart_id,
         o.delivery_fee,
         o.delivery_fee_paid,
+        o.shipping_country,
         u.email as user_email,
         u.first_name as user_first_name,
         u.last_name as user_last_name,
         u.is_temporary,
         ba.full_name as billing_full_name,
         ba.email as billing_email,
-        u.email as user_email,
-        u.first_name as user_first_name,
-        ba.full_name as billing_full_name,
-        ba.email as billing_email
+        a.address_line_1,
+        a.city,
+        a.state,
+        a.zip_code
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
+      LEFT JOIN addresses a ON o.address_id = a.id
       WHERE o.reference = ${reference} AND o.deleted_at IS NULL
     `;
   
@@ -212,6 +220,30 @@ async function handleSuccessfulPayment(reference, res) {
   // Send confirmation email if not already sent
   if (!orderDetails.email_sent) {
     await sendOrderConfirmationEmailHelper(orderDetails);
+  }
+  
+  // Send admin delivery fee notification for international orders
+  if (orderDetails.shipping_country && orderDetails.shipping_country.toLowerCase() !== 'nigeria') {
+    try {
+      const finalName = orderDetails.is_temporary 
+        ? (orderDetails.billing_full_name || orderDetails.user_first_name || 'Customer')
+        : (orderDetails.user_first_name || orderDetails.billing_full_name || 'Customer');
+      
+      await sendAdminDeliveryFeeNotification(
+        orderDetails.id,
+        finalName,
+        orderDetails.shipping_country,
+        {
+          address_line_1: orderDetails.address_line_1 || '',
+          city: orderDetails.city || '',
+          state: orderDetails.state || '',
+          zip_code: orderDetails.zip_code || ''
+        }
+      );
+      console.log(`✅ Sent admin delivery fee notification for international order ${orderDetails.id} to ${orderDetails.shipping_country}`);
+    } catch (deliveryFeeError) {
+      console.error(`Failed to send admin delivery fee notification for order ${orderDetails.id}:`, deliveryFeeError.message);
+    }
   }
   
   console.log(`✅ Processed charge.success for reference=${reference}`);
