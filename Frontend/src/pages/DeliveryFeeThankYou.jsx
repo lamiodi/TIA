@@ -39,7 +39,6 @@ const DeliveryFeeThankYou = () => {
         setStatus('failed');
       } finally {
         setLoading(false);
-        setTimeout(() => navigate('/orders'), 5000); // Redirect to user orders page after 5 seconds
       }
     };
 
@@ -62,7 +61,6 @@ const DeliveryFeeThankYou = () => {
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Delivery Fee Payment Successful!</h2>
             <p className="text-gray-600 mb-6">Thank you for your payment. Your order is now ready for international shipping. You'll receive a confirmation email shortly.</p>
-            <p className="text-sm text-gray-500">Redirecting to your orders in 5 seconds...</p>
           </>
         ) : (
           <>
@@ -71,12 +69,20 @@ const DeliveryFeeThankYou = () => {
             <p className="text-gray-600 mb-6">There was an issue with your delivery fee payment. Please try again or contact support.</p>
           </>
         )}
-        <button
-          onClick={() => navigate('/orders')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          View Orders
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            onClick={() => navigate('/orders')}
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+          >
+            View My Orders
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium"
+          >
+            Continue Shopping
+          </button>
+        </div>
       </div>
     </div>
   );

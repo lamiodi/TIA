@@ -64,7 +64,7 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
           </p>
         </div>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${frontendUrl}/admin/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+          <a href="${frontendUrl}/admin/dashboard" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
             View Order
           </a>
         </div>
@@ -526,7 +526,7 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
           </p>
         </div>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${frontendUrl}/admin/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+          <a href="${frontendUrl}/admin/dashboard" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
             View Order
           </a>
         </div>
