@@ -375,13 +375,28 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
           <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
             ${itemsHtml}
           </ul>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${frontendUrl}${isTemporary ? `/guest-order-lookup?email=${encodeURIComponent(to)}&reference=${order.reference}` : '/orders'}" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-              View Order Details
-            </a>
-          </div>
+          ${isTemporary ? `
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
+              <h4 style="font-size: 16px; color: #92400e; margin: 0 0 12px 0;">Create Your Permanent Account</h4>
+              <p style="font-size: 14px; color: #92400e; margin: 0 0 16px 0; line-height: 1.5;">
+                Get faster checkout, order history access, and exclusive benefits by creating a permanent account!
+              </p>
+              <a href="${frontendUrl}/forgot-password" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; margin-bottom: 8px;">
+                Create Account / Reset Password
+              </a>
+              <p style="font-size: 12px; color: #92400e; margin: 8px 0 0 0;">
+                Use the same email address to convert your guest order to a permanent account
+              </p>
+            </div>
+          ` : `
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="${frontendUrl}/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+                View Order Details
+              </a>
+            </div>
+          `}
           <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 20px;">
-            You can track your order status ${isTemporary ? 'using the link above' : 'in your account'}. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
+            ${isTemporary ? 'Contact' : 'You can track your order status in your account. Contact'} <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for assistance.
           </p>
           <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
             — The Tia Brand Team

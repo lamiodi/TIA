@@ -879,62 +879,7 @@ export const getOrdersByUser = async (req, res) => {
   }
 };
 
-// Guest order lookup endpoint
-export const guestOrderLookup = async (req, res) => {
-  try {
-    const { email, reference } = req.body;
-    
-    if (!email || !reference) {
-      return res.status(400).json({ error: 'Email and order reference are required' });
-    }
-    
-    // Find order by reference and verify it belongs to a guest user with matching email
-    const [order] = await sql`
-      SELECT 
-        o.*, 
-        u.first_name, u.last_name, u.email as user_email, u.is_temporary,
-        a.address_line_1, a.address_line_2, a.city, a.state, a.zip_code, a.country as shipping_country,
-        ba.full_name as billing_full_name, ba.email as billing_email, ba.phone_number, 
-        ba.address_line_1 as billing_address_line_1, ba.address_line_2 as billing_address_line_2,
-        ba.city as billing_city, ba.state as billing_state, ba.zip_code as billing_zip_code
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      LEFT JOIN addresses a ON o.address_id = a.id
-      LEFT JOIN billing_addresses ba ON o.billing_address_id = ba.id
-      WHERE o.reference = ${reference} AND u.is_temporary = true
-    `;
-    
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    // Verify email matches (check both user email and billing email)
-    const orderEmail = order.billing_email || order.user_email;
-    if (orderEmail.toLowerCase() !== email.toLowerCase()) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Get order items
-    const items = await sql`
-      SELECT 
-        oi.quantity, oi.price,
-        p.name, p.image_url
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      WHERE oi.order_id = ${order.id}
-    `;
-    
-    const orderWithItems = {
-      ...order,
-      items: items || []
-    };
-    
-    res.json(orderWithItems);
-  } catch (error) {
-    console.error('Guest order lookup error:', error);
-    res.status(500).json({ error: 'Failed to lookup order' });
-  }
-};
+
 
 export const getOrderById = async (req, res) => {
   try {
