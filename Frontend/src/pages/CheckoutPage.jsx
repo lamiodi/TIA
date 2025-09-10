@@ -496,28 +496,17 @@ const CheckoutPage = () => {
   // Update the useEffect that calculates the first order discount
   useEffect(() => {
     const currentSubtotal = cart.subtotal; // Always in NGN
-    console.log('Calculating first order discount:', {
-      userFirstOrder: user?.first_order,
-      currentSubtotal,
-      userDataRefreshed,
-      refreshCount,
-      isGuest,
-      userExists: !!user
-    });
     
     // Guest users (temporary) don't get first order discount
     if (isGuest) {
       setFirstOrderDiscount(0);
-      console.log('No first order discount for guest user');
     } 
     // For authenticated users, check if it's their first order
     else if (user && (user.first_order === true || user.first_order === 1) && currentSubtotal > 0) {
       const discountAmount = Number((currentSubtotal * 0.05).toFixed(2));
       setFirstOrderDiscount(discountAmount);
-      console.log('Applied first order discount:', discountAmount);
     } else {
       setFirstOrderDiscount(0);
-      console.log('No first order discount applied. User:', user ? 'exists' : 'missing', 'First order:', user?.first_order);
     }
   }, [user?.first_order, cart.subtotal, userDataRefreshed, refreshCount, isGuest]); // Added isGuest to dependencies
   
@@ -911,7 +900,7 @@ const CheckoutPage = () => {
         tax: baseTax,
       };
       
-      console.log('Order payload:', orderData);
+
       
       let orderResponse;
       try {
@@ -924,7 +913,6 @@ const CheckoutPage = () => {
         
         // Handle case where backend returns 200 with 'Order already exists with pending payment'
         if (orderResponse.data.message === 'Order already exists with pending payment') {
-          console.log('Order with same reference already exists (pending payment):', orderResponse.data);
           const existingOrderId = orderResponse.data.order.id;
           
           // Continue with payment initialization using existing order
@@ -933,7 +921,6 @@ const CheckoutPage = () => {
       } catch (err) {
         // Handle case where order with same reference already exists
         if (err.response?.status === 409 && err.response?.data?.order_id) {
-          console.log('Order with same reference already exists, using existing order:', err.response.data);
           const existingOrderId = err.response.data.order_id;
           
           // If payment is already completed, redirect to thank you page
@@ -957,7 +944,7 @@ const CheckoutPage = () => {
         }
       }
       
-      console.log('Order response:', orderResponse.data);
+
       
       const orderId = orderResponse.data.order?.id || orderResponse.data.id || orderResponse.data.data?.id;
       if (!orderId) {

@@ -2,6 +2,7 @@
 import sql from '../db/index.js';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import path from 'path';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -95,7 +96,12 @@ export const createBundle = async (req, res) => {
           INSERT INTO bundle_images (bundle_id, image_url)
           VALUES (${bundleId}, ${uploaded.secure_url})
         `;
-        fs.unlinkSync(file.path);
+        // Sanitize file path to prevent path traversal attacks
+        const sanitizedPath = path.resolve(file.path);
+        // Ensure the file is within the expected upload directory
+        if (sanitizedPath.startsWith(path.resolve('./')) && fs.existsSync(sanitizedPath)) {
+          fs.unlinkSync(sanitizedPath);
+        }
       } catch (imgErr) {
         console.error('Image upload error:', imgErr);
       }

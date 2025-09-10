@@ -334,10 +334,18 @@ export const initializeDeliveryFeePayment = async (req, res) => {
         currency,
         authorization_url
       );
-      console.log(`✅ Sent delivery fee payment link email to ${finalEmail} for order ${order_id} (${order.is_temporary ? 'guest' : 'logged-in'} user)`);
+      console.log('✅ Sent delivery fee payment link email:', { 
+        email: String(finalEmail).replace(/[^a-zA-Z0-9@._-]/g, ''), 
+        orderId: String(order_id).replace(/[^a-zA-Z0-9-_]/g, ''), 
+        userType: order.is_temporary ? 'guest' : 'logged-in' 
+      });
       emailSent = true;
     } catch (emailError) {
-      console.error(`Failed to send delivery fee payment link email to ${finalEmail} for order ${order_id}:`, emailError.message);
+      console.error('Failed to send delivery fee payment link email:', { 
+        email: String(finalEmail).replace(/[^a-zA-Z0-9@._-]/g, ''), 
+        orderId: String(order_id).replace(/[^a-zA-Z0-9-_]/g, ''), 
+        error: emailError.message 
+      });
       console.error('Email error details:', emailError.stack || emailError);
     }
     

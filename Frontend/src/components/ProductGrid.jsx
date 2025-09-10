@@ -286,9 +286,6 @@ const ProductCard = ({ product, onImageError }) => {
   const { id, name, price, image, color, is_product, variantId, bundle_types } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   
-  // Log for debugging
-  console.log('ProductCard context:', { currency, exchangeRate, country, price });
-  
   // Clean product name (remove trailing "– Color")
   let displayName = name || 'Unnamed Product';
   if (displayName.includes('–')) {

@@ -249,7 +249,6 @@ const Cart = () => {
     const fetchCart = async (retries = 3, delay = 1000) => {
       const token = getToken();
       if (!token) {
-        console.log('Cart: No valid user session, loading guest cart');
         loadGuestCart();
         return;
       }
@@ -259,7 +258,6 @@ const Cart = () => {
         if (!userId) {
           throw new Error('Could not determine user ID from authentication data');
         }
-        console.log('Cart: Fetching cart for userId=', userId, 'URL=', `/cart/${userId}`);
         const authAxios = getAuthAxios();
         const response = await authAxios.get(`/cart/${userId}`);
         if (response.status !== 200) {
@@ -313,7 +311,6 @@ const Cart = () => {
   const updateQuantity = useCallback(
     async (itemId, newQuantity) => {
       if (newQuantity < 1 || isUpdating === itemId) return;
-      console.log(`Cart: Updating quantity for cart_item_id ${itemId} to ${newQuantity}`);
       setIsUpdating(itemId);
       
       try {
@@ -455,7 +452,6 @@ const Cart = () => {
       try {
         if (isGuest) {
           // Handle guest cart item removal
-          console.log(`Cart: Removing item with cart_item_id ${itemId} from guest cart`);
           
           const remaining = cart.items.filter((item) => item.id !== itemId);
           const subtotal = remaining.reduce(
@@ -494,7 +490,6 @@ const Cart = () => {
           );
           const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
           const total = subtotal + tax;
-          console.log('Cart: Item removed, updated cart:', { items: remaining, subtotal, tax, total });
           return { ...prev, items: remaining, subtotal, tax, total };
         });
         
@@ -539,7 +534,6 @@ const Cart = () => {
       try {
         if (isGuest) {
           // Handle guest cart clearing
-          console.log('Cart: Clearing guest cart');
           const updatedCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
           setCart(updatedCart);
           saveGuestCart(updatedCart);

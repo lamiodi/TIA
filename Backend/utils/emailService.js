@@ -51,9 +51,12 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Delivery Fee Payment Confirmed</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px;">
-          Delivery fee payment has been confirmed for order #${orderId}.
+        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">🎉 Delivery Fee Payment Successfully Processed</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-bottom: 16px;">
+          Great news! The delivery fee payment for order <strong>#${orderId}</strong> has been successfully processed and confirmed.
+        </p>
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
+          The customer has completed their payment, and you can now proceed with shipping arrangements. Please update the order status and coordinate with DHL for delivery.
         </p>
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
@@ -65,7 +68,7 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
         </div>
         <div style="text-align: center; margin: 24px 0;">
           <a href="${frontendUrl}/admin/dashboard" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-            View Order
+            📦 Process Order & Arrange Shipping
           </a>
         </div>
         <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">
@@ -95,16 +98,30 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">New International Order - Action Required</h2>
-        <p style="font-size: 16px; color: #444444; margin-bottom: 24px;">
-          A new international order (ID: ${orderId}) requires a DHL delivery fee quote.<br>
-          <strong>User:</strong> ${userName}<br>
-          <strong>Country:</strong> ${country}<br>
-          <strong>Address:</strong> ${address.address_line_1}, ${address.city}, ${address.state || ''} ${address.zip_code}
+        <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">🌍 New International Order - DHL Quote Required</h2>
+        <p style="font-size: 16px; color: #444444; margin-bottom: 16px;">
+          A new international order <strong>#${orderId}</strong> has been placed and requires immediate attention for DHL delivery fee calculation.
         </p>
+        <p style="font-size: 14px; color: #666666; margin-bottom: 20px;">
+          Please contact DHL to obtain an accurate shipping quote for this destination and set the delivery fee in the admin dashboard.
+        </p>
+        <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #007bff;">
+          <p style="font-size: 14px; color: #333333; margin: 0 0 8px 0;">
+            <strong>📋 Order Details:</strong>
+          </p>
+          <p style="font-size: 14px; color: #555555; margin: 0 0 8px 0;">
+            <strong>Customer:</strong> ${userName}
+          </p>
+          <p style="font-size: 14px; color: #555555; margin: 0 0 8px 0;">
+            <strong>Destination:</strong> ${country}
+          </p>
+          <p style="font-size: 14px; color: #555555; margin: 0;">
+            <strong>Full Address:</strong> ${address.address_line_1}, ${address.city}, ${address.state || ''} ${address.zip_code}
+          </p>
+        </div>
         <div style="text-align: center; margin: 24px 0;">
           <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/dashboard" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-            Set Delivery Fee
+            🚚 Calculate & Set DHL Delivery Fee
           </a>
         </div>
         <p style="font-size: 13px; color: #aaaaaa; text-align: center; margin-top: 30px;">
@@ -376,16 +393,25 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
             ${itemsHtml}
           </ul>
           ${isTemporary ? `
-            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
-              <h4 style="font-size: 16px; color: #92400e; margin: 0 0 12px 0;">Create Your Permanent Account</h4>
-              <p style="font-size: 14px; color: #92400e; margin: 0 0 16px 0; line-height: 1.5;">
-                Get faster checkout, order history access, and exclusive benefits by creating a permanent account!
-              </p>
-              <a href="${frontendUrl}/forgot-password" style="background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 20px; font-size: 14px; border-radius: 6px; display: inline-block; margin-bottom: 8px;">
-                Create Account / Reset Password
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; padding: 24px; margin: 32px 0; text-align: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
+              <div style="background-color: #f59e0b; color: white; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">🎉 UPGRADE NOW</div>
+              <h3 style="font-size: 20px; color: #92400e; margin: 0 0 16px 0; font-weight: bold;">🚀 Unlock Your VIP Shopping Experience!</h3>
+              <div style="background-color: rgba(255,255,255,0.7); border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <p style="font-size: 15px; color: #92400e; margin: 0 0 12px 0; line-height: 1.6; font-weight: 500;">
+                  Transform your guest checkout into a <strong>premium shopping experience</strong> with these exclusive perks:
+                </p>
+                <div style="text-align: left; max-width: 300px; margin: 0 auto;">
+                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">⚡ <strong style="margin-left: 8px;">Lightning-fast 1-click checkout</strong></p>
+                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">📦 <strong style="margin-left: 8px;">Complete order history & tracking</strong></p>
+                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">🎁 <strong style="margin-left: 8px;">Exclusive member-only deals</strong></p>
+                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">🔔 <strong style="margin-left: 8px;">Early access to new collections</strong></p>
+                </div>
+              </div>
+              <a href="${frontendUrl}/forgot-password" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; border-radius: 8px; display: inline-block; margin: 16px 0 12px 0; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease;">
+                ✨ Create My VIP Account
               </a>
-              <p style="font-size: 12px; color: #92400e; margin: 8px 0 0 0;">
-                Use the same email address to convert your guest order to a permanent account
+              <p style="font-size: 13px; color: #92400e; margin: 8px 0 0 0; font-style: italic;">
+                💡 <strong>Pro Tip:</strong> Use this same email (${to}) to instantly convert your guest order into a permanent account!
               </p>
             </div>
           ` : `
@@ -471,11 +497,41 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
   }
 };
 
-export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, deliveryFee, currency) => {
+export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, deliveryFee, currency, isTemporary = false) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const formattedFee = currency === 'NGN'
     ? `₦${deliveryFee.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
     : `$${deliveryFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  
+  // Conditional content based on user type
+  const viewOrderSection = isTemporary ? `
+    <!-- Enhanced Guest Account Conversion Section -->
+    <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); padding: 24px; border-radius: 12px; margin: 32px 0; text-align: center; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);">
+      <div style="background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="background: linear-gradient(45deg, #dc2626, #ef4444); color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-size: 12px; font-weight: bold; margin-bottom: 12px;">🎉 UPGRADE NOW</div>
+        <h3 style="color: #1f2937; font-size: 20px; margin: 0 0 16px 0; font-weight: 700;">🚀 Unlock Your VIP Shopping Experience!</h3>
+        <div style="text-align: left; margin: 16px 0;">
+          <div style="margin: 8px 0; color: #374151; font-size: 14px;">⚡ Lightning-fast 1-click checkout</div>
+          <div style="margin: 8px 0; color: #374151; font-size: 14px;">📦 Complete order history & tracking</div>
+          <div style="margin: 8px 0; color: #374151; font-size: 14px;">🎁 Exclusive member-only deals</div>
+          <div style="margin: 8px 0; color: #374151; font-size: 14px;">🔔 Early access to new collections</div>
+        </div>
+      </div>
+      <a href="${frontendUrl}/forgot-password" style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(31, 41, 55, 0.4); transition: all 0.3s ease;">
+        ✨ Create My VIP Account
+      </a>
+      <p style="font-size: 12px; color: #6b7280; margin: 12px 0 0 0; font-style: italic;">
+        💡 <strong>Pro Tip:</strong> Use ${to} to create your account instantly!
+      </p>
+    </div>
+  ` : `
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+        View Your Orders
+      </a>
+    </div>
+  `;
+  
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
@@ -491,11 +547,7 @@ export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, 
             <strong>Delivery Fee:</strong> ${formattedFee}
           </p>
         </div>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${frontendUrl}/orders" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-            View Your Orders
-          </a>
-        </div>
+        ${viewOrderSection}
         <p style="font-size: 14px; color: #777777; text-align: center; margin-top: 20px;">
           Thank you for your payment. Contact <a href="mailto:Thetiabrand1@gmail.com" style="color: #2563eb;">Thetiabrand1@gmail.com</a> for any questions.
         </p>
@@ -528,9 +580,12 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Payment Confirmed</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px;">
-          Payment has been confirmed for order #${orderId}.
+        <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">💳 Payment Successfully Received</h2>
+        <p style="font-size: 16px; color: #4b5563; margin-bottom: 16px;">
+          Excellent! Payment for order <strong>#${orderId}</strong> has been successfully processed and confirmed.
+        </p>
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
+          The customer's payment has been secured. You can now proceed with order fulfillment and prepare the items for shipping.
         </p>
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
@@ -542,7 +597,7 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
         </div>
         <div style="text-align: center; margin: 24px 0;">
           <a href="${frontendUrl}/admin/dashboard" style="background-color: #111827; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
-            View Order
+            📋 View Order & Begin Fulfillment
           </a>
         </div>
         <p style="font-size: 13px; color: #9ca3af; text-align: center; margin-top: 30px;">

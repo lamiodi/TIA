@@ -85,7 +85,7 @@ export const createOrder = async (req, res) => {
     `;
     
     if (existingOrder) {
-      console.log(`⚠️ Order with reference ${reference} already exists:`, existingOrder);
+      console.log('⚠️ Order with reference already exists:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order: existingOrder });
       
       // If order exists and payment is pending, return the existing order
       if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
@@ -527,7 +527,7 @@ export const createOrder = async (req, res) => {
           `;
           
           if (existingOrder) {
-            console.log(`Found existing order with reference ${reference}:`, existingOrder);
+            console.log('Found existing order with reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order: existingOrder });
             
             // If order exists and payment is pending, return the existing order
             if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
@@ -730,11 +730,11 @@ export const verifyOrderByReference = async (req, res) => {
     }
     
     if (!order) {
-      console.log(`❌ Order not found for reference: ${reference}`);
+      console.log('❌ Order not found for reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, '') });
       return res.status(404).json({ error: 'Order not found' });
     }
     
-    console.log(`✅ verifyOrderByReference: Fetched order with reference ${reference}:`, order);
+    console.log('✅ verifyOrderByReference: Fetched order with reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order });
     res.status(200).json(order);
   } catch (err) {
     console.error('❌ Error verifying order by reference:', err.message);
@@ -871,7 +871,7 @@ export const getOrdersByUser = async (req, res) => {
       shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
     }));
     
-    console.log(`getOrdersByUser: Fetched orders for user ${userId}:`, orders);
+    console.log('getOrdersByUser: Fetched orders for user:', { userId: String(userId).replace(/[^a-zA-Z0-9-_]/g, ''), orderCount: orders.length });
     res.status(200).json(formattedOrders);
   } catch (err) {
     console.error('❌ Error fetching user orders:', err.message);
@@ -952,7 +952,7 @@ export const getOrderById = async (req, res) => {
       items,
     };
     
-    console.log(`getOrderById: Fetched order ${id}:`, formattedOrder);
+    console.log('getOrderById: Fetched order:', { id: String(id).replace(/[^a-zA-Z0-9-_]/g, ''), orderId: formattedOrder.id });
     res.status(200).json(formattedOrder);
   } catch (err) {
     console.error('❌ Error fetching order:', err.message);
