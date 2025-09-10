@@ -257,23 +257,22 @@ const Cart = () => {
             : 'No response',
           config: err.config,
         });
-        if (err.response?.status === 401 || err.message.includes('Could not determine user ID')) {
-          handleAuthError();
+        if (err.response?.status === 401 || err.response?.status === 404 || err.message.includes('Could not determine user ID')) {
+          console.log('Cart: Authentication failed or cart not found, falling back to guest cart');
+          loadGuestCart();
           return;
         }
+        
         if (retries > 0 && (err.code === 'ECONNABORTED' || err.message.includes('Network Error') || err.message.includes('HTML instead of JSON'))) {
           console.log(`Cart: Retrying fetchCart (${retries} retries left)...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           return fetchCart(retries - 1, delay * 2);
         }
-        const errorMessage =
-          err.response?.status === 404
-            ? 'Cart not found. Start shopping to add items!'
-            : err.response?.status === 401
-            ? 'Unauthorized. Please log in again.'
-            : `Server error: ${err.message}. Check backend server and Vite proxy settings.`;
-        setError(errorMessage);
-        toast.error(errorMessage);
+        
+        // For other errors, fall back to guest cart instead of showing errors
+        console.log('Cart: Server error, falling back to guest cart');
+        setError('');
+        loadGuestCart();
       } finally {
         setIsCartLoading(false);
       }
@@ -282,7 +281,7 @@ const Cart = () => {
     if (!authLoading && !contextLoading) {
       fetchCart();
     }
-  }, [user, authLoading, contextLoading, country]);
+  }, [user, authLoading, contextLoading, country, getToken, getUserId, getAuthAxios, loadGuestCart]);
   
   // Update quantity
   const updateQuantity = useCallback(

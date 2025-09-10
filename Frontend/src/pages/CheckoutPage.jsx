@@ -1309,8 +1309,8 @@ const CheckoutPage = () => {
   const handleAddNewBillingAddress = () => {
     setEditingBillingAddress(null);
     setBillingForm({
-      full_name: '',
-      email: '',
+      full_name: user?.name || '',
+      email: user?.email || '',
       phone_number: '',
       address_line_1: '',
       city: '',
@@ -1577,6 +1577,17 @@ const CheckoutPage = () => {
       setBillingAddressId(String(billingAddresses[0].id));
     }
   }, [shippingAddresses, billingAddresses, shippingAddressId, billingAddressId]);
+  
+  // Initialize billing form with user data for logged-in users
+  useEffect(() => {
+    if (user && isAuthenticated() && billingAddresses.length === 0 && !billingForm.full_name && !billingForm.email) {
+      setBillingForm(prev => ({
+        ...prev,
+        full_name: user.name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user, billingAddresses.length, billingForm.full_name, billingForm.email]);
   
   useEffect(() => {
     const addressCountry = shippingForm.country || country;

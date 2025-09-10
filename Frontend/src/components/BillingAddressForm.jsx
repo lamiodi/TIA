@@ -54,8 +54,8 @@ const BillingAddressForm = ({
   const validateForm = () => {
     const newErrors = {};
     
-    // Validate full_name and email only for guest users
-    // Skip validation for logged-in users with userData
+    // For logged-in users, validate that userData exists and has required fields
+    // For guest users, validate form fields directly
     if (isGuest || !userData) {
       if (!formData.full_name.trim()) {
         newErrors.full_name = 'Full name is required';
@@ -64,6 +64,14 @@ const BillingAddressForm = ({
         newErrors.email = 'Email is required';
       } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
         newErrors.email = 'Email is invalid';
+      }
+    } else {
+      // For logged-in users, ensure userData has required fields
+      if (!userData.name || !userData.name.trim()) {
+        newErrors.full_name = 'User name is required';
+      }
+      if (!userData.email || !userData.email.trim()) {
+        newErrors.email = 'User email is required';
       }
     }
     

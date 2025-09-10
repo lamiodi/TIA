@@ -206,23 +206,51 @@ export const createOrder = async (req, res) => {
           throw new Error('Shipping address not found');
         }
         
-        // Validate billing address - handle both cases
-        [billingAddress] = await sql`
-          SELECT id FROM billing_addresses 
-          WHERE id = ${billing_address_id} AND user_id = ${user_id}
-        `;
-        
-        // If billingAddress has deleted_at column, check it's null
-        if (billingAddress && 'deleted_at' in billingAddress) {
+        // Handle billing address - check if same as shipping or validate existing
+        if (billing_address_id === address_id) {
+          // Same as shipping: create billing address from shipping address and user data
+          const [userInfo] = await sql`
+            SELECT first_name, last_name, email FROM users WHERE id = ${user_id}
+          `;
+          
+          const [newBillingAddress] = await sql`
+            INSERT INTO billing_addresses (
+              user_id, full_name, email, phone_number, address_line_1, city, state, zip_code, country, created_at
+            ) VALUES (
+              ${user_id}, 
+              ${`${userInfo.first_name} ${userInfo.last_name}`}, 
+              ${userInfo.email}, 
+              NULL, 
+              ${address.address_line_1},
+              ${address.city}, 
+              ${address.state}, 
+              ${address.zip_code}, 
+              ${address.country}, 
+              NOW()
+            )
+            RETURNING id
+          `;
+          finalBillingAddressId = newBillingAddress.id;
+          billingAddress = newBillingAddress;
+        } else {
+          // Validate existing billing address - handle both cases
           [billingAddress] = await sql`
             SELECT id FROM billing_addresses 
-            WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+            WHERE id = ${billing_address_id} AND user_id = ${user_id}
           `;
-        }
-        
-        if (!billingAddress) {
-          console.error('Validation failed: Billing address not found');
-          throw new Error('Billing address not found');
+          
+          // If billingAddress has deleted_at column, check it's null
+          if (billingAddress && 'deleted_at' in billingAddress) {
+            [billingAddress] = await sql`
+              SELECT id FROM billing_addresses 
+              WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
+            `;
+          }
+          
+          if (!billingAddress) {
+            console.error('Validation failed: Billing address not found');
+            throw new Error('Billing address not found');
+          }
         }
       }
       

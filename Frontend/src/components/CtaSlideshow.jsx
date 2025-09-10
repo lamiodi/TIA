@@ -342,7 +342,7 @@ const signup = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,
                 type="submit"
                 disabled={isLoading}
                 aria-label="Submit newsletter form"
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:bg-blue-400 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-6 py-3 bg-Accent text-white font-medium rounded-sm hover:bg-Softcolor transition-colors duration-200 disabled:bg-blue-400 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
