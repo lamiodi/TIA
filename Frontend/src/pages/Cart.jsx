@@ -60,6 +60,32 @@ const Cart = () => {
     country = 'Nigeria',
     contextLoading = false,
   } = currencyContext;
+
+  // Early return for loading states - BEFORE any other hooks
+  if (authLoading || contextLoading) {
+    return (
+      <div
+        style={{
+          '--color-Primarycolor': '#1E1E1E',
+          '--color-Secondarycolor': '#ffffff',
+          '--color-Accent': '#6E6E6E',
+          '--font-Manrope': '"Manrope", "sans-serif"',
+          '--font-Jost': '"Jost", "sans-serif"',
+        }}
+      >
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-gray-600">
+            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
+            <p className="mt-2 text-sm font-Manrope">Loading cart...</p>
+          </div>
+        </div>
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
+      </div>
+    );
+  }
   
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
   const [error, setError] = useState('');
@@ -586,31 +612,7 @@ const Cart = () => {
     [isGuest]
   );
   
-  // Loading state
-  if (authLoading || contextLoading) {
-    return (
-      <div
-        style={{
-          '--color-Primarycolor': '#1E1E1E',
-          '--color-Secondarycolor': '#ffffff',
-          '--color-Accent': '#6E6E6E',
-          '--font-Manrope': '"Manrope", "sans-serif"',
-          '--font-Jost': '"Jost", "sans-serif"',
-        }}
-      >
-        <Navbar />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center justify-center text-gray-600">
-            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
-            <p className="mt-2 text-sm font-Manrope">Loading cart...</p>
-          </div>
-        </div>
-        <Suspense fallback={null}>
-          <Footer />
-        </Suspense>
-      </div>
-    );
-  }
+
   
   // Calculate cart totals with safe fallbacks
   const subtotal = Number(cart.subtotal) || 0;

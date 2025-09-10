@@ -103,7 +103,7 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
           <strong>Address:</strong> ${address.address_line_1}, ${address.city}, ${address.state || ''} ${address.zip_code}
         </p>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/delivery-fees" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/dashboard" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
             Set Delivery Fee
           </a>
         </div>

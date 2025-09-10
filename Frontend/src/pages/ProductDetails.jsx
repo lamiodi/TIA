@@ -507,9 +507,21 @@ const ProductDetails = () => {
       ? data.variants.map((v) => v.color_name).filter(Boolean)
       : []
     : []
+  const sortSizes = (sizes) => {
+    const sizeOrder = ['S', 'M', 'L', 'XL', 'XXL', 'Small', 'Medium', 'Large']
+    return sizes.sort((a, b) => {
+      const aIndex = sizeOrder.indexOf(a.size_name)
+      const bIndex = sizeOrder.indexOf(b.size_name)
+      if (aIndex === -1 && bIndex === -1) return 0
+      if (aIndex === -1) return 1
+      if (bIndex === -1) return -1
+      return aIndex - bIndex
+    })
+  }
+  
   const sizeOptions = isProduct
-    ? (Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : [])
-    : (Array.isArray(data?.items?.[0]?.all_variants?.[0]?.sizes) ? data.items[0].all_variants[0].sizes : [])
+    ? sortSizes(Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : [])
+    : sortSizes(Array.isArray(data?.items?.[0]?.all_variants?.[0]?.sizes) ? data.items[0].all_variants[0].sizes : [])
   const bundleTypes = ["3-in-1", "5-in-1"]
   return (
     <div className="min-h-screen bg-gray-50">
