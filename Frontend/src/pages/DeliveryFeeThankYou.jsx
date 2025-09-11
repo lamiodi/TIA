@@ -73,7 +73,7 @@ const DeliveryFeeThankYou = () => {
           <>
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Delivery Fee Payment Successful!</h2>
-            <p className="text-gray-600 mb-6">Thank you for your payment. Your order is now ready for international shipping. You'll receive a confirmation email shortly.</p>
+            <p className="text-gray-600 mb-6">Thank you for your payment. Your order is now ready for international shipping and will be processed shortly.</p>
           </>
         ) : (
           <>

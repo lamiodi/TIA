@@ -1,12 +1,9 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import sql from '../db/index.js';
-import { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation, sendDeliveryFeePaymentLinkEmail } from '../utils/emailService.js';
+import { sendDeliveryFeePaymentLinkEmail } from '../utils/emailService.js';
 
 dotenv.config();
-
-// Debug: Log to confirm module import
-console.log('Imported emailService functions:', { sendDeliveryFeePaymentConfirmation, sendAdminDeliveryFeePaymentConfirmation });
 
 dotenv.config();
 
@@ -456,38 +453,8 @@ export const verifyDeliveryFeePayment = async (req, res) => {
       console.log(`📧 Logged-in user delivery fee confirmation for order ${order_id}: Using user email ${finalEmail}`);
     }
     
-    try {
-      if (typeof sendDeliveryFeePaymentConfirmation !== 'function') {
-        throw new Error('sendDeliveryFeePaymentConfirmation is not defined');
-      }
-      await sendDeliveryFeePaymentConfirmation(
-        finalEmail,
-        finalName,
-        order_id,
-        order.delivery_fee,
-        order.currency
-      );
-      console.log(`✅ Sent delivery fee payment confirmation to ${finalEmail} for order ${order_id} (${order.is_temporary ? 'guest' : 'logged-in'} user)`);
-    } catch (emailError) {
-      console.error(`Failed to send delivery fee payment confirmation to ${finalEmail} for order ${order_id}:`, emailError.message);
-      console.error('Email error details:', emailError.stack || emailError);
-    }
-    
-    try {
-      if (typeof sendAdminDeliveryFeePaymentConfirmation !== 'function') {
-        throw new Error('sendAdminDeliveryFeePaymentConfirmation is not defined');
-      }
-      await sendAdminDeliveryFeePaymentConfirmation(
-        order_id,
-        order.first_name,
-        order.delivery_fee,
-        order.currency
-      );
-      console.log(`✅ Sent admin delivery fee payment confirmation for order ${order_id}`);
-    } catch (emailError) {
-      console.error(`Failed to send admin delivery fee payment confirmation for order ${order_id}:`, emailError.message);
-      console.error('Email error details:', emailError.stack || emailError);
-    }
+    // Note: Delivery fee confirmation emails removed - users see delivery thank you page instead
+    // Admin notifications for delivery fee payments also removed to reduce email volume
     
     if (req.method === 'GET') {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/delivery-fee-thank-you?reference=${reference}&status=success&type=delivery_fee`);

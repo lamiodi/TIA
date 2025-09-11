@@ -43,17 +43,16 @@ const DeliveryFeePayment = () => {
         email: orderDetails.user_email,
         amount: parseFloat(amount) * 100, // Paystack expects amount in kobo
         currency: currency || 'NGN',
-        ref: `delivery_fee_${orderId}_${Date.now()}`,
+        ref: `DF-${orderId}-${Date.now()}`,
         callback: async (response) => {
           try {
             // Verify payment on the server
-            await axios.post(`${API_BASE_URL}/api/verify-delivery-fee-payment`, {
-              reference: response.reference,
-              orderId: orderId
+            await axios.post(`${API_BASE_URL}/api/paystack/delivery-fee/verify`, {
+              reference: response.reference
             });
             
             toast.success('Delivery fee payment successful!');
-            navigate('/order-success');
+            navigate(`/delivery-fee-thank-you?reference=${response.reference}&status=success&type=delivery_fee`);
           } catch (error) {
             console.error('Payment verification error:', error);
             toast.error('Payment verification failed');

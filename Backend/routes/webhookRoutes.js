@@ -6,8 +6,6 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import { 
   sendOrderConfirmationEmail, 
-  sendDeliveryFeePaymentConfirmation, 
-  sendAdminDeliveryFeePaymentConfirmation,
   sendAdminPaymentConfirmationNotification,
   sendAdminDeliveryFeeNotification
 } from '../utils/emailService.js';
@@ -126,8 +124,7 @@ async function handleDeliveryFeePayment(event, reference, res) {
       console.error(`Failed to update delivery fee payment status for order=${orderId}:`, dbError.message);
     }
     
-    // Send confirmation emails
-    await sendDeliveryFeeEmails(orderDetails, orderId);
+    // Note: Delivery fee confirmation emails removed - users see delivery thank you page instead
     
     console.log(`✅ Delivery fee payment confirmed for order=${orderId}`);
     return res.status(200).json({ message: 'Delivery fee processed successfully' });
@@ -306,51 +303,7 @@ async function handleFailedPayment(reference, res) {
   return res.status(200).json({ message: 'Webhook processed successfully' });
 }
 
-// Helper function to send delivery fee emails
-async function sendDeliveryFeeEmails(orderDetails, orderId) {
-  try {
-    // Use same improved email extraction logic as order confirmation
-    let finalEmail, finalName;
-    
-    if (orderDetails.is_temporary) {
-      // For guest users (temporary), prioritize billing address email
-      finalEmail = orderDetails.billing_email || orderDetails.user_email;
-      finalName = orderDetails.billing_full_name || orderDetails.user_first_name || 'Customer';
-      console.log(`📧 Guest user delivery fee for order ${orderId}: Using billing email ${finalEmail}`);
-    } else {
-      // For logged-in users, prioritize user email
-      finalEmail = orderDetails.user_email || orderDetails.billing_email;
-      finalName = orderDetails.user_first_name || orderDetails.billing_full_name || 'Customer';
-      console.log(`📧 Logged-in user delivery fee for order ${orderId}: Using user email ${finalEmail}`);
-    }
-    
-    // Send customer email
-    if (finalEmail) {
-      await sendDeliveryFeePaymentConfirmation(
-        finalEmail,
-        finalName,
-        orderId,
-        orderDetails.delivery_fee,
-        orderDetails.currency
-      );
-      console.log(`✅ Delivery fee confirmation email sent to ${finalEmail} for order ${orderId}`);
-    } else {
-      console.error(`No email available for delivery fee confirmation for order ${orderId}`);
-    }
-    
-    // Send admin notification
-    await sendAdminDeliveryFeePaymentConfirmation(
-      orderId,
-      finalName,
-      orderDetails.delivery_fee,
-      orderDetails.currency
-    );
-    console.log(`✅ Admin delivery fee confirmation notification sent for order ${orderId}`);
-  } catch (emailError) {
-    console.error(`Failed to send delivery fee confirmation emails for order ${orderId}:`, emailError.message);
-    console.error('Email error details:', emailError.response?.data || emailError);
-  }
-}
+// Note: sendDeliveryFeeEmails function removed - delivery fee confirmations now handled via thank you page
 
 // Helper function to send order confirmation email
 async function sendOrderConfirmationEmailHelper(orderDetails) {

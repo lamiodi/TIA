@@ -166,14 +166,7 @@ router.post('/verify-delivery-fee-payment', authenticateToken, requireAdmin, asy
       WHERE o.id = ${orderId}
     `;
 
-    // Send delivery fee payment confirmation email
-    await sendOrderStatusUpdateEmail(
-      order.email,
-      `${order.first_name} ${order.last_name}`,
-      orderId,
-      'delivery_fee_paid',
-      { deliveryFee: order.delivery_fee }
-    );
+    // Note: Delivery fee confirmation email removed - users see delivery thank you page instead
 
     res.status(200).json({ message: 'Delivery fee payment verified and confirmed' });
   } catch (error) {
