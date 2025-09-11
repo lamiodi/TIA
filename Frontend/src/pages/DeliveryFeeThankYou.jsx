@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -11,6 +12,18 @@ const DeliveryFeeThankYou = () => {
   const [status, setStatus] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Check if user is authenticated (not guest)
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('token');
+    return !!token && !!user;
+  };
+
+  // Check if user is temporary (guest with account)
+  const isTemporaryUser = () => {
+    return user && user.is_temporary;
+  };
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -70,19 +83,55 @@ const DeliveryFeeThankYou = () => {
           </>
         )}
         <div className="flex flex-col sm:flex-row gap-3 w-full">
-          <button
-            onClick={() => navigate('/orders')}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
-          >
-            View My Orders
-          </button>
-          <button
-            onClick={() => navigate('/')}
-            className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium"
-          >
-            Continue Shopping
-          </button>
+          {isAuthenticated() ? (
+            // Authenticated users (both regular and temporary)
+            <>
+              <button
+                onClick={() => navigate('/orders')}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                View My Orders
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium"
+              >
+                Continue Shopping
+              </button>
+            </>
+          ) : (
+            // Guest users (not authenticated)
+            <>
+              <button
+                onClick={() => navigate('/login', { state: { from: '/orders' } })}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                Login to View Orders
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium"
+              >
+                Continue Shopping
+              </button>
+            </>
+          )}
         </div>
+        
+        {/* Additional message for temporary users */}
+        {isTemporaryUser() && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              💡 <strong>Tip:</strong> Create a permanent account to easily track all your orders and enjoy exclusive benefits!
+            </p>
+            <button
+              onClick={() => navigate('/register')}
+              className="mt-2 text-sm text-yellow-700 hover:text-yellow-900 underline font-medium"
+            >
+              Create Permanent Account
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

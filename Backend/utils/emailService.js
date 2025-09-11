@@ -364,18 +364,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
       </div>
     `;
 
-    const paymentShippingHtml = `
-      <div style="margin-bottom: 24px; padding: 16px; background-color: #f9fafb; border-radius: 8px;">
-        <h3 style="font-size: 18px; color: #1f2937; margin: 0 0 12px 0;">Payment & Shipping Method</h3>
-        <div style="font-size: 14px; color: #6b7280;">
-          <p style="margin: 0 0 4px 0;"><strong>Payment Method:</strong> ${order.payment_method || 'Card'}</p>
-          <p style="margin: 0 0 4px 0;"><strong>Shipping Method:</strong> ${order.shipping_method || 'Standard'}</p>
-          ${order.shipping_cost ? `
-            <p style="margin: 0 0 4px 0;"><strong>Shipping Cost:</strong> ${formatCurrency(order.shipping_cost, currency)}</p>
-          ` : ''}
-        </div>
-      </div>
-    `;
+    // Payment & Shipping Method section removed as requested
 
     const html = `
       <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
@@ -387,7 +376,6 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
           ${orderSummaryHtml}
           ${shippingAddressHtml}
           ${billingAddressHtml}
-          ${paymentShippingHtml}
           <h3 style="font-size: 18px; color: #1f2937; margin-bottom: 16px;">Order Items</h3>
           <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
             ${itemsHtml}

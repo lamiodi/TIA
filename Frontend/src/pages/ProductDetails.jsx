@@ -687,13 +687,16 @@ const ProductDetails = () => {
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
+                    <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
+                        In Stock
+                      </span>
                       {!isProduct && (
                         <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
                           {bundleType} Bundle
                         </span>
                       )}
                       {isGuest && (
-                        <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-Jost flex items-center whitespace-nowrap">
+                        <span className="text-sm hidden  text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-Jost lg:flex items-center whitespace-nowrap">
                           <User className="w-3 h-3 mr-1" />
                           Guest Shopping
                         </span>
