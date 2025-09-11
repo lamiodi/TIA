@@ -13,17 +13,17 @@
   ],
   "routes": [
     {
-      "src": "/robots.txt",
+      "src": "/sitemap.xml",
       "headers": {
-        "Cache-Control": "public, max-age=86400",
-        "Content-Type": "text/plain"
+        "Content-Type": "application/xml",
+        "Cache-Control": "public, max-age=86400"
       }
     },
     {
-      "src": "/sitemap.xml",
+      "src": "/robots.txt",
       "headers": {
-        "Cache-Control": "public, max-age=86400",
-        "Content-Type": "application/xml"
+        "Content-Type": "text/plain",
+        "Cache-Control": "public, max-age=86400"
       }
     },
     {

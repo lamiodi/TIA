@@ -1,7 +1,0 @@
-# Set proper MIME type for sitemap.xml
-/sitemap.xml
-  Content-Type: application/xml
-
-# Set proper MIME type for robots.txt
-/robots.txt
-  Content-Type: text/plain
