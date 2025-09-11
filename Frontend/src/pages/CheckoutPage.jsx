@@ -1000,8 +1000,6 @@ const CheckoutPage = () => {
         }
       }
       
-      console.log('Payment response:', paymentResponse.data);
-      
       let paymentInfo = paymentResponse.data;
       if (paymentResponse.data.data) {
         paymentInfo = paymentResponse.data.data;

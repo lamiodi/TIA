@@ -393,26 +393,40 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
             ${itemsHtml}
           </ul>
           ${isTemporary ? `
-            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; padding: 24px; margin: 32px 0; text-align: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
-              <div style="background-color: #f59e0b; color: white; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">🎉 UPGRADE NOW</div>
-              <h3 style="font-size: 20px; color: #92400e; margin: 0 0 16px 0; font-weight: bold;">🚀 Unlock Your VIP Shopping Experience!</h3>
-              <div style="background-color: rgba(255,255,255,0.7); border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="font-size: 15px; color: #92400e; margin: 0 0 12px 0; line-height: 1.6; font-weight: 500;">
-                  Transform your guest checkout into a <strong>premium shopping experience</strong> with these exclusive perks:
+            <div style="background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%); border-radius: 16px; padding: 32px 24px; margin: 32px 0; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12); border: 1px solid #333333;">
+              <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 24px; display: inline-block; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);">🎉 UPGRADE NOW</div>
+              <h3 style="font-size: 24px; color: #ffffff; margin: 0 0 20px 0; font-weight: 700; font-family: 'Segoe UI', sans-serif;">🚀 Unlock Your VIP Shopping Experience!</h3>
+              <div style="background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 12px; padding: 24px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.1);">
+                <p style="font-size: 16px; color: #e5e7eb; margin: 0 0 20px 0; line-height: 1.6; font-weight: 500;">
+                  Transform your guest checkout into a <strong style="color: #ffffff;">premium shopping experience</strong> with these exclusive perks:
                 </p>
-                <div style="text-align: left; max-width: 300px; margin: 0 auto;">
-                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">⚡ <strong style="margin-left: 8px;">Lightning-fast 1-click checkout</strong></p>
-                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">📦 <strong style="margin-left: 8px;">Complete order history & tracking</strong></p>
-                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">🎁 <strong style="margin-left: 8px;">Exclusive member-only deals</strong></p>
-                  <p style="font-size: 14px; color: #92400e; margin: 8px 0; display: flex; align-items: center;">🔔 <strong style="margin-left: 8px;">Early access to new collections</strong></p>
+                <div style="display: grid; gap: 12px; max-width: 400px; margin: 0 auto;">
+                  <div style="background: rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; text-align: left;">
+                    <span style="font-size: 20px; margin-right: 12px;">⚡</span>
+                    <strong style="color: #ffffff; font-size: 14px;">Lightning-fast 1-click checkout</strong>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; text-align: left;">
+                    <span style="font-size: 20px; margin-right: 12px;">📦</span>
+                    <strong style="color: #ffffff; font-size: 14px;">Complete order history & tracking</strong>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; text-align: left;">
+                    <span style="font-size: 20px; margin-right: 12px;">🎁</span>
+                    <strong style="color: #ffffff; font-size: 14px;">Exclusive member-only deals</strong>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; text-align: left;">
+                    <span style="font-size: 20px; margin-right: 12px;">🔔</span>
+                    <strong style="color: #ffffff; font-size: 14px;">Early access to new collections</strong>
+                  </div>
                 </div>
               </div>
-              <a href="${frontendUrl}/forgot-password" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; border-radius: 8px; display: inline-block; margin: 16px 0 12px 0; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease;">
+              <a href="${frontendUrl}/forgot-password" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: 700; border-radius: 12px; display: inline-block; margin: 20px 0 16px 0; box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease; border: none;">
                 ✨ Create My VIP Account
               </a>
-              <p style="font-size: 13px; color: #92400e; margin: 8px 0 0 0; font-style: italic;">
-                💡 <strong>Pro Tip:</strong> Use this same email (${to}) to instantly convert your guest order into a permanent account!
-              </p>
+              <div style="background: rgba(255, 107, 107, 0.1); border-radius: 8px; padding: 16px; margin-top: 16px; border-left: 4px solid #ff6b6b;">
+                <p style="font-size: 14px; color: #e5e7eb; margin: 0; font-style: italic;">
+                  💡 <strong style="color: #ffffff;">Pro Tip:</strong> Use this same email (${to}) to instantly convert your guest order into a permanent account!
+                </p>
+              </div>
             </div>
           ` : `
             <div style="text-align: center; margin: 24px 0;">

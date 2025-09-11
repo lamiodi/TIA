@@ -687,9 +687,6 @@ const ProductDetails = () => {
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
-                      <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
-                        In Stock
-                      </span>
                       {!isProduct && (
                         <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
                           {bundleType} Bundle
