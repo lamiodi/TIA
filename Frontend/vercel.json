@@ -17,7 +17,7 @@
       "dest": "/assets/$1"
     },
     {
-      "src": "/(.*)",
+      "src": "/((?!sitemap\\.xml|robots\\.txt).*)",
       "dest": "/index.html"
     }
   ]
