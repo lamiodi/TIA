@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -292,6 +293,11 @@ const ShopAllPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Helmet>
+        <title>Shop All | The Tia Brand Collection</title>
+        <meta name="description" content="Browse our complete collection of premium fashion. From clothing to accessories, find your perfect style at The Tia Brand." />
+        <link rel="canonical" href="https://thetiabrand.org/shop" />
+      </Helmet>
       <Navbar />
       <div className="typography container-padding flex flex-col py-8 px-2 sm:px-3 lg:px-4 flex-1">
         <div className="mb-8">

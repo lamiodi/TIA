@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, Truck, Ruler, HelpCircle, MessageCircle, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ContactWhatsAppWidget from '../components/contactWhatsAppWidget';
@@ -399,6 +400,11 @@ const HelpPage = () => {
       '--font-Manrope': '"Manrope", "sans-serif"',
       '--font-Jost': '"Jost", "sans-serif"'
     }}>
+      <Helmet>
+        <title>Help Center | The Tia Brand Support</title>
+        <meta name="description" content="Get help with your The Tia Brand orders. Find answers to FAQs, shipping info, returns policy, and contact our support team." />
+        <link rel="canonical" href="https://thetiabrand.org/help" />
+      </Helmet>
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Breadcrumbs */}

@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import ProductGrid from '../components/ProductGrid';
@@ -16,6 +17,11 @@ import WhatsAppChatWidget from "../components/WhatsAppChatWidget";
 const Home = () =>{
   return (
     <div className="bg-Secondarycolor flex flex-col min-h-screen w-full overflow-x-hidden">
+      <Helmet>
+        <title>The Tia Brand | Premium Fashion & Accessories</title>
+        <meta name="description" content="Discover luxury fashion at The Tia Brand. Shop premium clothing, accessories, and exclusive collections with worldwide shipping." />
+        <link rel="canonical" href="https://thetiabrand.org/" />
+      </Helmet>
       <WhatsAppChatWidget />
        <Navbar />
        <HeroSection />
