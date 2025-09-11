@@ -13,22 +13,25 @@
   ],
   "routes": [
     {
-      "src": "/sitemap.xml",
-      "dest": "/sitemap.xml",
-      "headers": {
-        "Content-Type": "application/xml"
-      }
-    },
-    {
       "src": "/robots.txt",
-      "dest": "/robots.txt",
       "headers": {
+        "Cache-Control": "public, max-age=86400",
         "Content-Type": "text/plain"
       }
     },
     {
+      "src": "/sitemap.xml",
+      "headers": {
+        "Cache-Control": "public, max-age=86400",
+        "Content-Type": "application/xml"
+      }
+    },
+    {
       "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "dest": "/assets/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)",
