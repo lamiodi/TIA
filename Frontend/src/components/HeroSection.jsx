@@ -10,9 +10,13 @@ const HeroSection = () => {
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
 
-  // Cloudinary video URLs with optimized delivery parameters
-  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_800/v1/CS_m65dwf';
-  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_1200/v1/tia2_gljwos';
+  // Optimized Cloudinary video URLs with aggressive optimization
+  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_600,c_scale/v1/CS_m65dwf';
+  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_1000,c_scale/v1/tia2_gljwos';
+  
+  // Poster images for immediate display
+  const mobilePosterURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_600,c_scale,so_0/v1/CS_m65dwf.jpg';
+  const desktopPosterURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_1000,c_scale,so_0/v1/tia2_gljwos.jpg';
 
   // Detect iOS devices
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -51,6 +55,21 @@ const HeroSection = () => {
     }
   }, [isMobile, needsUserInteraction]);
 
+  // Aggressive video preloading
+  useEffect(() => {
+    // Preload videos immediately
+    const preloadVideo = (url) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'video';
+      link.href = url;
+      document.head.appendChild(link);
+    };
+    
+    preloadVideo(mobileVideoURL);
+    preloadVideo(desktopVideoURL);
+  }, []);
+
   // Video loading optimization
   useEffect(() => {
     const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
@@ -78,22 +97,23 @@ const HeroSection = () => {
       setVideoError(true);
     };
 
-    const handleLoadStart = () => {
-      console.log('Video loading started');
+    const handleLoadedData = () => {
+      console.log('Video data loaded');
+      setVideoLoaded(true);
     };
 
     video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('error', handleError);
-    video.addEventListener('loadstart', handleLoadStart);
 
-    // Force immediate loading
-    video.preload = 'auto';
-    video.load(); // Explicitly trigger loading
+    // Force immediate loading with highest priority
+    video.preload = 'metadata';
+    video.load();
 
     return () => {
       video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('error', handleError);
-      video.removeEventListener('loadstart', handleLoadStart);
     };
   }, [isMobile, isIOS]);
 
@@ -114,15 +134,23 @@ const HeroSection = () => {
       className="flex container-padding flex-col justify-start items-center h-[77dvh] sm:h-[84dvh] md:h-[82dvh] lg:h-[740px] relative overflow-hidden"
       onClick={needsUserInteraction ? handleUserInteraction : undefined}
     >
-      {/* Loading/Error States */}
+      {/* Poster Image for Immediate Display */}
+      <img
+        src={isMobile ? mobilePosterURL : desktopPosterURL}
+        alt="Hero background"
+        className={`absolute top-0 left-0 object-cover w-full h-full transition-opacity duration-300 ${
+          videoLoaded ? 'opacity-0' : 'opacity-100'
+        }`}
+        style={{
+          transform: 'translateZ(0)',
+          willChange: 'opacity'
+        }}
+      />
+      
+      {/* Loading State */}
       {!videoLoaded && !videoError && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10 opacity-50">
           <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
-        </div>
-      )}
-      {videoError && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-10">
-          {/* Fallback background */}
         </div>
       )}
       
@@ -142,29 +170,28 @@ const HeroSection = () => {
       <video
         ref={mobileVideoRef}
         src={mobileVideoURL}
+        poster={mobilePosterURL}
         type="video/mp4"
         autoPlay
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
         controlsList="nodownload nofullscreen noremoteplayback"
-        className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-300 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
           pointerEvents: 'none',
           transform: 'translateZ(0)',
           willChange: 'transform, opacity',
-          // Hide native controls completely on mobile
           WebkitTapHighlightColor: 'transparent',
           WebkitUserSelect: 'none',
           WebkitTouchCallout: 'none',
           WebkitAppearance: 'none',
           outline: 'none'
         }}
-        // Prevent any default video controls
         onContextMenu={(e) => e.preventDefault()}
       />
       
@@ -172,14 +199,15 @@ const HeroSection = () => {
       <video
         ref={desktopVideoRef}
         src={desktopVideoURL}
+        poster={desktopPosterURL}
         type="video/mp4"
         autoPlay
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
-        className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-300 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
