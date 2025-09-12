@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import videoBG from '../assets/CS.mp4';
-import videoBG2 from '../assets/tia2.mp4';
+// Remove local video imports
 import Button from './Button';
 import { Link } from 'react-router-dom';
 
@@ -11,6 +10,10 @@ const HeroSection = () => {
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
   const intersectionObserverRef = useRef(null);
+
+  // Cloudinary video URLs
+  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/v1/CS_m65dwf';
+  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/v1/tia2_gljwos';
 
   // Memoized resize handler to prevent unnecessary re-renders
   const handleResize = useCallback(() => {
@@ -62,10 +65,8 @@ const HeroSection = () => {
     };
 
     const handleLoadStart = () => {
-      // Optimize loading based on visibility
-      if (intersectionObserverRef.current) {
-        video.preload = 'metadata';
-      }
+      // Video has started loading
+      console.log('Video loading started');
     };
 
     // Event listeners
@@ -73,13 +74,19 @@ const HeroSection = () => {
     video.addEventListener('error', handleError);
     video.addEventListener('loadstart', handleLoadStart);
 
-    // Intersection Observer for performance
+    // Force video to start loading immediately
+    video.preload = 'auto';
+    
+    // Intersection Observer for performance - simplified
     if ('IntersectionObserver' in window) {
       intersectionObserverRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting && entry.target === video) {
-              video.preload = 'auto';
+              // Video is visible, ensure it's loaded
+              if (video.readyState < 3) { // HAVE_FUTURE_DATA or less
+                video.load();
+              }
             }
           });
         },
@@ -87,9 +94,6 @@ const HeroSection = () => {
       );
       
       intersectionObserverRef.current.observe(video);
-    } else {
-      // Fallback for browsers without IntersectionObserver
-      video.preload = 'auto';
     }
 
     return () => {
@@ -128,13 +132,13 @@ const HeroSection = () => {
       {/* Mobile Video */}
       <video
         ref={mobileVideoRef}
-        src={videoBG}
+        src={mobileVideoURL}
         type="video/mp4"
         autoPlay={false} // Controlled via JavaScript
         muted
         loop
         playsInline
-        preload="none" // Start conservative, upgrade based on intersection
+        preload="auto" // Force preloading
         controls={false}
         disablePictureInPicture
         className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-500 ${
@@ -149,13 +153,13 @@ const HeroSection = () => {
       {/* Desktop Video */}
       <video
         ref={desktopVideoRef}
-        src={videoBG2}
+        src={desktopVideoURL}
         type="video/mp4"
         autoPlay={false} // Controlled via JavaScript
         muted
         loop
         playsInline
-        preload="none" // Start conservative, upgrade based on intersection
+        preload="auto" // Force preloading
         controls={false}
         disablePictureInPicture
         className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-500 ${
