@@ -1,12 +1,33 @@
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+
+const CollectionPageSchema = () => {
+  const pageTitle = 'Shop All';
+  const pageDescription = 'Explore our complete collection of premium underwear and activewear';
+  const pageUrl = window.location.href;
+  
+  return (
+    <script type="application/ld+json">
+      {JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": pageTitle,
+        "description": pageDescription,
+        "url": pageUrl,
+        "mainEntity": {
+          "@type": "ItemList",
+          "itemListElement": []
+        }
+      })}
+    </script>
+  );
+};
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : 'https://tia-backend-r331.onrender.com/api';
@@ -293,11 +314,8 @@ const ShopAllPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Helmet>
-        <title>Shop All | The Tia Brand Collection</title>
-        <meta name="description" content="Browse our complete collection of premium fashion. From clothing to accessories, find your perfect style at The Tia Brand." />
-        <link rel="canonical" href="https://thetiabrand.org/shop" />
-      </Helmet>
+      {/* CollectionPage Schema for SEO */}
+      <CollectionPageSchema />
       <Navbar />
       <div className="typography container-padding flex flex-col py-8 px-2 sm:px-3 lg:px-4 flex-1">
         <div className="mb-8">

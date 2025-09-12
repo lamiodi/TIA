@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, MessageCircle, Info, HeartHandshake, FileText, Eye, Shield, Users, Award, Zap, CheckCircle, Star, HelpCircle, RefreshCw, ChevronRight, ShoppingCart, CreditCard, Truck, Shirt, Building, Monitor } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
@@ -912,11 +911,6 @@ const MorePage = () => {
       '--font-Manrope': '"Manrope", "sans-serif"',
       '--font-Jost': '"Jost", "sans-serif"'
     }}>
-      <Helmet>
-        <title>About The Tia Brand | Our Story</title>
-        <meta name="description" content="Learn about The Tia Brand's journey in luxury fashion. Discover our commitment to quality, style, and customer satisfaction." />
-        <link rel="canonical" href="https://thetiabrand.org/more" />
-      </Helmet>
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Breadcrumbs */}

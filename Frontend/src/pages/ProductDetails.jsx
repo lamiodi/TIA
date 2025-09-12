@@ -24,6 +24,7 @@ import { CurrencyContext } from "../pages/CurrencyContext"
 import ReviewSection from "../components/ReviewSection"
 import DescriptionSection from "../components/DescriptionSection"
 import { toastSuccess, toastError } from "../utils/toastConfig"
+import ProductSchema from "../components/ProductSchema"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tia-backend-r331.onrender.com"
 const ProductDetails = () => {
   const { id } = useParams()
@@ -525,6 +526,14 @@ const ProductDetails = () => {
   const bundleTypes = ["3-in-1", "5-in-1"]
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Product Schema for SEO */}
+      <ProductSchema 
+        productData={productData}
+        selectedVariant={selectedVariant}
+        selectedSize={selectedSize}
+        isProduct={isProduct}
+        currentUrl={window.location.href}
+      />
       <Navbar />
       <div className="w-full border-b border-gray-800 relative" style={{
   background: 'linear-gradient(90deg, #1E1E1E 0%, #2A2A2A 40%, #6E6E6E 80%, #F5F5DC 100%)'
