@@ -98,7 +98,6 @@ const HeroSection = () => {
         loop
         playsInline
         preload="auto"
-        controls={false}
         disablePictureInPicture
         className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-200 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
@@ -106,8 +105,14 @@ const HeroSection = () => {
         style={{ 
           pointerEvents: 'none',
           transform: 'translateZ(0)',
-          willChange: 'transform, opacity'
+          willChange: 'transform, opacity',
+          // Hide native controls completely on mobile
+          WebkitTapHighlightColor: 'transparent',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none'
         }}
+        // Prevent any default video controls
+        onContextMenu={(e) => e.preventDefault()}
       />
       
       {/* Desktop Video */}
@@ -120,7 +125,6 @@ const HeroSection = () => {
         loop
         playsInline
         preload="auto"
-        controls={false}
         disablePictureInPicture
         className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-200 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
