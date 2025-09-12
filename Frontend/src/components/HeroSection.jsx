@@ -165,30 +165,26 @@ const HeroSection = () => {
       </nav>
 
       {/* Hero Content */}
-      <div className="flex flex-col items-center justify-center text-center lg:text-left lg:items-start lg:max-w-[800px] z-20">
-        <h1 className="text-center lg:text-left text-nowrap lg:text-5xl text-3xl sm:text-4xl md:text-5xl font-[351] text-white mb-4 lg:mb-6">
+      <div className="typography flex flex-col w-full items-center lgx:items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20">
+        <h1 className="text-center lgx:text-left text-nowrap lgx:text-5xl">
           ELEVATE YOUR STYLE
+          <span className="max-sm:hidden">
+            <br />
+            Discover premium quality activewear designed for performance and style.
+            <br />
+            Experience the perfect blend of comfort and fashion.
+          </span>
         </h1>
-        <p className="text-white text-sm sm:text-base md:text-lg mb-6 lg:mb-8 max-w-[500px] lg:max-w-[600px]">
-          Discover premium quality activewear designed for performance and style. 
-          Experience the perfect blend of comfort and fashion.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button 
-            to="/shop" 
+        <Link to="/shop">
+          <Button
+            label="SHOP NOW"
             variant="primary"
-            className="px-8 py-3 text-sm sm:text-base"
-          >
-            SHOP NOW
-          </Button>
-          <Button 
-            to="/about" 
-            variant="secondary"
-            className="px-8 py-3 text-sm sm:text-base"
-          >
-            LEARN MORE
-          </Button>
-        </div>
+            size="medium"
+            stateProp="default"
+            className="w-44"
+            divClassName=""
+          />
+        </Link>
       </div>
     </div>
   );
