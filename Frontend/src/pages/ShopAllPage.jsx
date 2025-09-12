@@ -7,6 +7,28 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 
+// Hook to update meta tags dynamically
+const useMetaTags = (title, description) => {
+  useEffect(() => {
+    // Update title
+    document.title = title;
+    
+    // Update or create meta description
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.name = 'description';
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.content = description;
+    
+    // Cleanup on component unmount
+    return () => {
+      document.title = 'The Tia Brand - Premium Comfort Wear';
+    };
+  }, [title, description]);
+};
+
 const CollectionPageSchema = () => {
   const pageTitle = 'Shop All';
   const pageDescription = 'Explore our complete collection of premium underwear and activewear';
@@ -62,6 +84,38 @@ const ShopAllPage = () => {
     '3in1': '3 in 1',
     '5in1': '5 in 1'
   };
+
+  // Meta tags configuration for each category
+  const metaConfig = {
+    'All': {
+      title: 'Shop All - Premium Boxers, Gymwears & Bundles | The Tia Brand',
+      description: 'Explore our complete collection of premium underwear, activewear, and exclusive bundles. Premium comfort wear designed for everyday luxury.'
+    },
+    'Briefs': {
+      title: 'Premium Boxers & Briefs Collection | The Tia Brand',
+      description: 'Discover our luxury boxers and briefs collection. Premium comfort underwear with superior fit, breathable fabrics, and modern designs.'
+    },
+    'Gymwear': {
+      title: 'Premium Gymwear & Activewear Collection | The Tia Brand',
+      description: 'Shop high-performance gymwear and activewear. Moisture-wicking fabrics, superior comfort, and stylish designs for your workout routine.'
+    },
+    'New Arrivals': {
+      title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
+      description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest boxers, gymwears, and exclusive bundle designs.'
+    },
+    '3 in 1': {
+      title: '3-in-1 Premium Bundles Collection | The Tia Brand',
+      description: 'Explore our exclusive 3-in-1 bundles featuring coordinated boxers, gymwears, and accessories. Perfect matching sets for ultimate style and comfort.'
+    },
+    '5 in 1': {
+      title: '5-in-1 Luxury Bundles Collection | The Tia Brand',
+      description: 'Discover our premium 5-in-1 bundles with complete outfit coordination. Multiple pieces designed to work together for versatile styling options.'
+    }
+  };
+
+  // Use meta tags hook
+  const currentMeta = metaConfig[currentFilter] || metaConfig['All'];
+  useMetaTags(currentMeta.title, currentMeta.description);
 
   // Helper function to check if a product is a brief
   const isBrief = useCallback((product) => {
