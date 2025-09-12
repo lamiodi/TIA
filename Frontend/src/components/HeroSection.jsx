@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// Remove local video imports
 import Button from './Button';
 import { Link } from 'react-router-dom';
 
@@ -9,23 +8,20 @@ const HeroSection = () => {
   const [videoError, setVideoError] = useState(false);
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
-  const intersectionObserverRef = useRef(null);
 
-  // Cloudinary video URLs
-  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/v1/CS_m65dwf';
-  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/v1/tia2_gljwos';
+  // Cloudinary video URLs with optimized delivery parameters
+  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_800/v1/CS_m65dwf';
+  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_1200/v1/tia2_gljwos';
 
-  // Memoized resize handler to prevent unnecessary re-renders
+  // Memoized resize handler
   const handleResize = useCallback(() => {
     const newIsMobile = window.innerWidth < 1024;
     if (newIsMobile !== isMobile) {
       setIsMobile(newIsMobile);
-      setVideoLoaded(false); // Reset loading state when switching videos
     }
   }, [isMobile]);
 
   useEffect(() => {
-    // Throttled resize listener
     let timeoutId;
     const throttledResize = () => {
       clearTimeout(timeoutId);
@@ -38,7 +34,7 @@ const HeroSection = () => {
     };
   }, [handleResize]);
 
-  // Video loading and playback management
+  // Video loading optimization
   useEffect(() => {
     const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
     const video = activeVideoRef.current;
@@ -48,73 +44,35 @@ const HeroSection = () => {
       setVideoLoaded(true);
       setVideoError(false);
       
-      // Use requestAnimationFrame for smoother playback start
-      requestAnimationFrame(() => {
-        video.play().catch((error) => {
-          console.warn('Video autoplay failed:', error);
-          // Fallback: try playing on user interaction
-          document.addEventListener('click', () => video.play().catch(() => {}), { once: true });
-        });
+      // Start playback immediately when ready
+      video.play().catch((error) => {
+        console.warn('Video autoplay failed:', error);
       });
     };
 
     const handleError = (error) => {
       console.error('Video loading error:', error);
       setVideoError(true);
-      setVideoLoaded(false);
     };
 
     const handleLoadStart = () => {
-      // Video has started loading
       console.log('Video loading started');
     };
 
-    // Event listeners
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('loadstart', handleLoadStart);
 
-    // Force video to start loading immediately
+    // Force immediate loading
     video.preload = 'auto';
-    
-    // Intersection Observer for performance - simplified
-    if ('IntersectionObserver' in window) {
-      intersectionObserverRef.current = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && entry.target === video) {
-              // Video is visible, ensure it's loaded
-              if (video.readyState < 3) { // HAVE_FUTURE_DATA or less
-                video.load();
-              }
-            }
-          });
-        },
-        { threshold: 0.1 }
-      );
-      
-      intersectionObserverRef.current.observe(video);
-    }
+    video.load(); // Explicitly trigger loading
 
     return () => {
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadstart', handleLoadStart);
-      
-      if (intersectionObserverRef.current) {
-        intersectionObserverRef.current.disconnect();
-      }
     };
   }, [isMobile]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intersectionObserverRef.current) {
-        intersectionObserverRef.current.disconnect();
-      }
-    };
-  }, []);
 
   return (
     <div className="flex container-padding flex-col justify-start items-center h-[77dvh] sm:h-[84dvh] md:h-[82dvh] lg:h-[740px] relative overflow-hidden">
@@ -126,51 +84,54 @@ const HeroSection = () => {
       )}
       {videoError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-10">
-          {/* Fallback background image or gradient */}
+          {/* Fallback background */}
         </div>
       )}
+      
       {/* Mobile Video */}
       <video
         ref={mobileVideoRef}
         src={mobileVideoURL}
         type="video/mp4"
-        autoPlay={false} // Controlled via JavaScript
+        autoPlay
         muted
         loop
         playsInline
-        preload="auto" // Force preloading
+        preload="auto"
         controls={false}
         disablePictureInPicture
-        className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-500 ${
+        className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-200 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
           pointerEvents: 'none',
-          transform: 'translateZ(0)', // Hardware acceleration
+          transform: 'translateZ(0)',
           willChange: 'transform, opacity'
         }}
       />
+      
       {/* Desktop Video */}
       <video
         ref={desktopVideoRef}
         src={desktopVideoURL}
         type="video/mp4"
-        autoPlay={false} // Controlled via JavaScript
+        autoPlay
         muted
         loop
         playsInline
-        preload="auto" // Force preloading
+        preload="auto"
         controls={false}
         disablePictureInPicture
-        className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-500 ${
+        className={`absolute top-0 left-0 object-cover w-full h-full hidden lg:block transition-opacity duration-200 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ 
           pointerEvents: 'none',
-          transform: 'translateZ(0)', // Hardware acceleration
+          transform: 'translateZ(0)',
           willChange: 'transform, opacity'
         }}
       />
+
       {/* Quick Nav */}
       <nav 
         className="container quicknav flex flex-row justify-between lg:max-w-[800px] mb-[40dvh] sm:mb-38 md:mb-50 lg:mb-[50dvh] z-25"
@@ -202,24 +163,32 @@ const HeroSection = () => {
           SHOP ALL
         </Link>
       </nav>
-      {/* Hero Text + CTA */}
-      <div className="typography flex flex-col w-full items-center lgx:items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20">
-        <h1 className="text-center lgx:text-left text-nowrap lgx:text-5xl">
-          Unmatched Comfort.
-          <span className="max-sm:hidden"> Bold Performance.</span>
-          <br />
-          <span className="max-sm:text-base sm:text-3xl lg:text-5xl">Everyday Style.</span>
+
+      {/* Hero Content */}
+      <div className="flex flex-col items-center justify-center text-center lg:text-left lg:items-start lg:max-w-[800px] z-20">
+        <h1 className="text-center lg:text-left text-nowrap lg:text-5xl text-3xl sm:text-4xl md:text-5xl font-[351] text-white mb-4 lg:mb-6">
+          ELEVATE YOUR STYLE
         </h1>
-        <Link to="/shop">
-          <Button
-            label="SHOP NOW"
+        <p className="text-white text-sm sm:text-base md:text-lg mb-6 lg:mb-8 max-w-[500px] lg:max-w-[600px]">
+          Discover premium quality activewear designed for performance and style. 
+          Experience the perfect blend of comfort and fashion.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button 
+            to="/shop" 
             variant="primary"
-            size="medium"
-            stateProp="default"
-            className="w-44"
-            divClassName=""
-          />
-        </Link>
+            className="px-8 py-3 text-sm sm:text-base"
+          >
+            SHOP NOW
+          </Button>
+          <Button 
+            to="/about" 
+            variant="secondary"
+            className="px-8 py-3 text-sm sm:text-base"
+          >
+            LEARN MORE
+          </Button>
+        </div>
       </div>
     </div>
   );
