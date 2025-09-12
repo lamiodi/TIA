@@ -167,13 +167,10 @@ const HeroSection = () => {
       {/* Hero Content */}
       <div className="typography flex flex-col w-full items-center lgx:items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20">
         <h1 className="text-center lgx:text-left text-nowrap lgx:text-5xl">
-          ELEVATE YOUR STYLE
-          <span className="max-sm:hidden">
-            <br />
-            Discover premium quality activewear designed for performance and style.
-            <br />
-            Experience the perfect blend of comfort and fashion.
-          </span>
+          Unmatched Comfort.
+          <span className="max-sm:hidden"> Bold Performance.</span>
+          <br />
+          <span className="max-sm:text-base sm:text-3xl lg:text-5xl">Everyday Style.</span>
         </h1>
         <Link to="/shop">
           <Button
