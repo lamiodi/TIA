@@ -6,12 +6,16 @@ const HeroSection = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
 
   // Cloudinary video URLs with optimized delivery parameters
   const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_800/v1/CS_m65dwf';
   const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:eco,w_1200/v1/tia2_gljwos';
+
+  // Detect iOS devices
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   // Memoized resize handler
   const handleResize = useCallback(() => {
@@ -34,6 +38,19 @@ const HeroSection = () => {
     };
   }, [handleResize]);
 
+  // Handle user interaction for iOS autoplay
+  const handleUserInteraction = useCallback(() => {
+    const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
+    const video = activeVideoRef.current;
+    if (video && needsUserInteraction) {
+      video.play().then(() => {
+        setNeedsUserInteraction(false);
+      }).catch((error) => {
+        console.warn('Video play failed after user interaction:', error);
+      });
+    }
+  }, [isMobile, needsUserInteraction]);
+
   // Video loading optimization
   useEffect(() => {
     const activeVideoRef = isMobile ? mobileVideoRef : desktopVideoRef;
@@ -44,9 +61,15 @@ const HeroSection = () => {
       setVideoLoaded(true);
       setVideoError(false);
       
-      // Start playback immediately when ready
-      video.play().catch((error) => {
+      // Try to start playback immediately
+      video.play().then(() => {
+        setNeedsUserInteraction(false);
+      }).catch((error) => {
         console.warn('Video autoplay failed:', error);
+        // On iOS, this is expected - set flag for user interaction
+        if (isIOS) {
+          setNeedsUserInteraction(true);
+        }
       });
     };
 
@@ -72,10 +95,25 @@ const HeroSection = () => {
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadstart', handleLoadStart);
     };
-  }, [isMobile]);
+  }, [isMobile, isIOS]);
+
+  // Add click handler to entire hero section for iOS
+  useEffect(() => {
+    if (needsUserInteraction) {
+      document.addEventListener('click', handleUserInteraction);
+      document.addEventListener('touchstart', handleUserInteraction);
+      return () => {
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+      };
+    }
+  }, [needsUserInteraction, handleUserInteraction]);
 
   return (
-    <div className="flex container-padding flex-col justify-start items-center h-[77dvh] sm:h-[84dvh] md:h-[82dvh] lg:h-[740px] relative overflow-hidden">
+    <div 
+      className="flex container-padding flex-col justify-start items-center h-[77dvh] sm:h-[84dvh] md:h-[82dvh] lg:h-[740px] relative overflow-hidden"
+      onClick={needsUserInteraction ? handleUserInteraction : undefined}
+    >
       {/* Loading/Error States */}
       {!videoLoaded && !videoError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10">
@@ -85,6 +123,18 @@ const HeroSection = () => {
       {videoError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-10">
           {/* Fallback background */}
+        </div>
+      )}
+      
+      {/* iOS Autoplay Notice */}
+      {needsUserInteraction && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
+          <div className="text-white text-center p-4">
+            <p className="mb-2">Tap to play video</p>
+            <div className="w-12 h-12 mx-auto border-2 border-white rounded-full flex items-center justify-center">
+              <div className="w-0 h-0 border-l-4 border-l-white border-t-2 border-t-transparent border-b-2 border-b-transparent ml-1"></div>
+            </div>
+          </div>
         </div>
       )}
       
@@ -99,6 +149,7 @@ const HeroSection = () => {
         playsInline
         preload="auto"
         disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
         className={`absolute top-0 left-0 object-cover w-full h-full lg:hidden transition-opacity duration-200 ${
           videoLoaded && !videoError ? 'opacity-100' : 'opacity-0'
         }`}
@@ -109,7 +160,9 @@ const HeroSection = () => {
           // Hide native controls completely on mobile
           WebkitTapHighlightColor: 'transparent',
           WebkitUserSelect: 'none',
-          WebkitTouchCallout: 'none'
+          WebkitTouchCallout: 'none',
+          WebkitAppearance: 'none',
+          outline: 'none'
         }}
         // Prevent any default video controls
         onContextMenu={(e) => e.preventDefault()}
