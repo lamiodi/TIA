@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+import OptimizedImage from './OptimizedImage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -20,6 +22,32 @@ const NewReleaseGrid = () => {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   }, []);
   
+  // Helper function to check if a product is a brief
+  const isBrief = useCallback((product) => {
+    if (!product) return false;
+    
+    // For bundles, check bundle_types
+    if (!product.is_product && product.bundle_types && product.bundle_types.length > 0) {
+      return product.bundle_types.some(type => {
+        const typeLower = type.toLowerCase();
+        return typeLower.includes('brief') || 
+               typeLower.includes('underwear') ||
+               typeLower.includes('boxer') ||
+               typeLower.includes('trunk');
+      });
+    }
+    
+    // For products, check the name and category
+    const name = (product.name || '').toLowerCase();
+    const category = (product.category || '').toLowerCase();
+    
+    return name.includes('brief') || 
+           name.includes('boxer') || 
+           name.includes('underwear') ||
+           name.includes('trunk') ||
+           category === 'briefs';
+  }, []);
+
   const fetchNewReleases = useCallback(async () => {
     try {
       setLoading(true);
@@ -30,12 +58,24 @@ const NewReleaseGrid = () => {
         throw new Error(errData.message || 'Failed to fetch products');
       }
       const productData = await response.json();
-      const filteredProducts = productData
+      let filteredProducts = productData
         .filter(item => item.is_product)
         .map(item => ({
           ...item,
           productId: item.product_id || item.id
         }));
+      
+      // Sort to show briefs first
+      filteredProducts = [...filteredProducts].sort((a, b) => {
+        const aIsBrief = isBrief(a);
+        const bIsBrief = isBrief(b);
+        
+        // Sort briefs first, then everything else
+        if (aIsBrief && !bIsBrief) return -1; // a comes before b
+        if (!aIsBrief && bIsBrief) return 1;  // b comes before a
+        return 0; // maintain original order for non-briefs
+      });
+      
       setProducts(filteredProducts);
     } catch (err) {
       const errorMessage = err.message || 'Failed to fetch products';
@@ -44,7 +84,7 @@ const NewReleaseGrid = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isBrief]);
   
   useEffect(() => {
     fetchNewReleases();
@@ -188,7 +228,7 @@ const ProductCard = ({ product, onImageError, priority }) => {
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
           )}
-          <img
+          <OptimizedImage
             src={image}
             alt={displayName}
             className={`w-full h-full object-contain object-center transition-transform duration-300 ${
@@ -196,13 +236,9 @@ const ProductCard = ({ product, onImageError, priority }) => {
             }`}
             onError={onImageError}
             onLoad={() => setImageLoaded(true)}
-            loading={priority ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={priority ? "high" : "auto"}
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 240px"
-            style={{
-              contentVisibility: priority ? 'auto' : 'auto',
-            }}
+            priority={priority}
+            width={240}
+            height={300}
           />
         </div>
         <div className="p-3 sm:p-4 flex-1 flex flex-col">

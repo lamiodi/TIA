@@ -4,8 +4,6 @@ import instagramicon from '../assets/icons/instagram.png';
 import Logo from '../assets/icons/logo.svg';
 import { Link } from 'react-router-dom';
 
-
-
 // Reusable Button Component
 const Button = ({ className, label }) => {
   return (
@@ -14,9 +12,7 @@ const Button = ({ className, label }) => {
     </button>
   );
 };
-
 const Footerimage = "https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto/footer_ez7kcm.jpg";
-
 
 const Footer = () => {
   return (
@@ -80,7 +76,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-
       <div className="border-t border-white border-opacity-20 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center space-x-4">
           <img
@@ -91,7 +86,7 @@ const Footer = () => {
         </div>
         <div className="flex items-center space-x-4">
         <div className='bg-Primarycolor p-2 rounded-full'>
-          <Link to="https://www.instagram.com/tiastores.ng?igsh=ODN0YWFxcnA0bDF4">
+          <Link to="https://www.instagram.com/the.tiabrand/?igsh=MTM2bWoxODI1ZzFvZA%3D%3D#">
           <img
             src={instagramicon}
             alt="Instagram"
@@ -108,9 +103,8 @@ const Footer = () => {
           </div>
         </div>
       </div>
-      <p className="text-xs font-Manrope text-white text-right max-md:text-center mt-4">&copy; {new Date().getFullYear()} Tia Stores. All rights reserved.</p>
+      <p className="text-xs font-Manrope text-white text-right max-md:text-center mt-4">&copy; {new Date().getFullYear()} The Tia Brand. All rights reserved.</p>
     </div>
   );
 };
-
 export default Footer;
