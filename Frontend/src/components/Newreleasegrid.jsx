@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
-import OptimizedImage from './OptimizedImage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -228,7 +227,7 @@ const ProductCard = ({ product, onImageError, priority }) => {
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
           )}
-          <OptimizedImage
+          <img
             src={image}
             alt={displayName}
             className={`w-full h-full object-contain object-center transition-transform duration-300 ${
@@ -236,7 +235,6 @@ const ProductCard = ({ product, onImageError, priority }) => {
             }`}
             onError={onImageError}
             onLoad={() => setImageLoaded(true)}
-            priority={priority}
             width={240}
             height={300}
           />
