@@ -36,7 +36,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white overflow-y-auto">
       {/* Navigation - Overlaying the hero section */}
       <Navbar2 />
-      <main className='bg-Primarycolor'>
+      <main className="bg-Primarycolor">
         {/* Hero Section */}
         <section className="relative h-[85vh] md:h-[90vh] lg:h-screen bg-black overflow-hidden">
           {/* Cloudinary Videos */}
