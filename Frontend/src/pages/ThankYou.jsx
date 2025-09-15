@@ -383,12 +383,12 @@ const ThankYou = () => {
       }}
     >
       <Navbar2 />
-      <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 pb-8 md:pb-12">
         <div className="text-center">
           <CheckCircle className="h-12 w-12 md:h-16 md:w-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl md:text-3xl font-bold text-Primarycolor mb-4 font-Manrope">
             {isInternational && !order.delivery_fee_paid
-              ? 'Order Received - Awaiting Delivery Fee'
+              ? 'Order Received - Awaiting Delivery Fee Email'
               : 'Order Confirmed'}
           </h2>
           
