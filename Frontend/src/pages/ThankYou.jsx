@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Loader2, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, UserPlus, Mail, Lock, Shield, Clock, Gift } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
@@ -259,7 +259,7 @@ const ThankYou = () => {
           '--font-Jost': '"Jost", "sans-serif"'
         }}
       >
-        <Navbar />
+        <Navbar2 />
         <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 md:h-16 md:w-16 text-red-600 mx-auto mb-4" />
@@ -322,7 +322,7 @@ const ThankYou = () => {
           '--font-Jost': '"Jost", "sans-serif"'
         }}
       >
-        <Navbar />
+        <Navbar2 />
         <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 md:h-16 md:w-16 text-red-600 mx-auto mb-4" />
@@ -382,7 +382,7 @@ const ThankYou = () => {
         '--font-Jost': '"Jost", "sans-serif"'
       }}
     >
-      <Navbar />
+      <Navbar2 />
       <div className="max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="text-center">
           <CheckCircle className="h-12 w-12 md:h-16 md:w-16 text-green-600 mx-auto mb-4" />

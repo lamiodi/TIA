@@ -25,6 +25,7 @@ import AdminLogin from './pages/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import SearchResults from './pages/SearchResults';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
         <AdminAuthProvider>
           <Routes>
             <Route path="/search" element={<SearchResults />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<LandingPage />} />
             <Route path="/shop" element={<ShopAllPage />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/bundle/:id" element={<ProductDetails />} />
@@ -43,7 +44,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/more" element={<MorePage />} />
             <Route path="/help" element={<HelpPage />} />
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/cart" element={<Cart />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/orders" element={<ProtectedRoute><UserOrders /></ProtectedRoute>} />
             <Route path="/checkout" element={<Checkoutprocess />} /> {/* Removed ProtectedRoute for guest access */}

@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle, UserPlus } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
@@ -62,7 +62,7 @@ function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Navbar />
+      <Navbar2 />
       <div className="flex-grow flex items-center justify-center px-4 py-12">
         <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md space-y-6">
           <div className="text-center">

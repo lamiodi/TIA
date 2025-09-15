@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useCallback, useMemo, useRef, lazy, Su
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2, Package, Star, X, AlertCircle, User } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from './CurrencyContext';
@@ -73,7 +73,7 @@ const Cart = () => {
           '--font-Jost': '"Jost", "sans-serif"',
         }}
       >
-        <Navbar />
+        <Navbar2 />
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-gray-600">
             <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
@@ -841,7 +841,7 @@ const Cart = () => {
         '--font-Jost': '"Jost", "sans-serif"',
       }}
     >
-      <Navbar />
+      <Navbar2 />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
           {/* Header Section */}

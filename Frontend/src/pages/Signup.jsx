@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Mail, Lock, Phone, User, ArrowRight, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 import Pic1 from '../assets/images/Signuppic1.JPG';
 import Pic2 from '../assets/images/Signuppic2.JPG';
@@ -130,7 +130,7 @@ const SignupPage = () => {
         <div className="absolute top-0 -right-4 w-72 h-72 bg-gray-500/5 rounded-full mix-blend-multiply filter blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-slate-500/5 rounded-full mix-blend-multiply filter blur-xl animate-pulse" style={{animationDelay: '4s'}}></div>
       </div>
-      <Navbar />
+      <Navbar2 />
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] relative z-10">
         {/* Left Side - Image Carousel */}
         <div className="hidden lg:flex flex-1 relative overflow-hidden">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
@@ -190,7 +190,7 @@ const SearchResults = () => {
   if (loading || contextLoading) {
     return (
       <div className="typography container-padding flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar2 />
         <div className={`grid gap-2 sm:gap-3 md:gap-4 lg:gap-5 mb-8 ${
           mobileLayout === 'one' 
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
@@ -213,7 +213,7 @@ const SearchResults = () => {
   if (error) {
     return (
       <div className="typography container-padding flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar2 />
         <div className="text-center py-12">
           <h3 className="text-red-600 mb-4">Error</h3>
           <p className="text-gray-600">{error}</p>
@@ -231,7 +231,7 @@ const SearchResults = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      <Navbar2 />
       <div className="typography container-padding flex flex-col py-8 px-2 sm:px-3 lg:px-4 flex-1">
         <div className="mb-8">
           <h3 className="text-3xl font-bold mb-2">Search Results for "{searchQuery}"</h3>
@@ -397,7 +397,7 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
             {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
               style: 'currency', 
               currency: displayCurrency,
-              minimumFractionDigits: 2
+              minimumFractionDigits: country === 'Nigeria' ? 0 : 2
             })}
           </p>
         </div>
@@ -407,20 +407,7 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
           <button
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform group-hover:translate-y-0"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5A1 1 0 006.9 19H19M9 19a1 1 0 102 0 1 1 0 00-2 0zm8 0a1 1 0 102 0 1 1 0 00-2 0z"
-              />
-            </svg>
-            Buy Now
+            Shop Now
           </button>
         </Link>
       </div>

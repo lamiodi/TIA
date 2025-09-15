@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from "react"
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom"
-import Navbar from "../components/Navbar"
+import Navbar2 from "../components/Navbar2"
 import axios from "axios"
 import {
   ChevronLeft,
@@ -481,7 +481,7 @@ const ProductDetails = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 font-Manrope">Oops! Product Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 font-Inter">Oops! Product Not Found</h2>
           <p className="text-gray-600 font-Jost">{error || "Failed to load product"}</p>
         </div>
       </div>
@@ -534,7 +534,7 @@ const ProductDetails = () => {
         isProduct={isProduct}
         currentUrl={window.location.href}
       />
-      <Navbar />
+      <Navbar2 />
       <div className="w-full border-b border-gray-800 relative" style={{
   background: 'linear-gradient(90deg, #1E1E1E 0%, #2A2A2A 40%, #6E6E6E 80%, #F5F5DC 100%)'
 }}>
@@ -607,7 +607,7 @@ const ProductDetails = () => {
                   />
                   {/* Bundle Badge */}
                   {!isProduct && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r font-Manrope from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
+                    <div className="absolute top-4 left-4 bg-gradient-to-r font-Inter from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                       <Package className="w-4 h-4" />
                       <span>Bundle</span>
                     </div>
@@ -666,7 +666,7 @@ const ProductDetails = () => {
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-Manrope">
+                      <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-Inter">
                         {name}
                       </h1>
                       <div className="flex items-center mt-2 space-x-2">
@@ -688,11 +688,11 @@ const ProductDetails = () => {
                     </button>
                   </div>
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900 font-Manrope">
+                    <p className="text-3xl font-bold text-gray-900 font-Inter">
                       {Number.parseFloat(displayPrice).toLocaleString(country === "Nigeria" ? "en-NG" : "en-US", {
                         style: "currency",
                         currency: displayCurrency,
-                        minimumFractionDigits: 2,
+                        minimumFractionDigits: country === "Nigeria" ? 0 : 2,
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
@@ -718,8 +718,8 @@ const ProductDetails = () => {
                   <div className="space-y-6">
                     {/* Color Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">
-                        Color: <span className="font-normal font-Manrope text-gray-600">{selectedColor}</span>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
+                        Color: <span className="font-normal font-Inter text-gray-600">{selectedColor}</span>
                       </h3>
                       <div className="flex flex-wrap gap-3">
                         {colorOptions.map((color) => (
@@ -744,8 +744,8 @@ const ProductDetails = () => {
                     </div>
                     {/* Size Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-Primarycolor font-Manrope mb-4">
-                        Size: <span className="font-normal text-gray-600 font-Manrope">{selectedSize}</span>
+                      <h3 className="text-lg font-semibold text-Primarycolor font-Inter mb-4">
+                        Size: <span className="font-normal text-gray-600 font-Inter">{selectedSize}</span>
                       </h3>
                       <div className="grid grid-cols-4 gap-3">
                         {sizeOptions.map((s) => (
@@ -753,7 +753,7 @@ const ProductDetails = () => {
                             key={s.size_name}
                             onClick={() => handleSizeChange(s.size_name)}
                             disabled={s.stock_quantity === 0}
-                            className={`relative py-3 px-2 text-sm font-Manrope font-medium border-2 rounded-xl transition-all duration-200 ${
+                            className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === s.size_name
                                 ? "border-Primarycolor bg-gray-900 text-white shadow-lg"
                                 : s.stock_quantity > 0
@@ -778,13 +778,13 @@ const ProductDetails = () => {
                   <div className="space-y-6">
                     {/* Bundle Type Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">Bundle Type</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">Bundle Type</h3>
                       <div className="flex space-x-4">
                         {bundleTypes.map((type) => (
                           <button
                             key={type}
                             onClick={() => handleBundleTypeChange(type)}
-                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Manrope transition-all duration-200 ${
+                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Inter transition-all duration-200 ${
                               bundleType === type
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : "border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-md"
@@ -797,8 +797,8 @@ const ProductDetails = () => {
                     </div>
                     {/* Size Selection for Bundle */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">
-                        Size: <span className="font-normal text-gray-600 font-Manrope">{selectedSize}</span>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
+                        Size: <span className="font-normal text-gray-600 font-Inter">{selectedSize}</span>
                       </h3>
                       <div className="grid grid-cols-4 gap-3">
                         {sizeOptions.map((size) => (
@@ -806,7 +806,7 @@ const ProductDetails = () => {
                             key={size.size_name}
                             onClick={() => handleSizeChange(size.size_name)}
                             disabled={size.stock_quantity === 0}
-                            className={`relative py-3 px-2 text-sm font-medium font-Manrope border-2 rounded-xl transition-all duration-200 ${
+                            className={`relative py-3 px-2 text-sm font-medium font-Inter border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === size.size_name
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : size.stock_quantity > 0
@@ -826,16 +826,16 @@ const ProductDetails = () => {
                     </div>
                     {/* Bundle Color Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
                         Select Items
-                        <span className="text-sm font-normal text-gray-600 ml-2 font-Manrope">
+                        <span className="text-sm font-normal text-gray-600 ml-2 font-Inter">
                           ({Object.keys(selectedBundleVariants).length}/{bundleType === "3-in-1" ? "3" : "5"})
                         </span>
                       </h3>
                       <div className="p-6 border border-gray-200 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50">
                         {/* Available Colors */}
                         <div className="mb-6">
-                          <h4 className="font-medium text-gray-900 mb-3 font-Manrope">Available Colors</h4>
+                          <h4 className="font-medium text-gray-900 mb-3 font-Inter">Available Colors</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {(Array.isArray(data?.items?.[0]?.all_variants) ? data.items[0].all_variants : []).map(
                               (variant) => {
@@ -886,7 +886,7 @@ const ProductDetails = () => {
                         {/* Selected Items Display */}
                         {Object.keys(selectedBundleVariants).length > 0 && (
                           <div className="mb-6">
-                            <h4 className="font-medium text-gray-900 mb-3 font-Manrope">Selected Items</h4>
+                            <h4 className="font-medium text-gray-900 mb-3 font-Inter">Selected Items</h4>
                             <div className="flex flex-wrap gap-3">
                               {Object.entries(selectedBundleVariants).map(([index, selection]) => (
                                 <div
@@ -943,7 +943,7 @@ const ProductDetails = () => {
                 {/* Quantity and Add to Cart */}
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium font-Manrope text-gray-900">Quantity:</span>
+                    <span className="text-sm font-medium font-Inter text-gray-900">Quantity:</span>
                     <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -967,7 +967,7 @@ const ProductDetails = () => {
                       className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="h-5 w-5 " />
-                      <span className="font-Manrope">{isAddingToCart ? "Adding..." : "Add to Cart"}</span>
+                      <span className="font-Inter">{isAddingToCart ? "Adding..." : "Add to Cart"}</span>
                     </button>
                     <button className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                       <Share2 className="h-5 w-5" />
@@ -989,15 +989,15 @@ const ProductDetails = () => {
                 <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                   <div className="text-center space-y-2">
                     <Truck className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Manrope">Free Shipping</p>
+                    <p className="text-xs text-gray-600 font-Inter">Free Shipping</p>
                   </div>
                   <div className="text-center space-y-2">
                     <RotateCcw className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Manrope">Easy Returns</p>
+                    <p className="text-xs text-gray-600 font-Inter">Easy Returns</p>
                   </div>
                   <div className="text-center space-y-2">
                     <Shield className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Manrope">2 Year Warranty</p>
+                    <p className="text-xs text-gray-600 font-Inter">2 Year Warranty</p>
                   </div>
                 </div>
               </div>

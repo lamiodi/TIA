@@ -1,5 +1,5 @@
 import React from "react";
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import HeroSection from '../components/HeroSection';
 import ProductGrid from '../components/ProductGrid';
 import CtaSlideshow from '../components/CtaSlideshow';
@@ -14,7 +14,7 @@ const Home = () => {
   return (
     <div className="bg-Secondarycolor flex flex-col min-h-screen w-full overflow-x-hidden">
       <WhatsAppChatWidget />
-      <Navbar />
+      <Navbar2 />
       <HeroSection />
       <Newreleasegrid />
       <CtaSlideshow />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, Truck, Ruler, HelpCircle, MessageCircle, ChevronRight } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import ContactWhatsAppWidget from '../components/contactWhatsAppWidget';
 
 const HelpPage = () => {
@@ -399,7 +399,7 @@ const HelpPage = () => {
       '--font-Manrope': '"Manrope", "sans-serif"',
       '--font-Jost': '"Jost", "sans-serif"'
     }}>
-      <Navbar />
+      <Navbar2 />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Breadcrumbs */}
         <nav aria-label="Breadcrumb" className="mb-6">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Package, ChevronDown, ChevronUp, X, AlertCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -135,7 +135,7 @@ const UserOrders = () => {
         '--font-Jost': '"Jost", "sans-serif"'
       }}
     >
-      <Navbar />
+      <Navbar2 />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8 font-Manrope">My Orders</h1>
         {/* Orders Section */}
