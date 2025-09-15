@@ -27,12 +27,14 @@ import AdminRoute from './components/AdminRoute';
 import SearchResults from './pages/SearchResults';
 import LandingPage from './pages/LandingPage';
 import CartErrorBoundary from './components/CartErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
         <AdminAuthProvider>
+          <ScrollToTop />
           <Routes>
             <Route path="/search" element={<SearchResults />} />
             <Route path="/home" element={<LandingPage />} />
