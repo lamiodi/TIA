@@ -70,7 +70,12 @@ export const getProductById = async (req, res) => {
     // Attempt to fetch product by ID
     const [product] = await sql`
       SELECT 
-        p.id, p.name, p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
+        p.id, 
+        CASE 
+          WHEN COUNT(pv.id) = 1 THEN MAX(pv.name)
+          ELSE p.name
+        END as name, 
+        p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
         p.is_new_release, p.category, p.gender, TRUE AS is_product, p.created_at,
         COALESCE(
           json_agg(

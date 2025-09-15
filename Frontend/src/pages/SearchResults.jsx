@@ -232,72 +232,94 @@ const SearchResults = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar2 />
-      <div className="typography container-padding flex flex-col py-8 px-2 sm:px-3 lg:px-4 flex-1">
-        <div className="mb-8">
-          <h3 className="text-3xl font-bold mb-2">Search Results for "{searchQuery}"</h3>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h4 className="font-light text-gray-600">
-              {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
-            </h4>
+      <div className="typography container-padding flex flex-col pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
+        <div className="mb-10">
+          <div className="border-b border-gray-200 pb-6">
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">
+              Search Results for <span className="text-blue-600">"{searchQuery}"</span>
+            </h1>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+                </span>
+              </div>
+              {filteredProducts.length > 0 && (
+                <p className="text-sm text-gray-600 font-medium">
+                  Showing <span className="font-bold text-gray-900">{Math.min(displayedProducts.length, filteredProducts.length)}</span> of <span className="font-bold text-gray-900">{filteredProducts.length}</span> products
+                </p>
+              )}
+            </div>
           </div>
         </div>
         
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div className="flex items-center justify-between gap-3">
-              {/* Category filter dropdown */}
-              <select
-                value={searchCategory}
-                onChange={(e) => setSearchCategory(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-Primarycolor focus:border-transparent"
-              >
-                <option value="">All Categories</option>
-                <option value="briefs">Briefs</option>
-                <option value="gymwear">Gymwear</option>
-                <option value="new">New Arrivals</option>
-                <option value="3in1">3 in 1</option>
-                <option value="5in1">5 in 1</option>
-              </select>
-              
-              <div className="flex sm:hidden bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setMobileLayout('one')}
-                  className={`p-2 rounded-md transition-colors ${
-                    mobileLayout === 'one'
-                      ? 'bg-white shadow-sm text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Single column view"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setMobileLayout('two')}
-                  className={`p-2 rounded-md transition-colors ${
-                    mobileLayout === 'two'
-                      ? 'bg-white shadow-sm text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Two column view"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7M4 12h7M4 18h7M15 6h5M15 12h5M15 18h5" />
-                  </svg>
-                </button>
+        <div className="mb-10">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-end">
+               <div className="flex flex-row gap-6 flex-1">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Filter by Category</label>
+                  <select
+                    value={searchCategory}
+                    onChange={(e) => setSearchCategory(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium transition-all duration-200 hover:border-gray-400"
+                  >
+                    <option value="">All Categories</option>
+                    <option value="briefs">Briefs</option>
+                    <option value="gymwear">Gymwear</option>
+                    <option value="new">New Arrivals</option>
+                    <option value="3in1">3 in 1</option>
+                    <option value="5in1">5 in 1</option>
+                  </select>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Sort Products</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium transition-all duration-200 hover:border-gray-400"
+                  >
+                    <option value="default">Default Order</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="name">Name: A to Z</option>
+                    <option value="newest">Newest First</option>
+                  </select>
+                </div>
               </div>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-Primarycolor focus:border-transparent"
-              >
-                <option value="default">Sort by: Default</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="name">Name: A to Z</option>
-                <option value="newest">Newest First</option>
-              </select>
+              
+              <div className="sm:hidden w-full lg:w-auto">
+                <label className="block text-sm font-semibold text-gray-800 mb-3">Display View</label>
+                <div className="flex bg-white rounded-xl p-2 border-2 border-gray-300 w-full">
+                  <button
+                    onClick={() => setMobileLayout('one')}
+                    className={`flex-1 p-3 rounded-lg transition-all duration-200 text-sm font-semibold ${
+                      mobileLayout === 'one'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                    title="Single column view"
+                  >
+                    <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setMobileLayout('two')}
+                    className={`flex-1 p-3 rounded-lg transition-all duration-200 text-sm font-semibold ${
+                      mobileLayout === 'two'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                    title="Two column view"
+                  >
+                    <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7M4 12h7M4 18h7M15 6h5M15 12h5M15 18h5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -309,7 +331,7 @@ const SearchResults = () => {
           </div>
         ) : (
           <>
-            <div className={`grid gap-x-2 gap-y-[0.7em] sm:gap-x-3 sm:gap-y-[1.05em] md:gap-x-4 md:gap-y-[1.4em] lg:gap-x-3 lg:gap-y-[0.95em] mb-8 ${
+            <div className={`grid gap-4 sm:gap-5 md:gap-6 mb-8 ${
               mobileLayout === 'one' 
                 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                 : 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'

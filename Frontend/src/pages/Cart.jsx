@@ -61,32 +61,7 @@ const Cart = () => {
     contextLoading = false,
   } = currencyContext;
 
-  // Early return for loading states - BEFORE any other hooks
-  if (authLoading || contextLoading) {
-    return (
-      <div
-        style={{
-          '--color-Primarycolor': '#1E1E1E',
-          '--color-Secondarycolor': '#ffffff',
-          '--color-Accent': '#6E6E6E',
-          '--font-Manrope': '"Manrope", "sans-serif"',
-          '--font-Jost': '"Jost", "sans-serif"',
-        }}
-      >
-        <Navbar2 />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center justify-center text-gray-600">
-            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
-            <p className="mt-2 text-sm font-Manrope">Loading cart...</p>
-          </div>
-        </div>
-        <Suspense fallback={null}>
-          <Footer />
-        </Suspense>
-      </div>
-    );
-  }
-  
+  // Initialize all state hooks BEFORE any conditional returns
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
   const [error, setError] = useState('');
   const [isUpdating, setIsUpdating] = useState(null);
@@ -169,9 +144,11 @@ const Cart = () => {
       const guestCart = localStorage.getItem('guestCart');
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
+        console.log('Guest cart loaded from localStorage:', parsedCart.items?.length || 0, 'items');
         setCart(parsedCart);
         setIsGuest(true);
       } else {
+        console.log('No guest cart found in localStorage, initializing empty cart');
         setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
         setIsGuest(true);
       }
@@ -180,6 +157,7 @@ const Cart = () => {
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
       setIsGuest(true);
     }
+    console.log('Cart loading completed - guest mode');
     setIsCartLoading(false);
   }, []);
   
@@ -246,12 +224,19 @@ const Cart = () => {
   
   // Fetch cart data
   useEffect(() => {
+    console.log('Cart useEffect triggered:', { authLoading, contextLoading, user: !!user });
+    
     const fetchCart = async (retries = 3, delay = 1000) => {
+      console.log('Starting cart fetch...');
+      
       const token = getToken();
       if (!token) {
+        console.log('No token found, loading guest cart');
         loadGuestCart();
         return;
       }
+      
+      console.log('Token found, fetching user cart');
       
       try {
         const userId = getUserId();
@@ -270,36 +255,37 @@ const Cart = () => {
         setIsGuest(false);
         setError('');
       } catch (err) {
-        console.error('Cart: Fetch error details:', {
-          message: err.message,
-          code: err.code,
-          response: err.response
-            ? {
-                status: err.response.status,
-                data: typeof err.response.data === 'string' ? err.response.data.slice(0, 100) + '...' : err.response.data,
-              }
-            : 'No response',
-          config: err.config,
-        });
-        if (err.response?.status === 401 || err.response?.status === 404 || err.message.includes('Could not determine user ID')) {
-          console.log('Cart: Authentication failed or cart not found, falling back to guest cart');
+          console.error('Cart: Fetch error details:', {
+            message: err.message,
+            code: err.code,
+            response: err.response
+              ? {
+                  status: err.response.status,
+                  data: typeof err.response.data === 'string' ? err.response.data.slice(0, 100) + '...' : err.response.data,
+                }
+              : 'No response',
+            config: err.config,
+          });
+          if (err.response?.status === 401 || err.response?.status === 404 || err.message.includes('Could not determine user ID')) {
+            console.log('Cart: Authentication failed or cart not found, falling back to guest cart');
+            loadGuestCart();
+            return;
+          }
+          
+          if (retries > 0 && (err.code === 'ECONNABORTED' || err.message.includes('Network Error') || err.message.includes('HTML instead of JSON'))) {
+            console.log(`Cart: Retrying fetchCart (${retries} retries left)...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return fetchCart(retries - 1, delay * 2);
+          }
+          
+          // For other errors, fall back to guest cart instead of showing errors
+          console.log('Cart: Max retries reached or non-retryable error, falling back to guest cart');
+          setError('');
           loadGuestCart();
-          return;
+        } finally {
+          console.log('Cart fetch completed, setting loading to false');
+          setIsCartLoading(false);
         }
-        
-        if (retries > 0 && (err.code === 'ECONNABORTED' || err.message.includes('Network Error') || err.message.includes('HTML instead of JSON'))) {
-          console.log(`Cart: Retrying fetchCart (${retries} retries left)...`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return fetchCart(retries - 1, delay * 2);
-        }
-        
-        // For other errors, fall back to guest cart instead of showing errors
-        console.log('Cart: Server error, falling back to guest cart');
-        setError('');
-        loadGuestCart();
-      } finally {
-        setIsCartLoading(false);
-      }
     };
     
     if (!authLoading && !contextLoading) {
@@ -674,7 +660,7 @@ const Cart = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="text-base md:text-lg font-semibold font-Manrope text-gray-900 line-clamp-2">
+                        <h3 className="text-base md:text-lg font-semibold font-Inter text-gray-900 line-clamp-2">
                           {item.item.name}
                           {!item.item.is_product && (
                             <span className="inline-flex items-center ml-2 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
@@ -780,7 +766,7 @@ const Cart = () => {
                   <div className="flex-shrink-0 text-right">
                     <div className="space-y-1">
                       <p className="text-sm text-gray-500 font-Jost">{formattedPrice} each</p>
-                      <p className="text-lg md:text-xl font-bold text-gray-900 font-Manrope">{formattedTotalPrice}</p>
+                      <p className="text-lg md:text-xl font-bold text-gray-900 font-Jost">{formattedTotalPrice}</p>
                     </div>
                   </div>
                 </div>
@@ -801,7 +787,7 @@ const Cart = () => {
                         {isUpdating === item.id ? (
                           <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-Primarycolor mx-auto" />
                         ) : (
-                          <span className="text-xs sm:text-sm font-semibold font-Manrope">{item.quantity}</span>
+                          <span className="text-xs sm:text-sm font-semibold font-Jost">{item.quantity}</span>
                         )}
                       </div>
                       <button
@@ -831,6 +817,33 @@ const Cart = () => {
     [country, currency, exchangeRate, debouncedUpdateQuantity, isUpdating, removeItem]
   );
   
+  // Handle loading states AFTER all hooks are declared
+  if (authLoading || contextLoading) {
+    console.log('Cart page showing loading state:', { authLoading, contextLoading });
+    return (
+      <div
+        style={{
+          '--color-Primarycolor': '#1E1E1E',
+          '--color-Secondarycolor': '#ffffff',
+          '--color-Accent': '#6E6E6E',
+          '--font-Manrope': '"Manrope", "sans-serif"',
+          '--font-Jost': '"Jost", "sans-serif"',
+        }}
+      >
+        <Navbar2 />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-gray-600">
+            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
+            <p className="mt-2 text-sm font-Jost">Loading cart...</p>
+          </div>
+        </div>
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
+      </div>
+    );
+  }
+  
   return (
     <div
       style={{
@@ -842,13 +855,13 @@ const Cart = () => {
       }}
     >
       <Navbar2 />
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
+      <div className="min-h-screen bg-gray-50 pt-10 sm:pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-9 lg:py-1">
           {/* Header Section */}
           <div className="mb-6 md:mb-8">
             <div className="flex flex-col gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-Manrope text-gray-900">Shopping Cart</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-Inter text-gray-900">Shopping Cart</h1>
                 <p className="font-Jost text-gray-600 text-sm md:text-base mt-1">
                   {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
                   {isGuest && (
@@ -887,7 +900,7 @@ const Cart = () => {
               <div className="space-y-4">
                 {/* Your Items Header with Clear All Items Button */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                  <h2 className="text-lg md:text-xl font-semibold font-Manrope text-gray-900">Your Items</h2>
+                  <h2 className="text-lg md:text-xl font-semibold font-Inter text-gray-900">Your Items</h2>
                   <button
                     onClick={clearCart}
                     className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium font-Jost flex items-center justify-center gap-2 transition-colors"
@@ -910,7 +923,7 @@ const Cart = () => {
                           <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-full mb-4">
                             <ShoppingBag className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
                           </div>
-                          <h2 className="text-xl md:text-2xl font-bold font-Manrope text-gray-900 mb-3">Your cart is empty</h2>
+                          <h2 className="text-xl md:text-2xl font-bold font-Inter text-gray-900 mb-3">Your cart is empty</h2>
                           <p className="font-Jost text-gray-600 mb-8 text-sm md:text-base">
                             Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
                           </p>
@@ -947,7 +960,7 @@ const Cart = () => {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
                 {/* Header */}
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold font-Manrope text-gray-900">Order Summary</h2>
+                  <h2 className="text-xl font-semibold font-Inter text-gray-900">Order Summary</h2>
                 </div>
                 
                 {/* Summary Details */}
@@ -955,7 +968,7 @@ const Cart = () => {
                   {/* Items Count */}
                   <div className="flex justify-between text-sm">
                     <span className="font-Jost text-gray-600">Items ({cart.items.length})</span>
-                    <span className="font-medium font-Manrope text-gray-900">
+                    <span className="font-medium font-Jost text-gray-900">
                       {displaySubtotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
                         style: 'currency',
                         currency: currency,
@@ -967,7 +980,7 @@ const Cart = () => {
                   {/* Shipping Info */}
                   <div className="flex justify-between text-sm">
                     <span className="font-Jost text-gray-600">Shipping</span>
-                    <span className="font-medium font-Manrope text-gray-900">Calculated at checkout</span>
+                    <span className="font-medium font-Jost text-gray-900">Calculated at checkout</span>
                   </div>
                   
 
@@ -976,7 +989,7 @@ const Cart = () => {
                   {displayTax > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="font-Jost text-gray-600">Tax (5%)</span>
-                      <span className="font-medium font-Manrope text-gray-900">
+                      <span className="font-medium font-Jost text-gray-900">
                         {displayTax.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
                           style: 'currency',
                           currency: currency,
@@ -989,8 +1002,8 @@ const Cart = () => {
                   {/* Divider */}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between text-lg font-bold">
-                      <span className="font-Manrope text-gray-900">Total</span>
-                      <span className="font-Manrope text-gray-900">
+                      <span className="font-Inter text-gray-900">Total</span>
+                      <span className="font-Jost text-gray-900">
                         {displayTotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
                           style: 'currency',
                           currency: currency,
@@ -1003,7 +1016,7 @@ const Cart = () => {
                   {/* Checkout Button */}
                   <Link to="/checkout">
                     <button
-                      className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Inter hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
                     >
                       <span>Proceed to Checkout</span>

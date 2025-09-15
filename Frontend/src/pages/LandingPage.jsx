@@ -36,7 +36,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white overflow-y-auto">
       {/* Navigation - Overlaying the hero section */}
       <Navbar2 />
-      <main>
+      <main className='bg-Primarycolor'>
         {/* Hero Section */}
         <section className="relative h-[85vh] md:h-[90vh] lg:h-screen bg-black overflow-hidden">
           {/* Cloudinary Videos */}
@@ -77,13 +77,18 @@ const LandingPage = () => {
           )}
           
           {/* Content overlay with transparent background */}
-          <div className="relative z-30 container mx-auto px-4 h-full flex items-center md:items-end justify-start pt-16 md:pt-20 md:pb-20 lg:pt-0 lg:pb-32">
-            <div className="typography flex flex-col w-full items-start space-y-3 md:space-y-4 min-lgx:space-y-[3rem] z-20 ml-0 md:ml-2 lg:ml-4">
-              <h1 className="text-left text-nowrap lgx:text-5xl">
-                UNMATCHED COMFORT.
-                <span className="max-sm:hidden"> BOLD PERFORMANCE.</span>
-                <br />
-                <span className="max-sm:text-base sm:text-3xl lg:text-5xl">EVERYDAY STYLE.</span>
+          <div className="relative z-30 container mx-auto lg:mx-5 h-full flex items-center md:items-end justify-start pt-12 sm:pt-16 md:pt-20 md:pb-16 lg:pt-0 lg:pb-32">
+            <div className="typography flex flex-col w-full items-start space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5 z-20 ml-2 lg:ml-8">
+              <h1 className="text-left lgx:text-5xl leading-tight sm:leading-normal md:leading-relaxed">
+                <span className="max-sm:text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold">
+                  <span className="max-sm:block sm:inline">UNMATCHED COMFORT.</span>
+                  <span className="max-sm:hidden sm:inline"> BOLD PERFORMANCE.</span>
+                </span>
+                <br className="max-sm:hidden" />
+                <span className="max-sm:text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl block mt-1 sm:mt-0 md:mt-1">
+                  <span className="sm:hidden text-sm font-light font-Jost">STYLE FOR ALL</span>
+                  <span className="hidden font-Jost sm:inline">EVERYDAY STYLE</span>
+                </span>
               </h1>
               <Link to="/shop">
                 <Button
@@ -114,9 +119,11 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">THE MICHEAL JORDAN</h3>
                   <p className="text-lg mb-4">₦19,999</p>
-                  <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                    SHOP NOW
-                  </button>
+                  <Link to="/shopall?category=briefs">
+                    <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                      SHOP NOW
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -132,9 +139,11 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">YOU THE BOSS</h3>
                   <p className="text-lg mb-4">₦19,000</p>
-                  <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                    SHOP NOW
-                  </button>
+                  <Link to="/shopall?category=briefs">
+                    <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                      SHOP NOW
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -150,9 +159,11 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">HIS AND HERS</h3>
                   <p className="text-lg mb-4">₦103,850</p>
-                  <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                    SHOP NOW
-                  </button>
+                  <Link to="/shopall">
+                    <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                      SHOP NOW
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -168,9 +179,11 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">EVSS TEA I</h3>
                   <p className="text-lg mb-4">₦52,850.00</p>
-                  <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                    SHOP NOW
-                  </button>
+                  <Link to="/shopall?category=gymwear">
+                    <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                      SHOP NOW
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>

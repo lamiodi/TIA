@@ -371,7 +371,7 @@ const ShopAllPage = () => {
       {/* CollectionPage Schema for SEO */}
       <CollectionPageSchema />
       <Navbar2 />
-      <div className="typography container-padding flex flex-col py-8 px-2 sm:px-3 lg:px-4 flex-1">
+      <div className="typography container-padding flex flex-col pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
         <div className="mb-8">
           <h3 className="text-3xl font-bold mb-2 capitalize">{getPageTitle()}</h3>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -515,7 +515,7 @@ const ProductCard = ({ product, onImageError }) => {
           <h3 className="text-sm sm:text-base font-semibold text-Primarycolor mb-2 line-clamp-2 leading-tight group-hover:text-Primarycolor transition-colors duration-200">
             {displayName}
           </h3>
-          <p className="text-lg sm:text-xl font-semibold font-Inter text-Accent">
+          <p className="text-lg sm:text-xl font-semibold font-Jost text-Accent">
             {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
               style: 'currency', 
               currency: displayCurrency,

@@ -56,7 +56,7 @@ const NewsletterForm = () => {
         
         {/* Image */}
         <div className="absolute top-[-3.5em] left-6 sm:top-[-4.5em] sm:left-6 md:top-[-5.5em] md:left-8 lg:top-[-6em] lg:left-10 xl:top-[-8em] xl:left-12 2xl:top-[-9em] 2xl:left-16 w-37 sm:w-53 md:w-60 lg:w-70 xl:w-82 2xl:w-96 z-0">
-          <img src={Newsletterimage} alt="Newsletter Illustration" className="w-full h-auto object-contain" />
+          <img src={Newsletterimage} alt="Newsletter Illustration" className="w-full h-auto object-contain sm:w-[135%] md:w-full" />
         </div>
         
         {/* Text + Form */}

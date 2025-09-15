@@ -26,6 +26,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import SearchResults from './pages/SearchResults';
 import LandingPage from './pages/LandingPage';
+import CartErrorBoundary from './components/CartErrorBoundary';
 
 function App() {
   return (
@@ -45,7 +46,7 @@ function App() {
             <Route path="/more" element={<MorePage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/" element={<LandingPage />} />
-            <Route path="/cart" element={<Cart />} /> {/* Removed ProtectedRoute for guest access */}
+            <Route path="/cart" element={<CartErrorBoundary><Cart /></CartErrorBoundary>} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/orders" element={<ProtectedRoute><UserOrders /></ProtectedRoute>} />
             <Route path="/checkout" element={<Checkoutprocess />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

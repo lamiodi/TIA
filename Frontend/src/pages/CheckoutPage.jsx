@@ -29,8 +29,8 @@ const GuestCheckoutModal = React.memo(({
   loading,
   navigate
 }) => (
-  // Clean backdrop without blur effects
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+  // Backdrop with blur effects
+  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200">
       {/* Simplified header */}
       <div className="flex justify-between items-center mb-4">
@@ -1750,40 +1750,11 @@ const CheckoutPage = () => {
       }}
     >
       <Navbar2 />
-      <div className="max-w-7xl mx-auto px-[0.4em] md:px-4 sm:px-6 lg:px-8 py-7">
+      <div className="max-w-7xl mx-auto px-[0.4em] md:px-4 sm:px-6 lg:px-8 py-7 pt-20">
         <Link to="/cart" className="inline-flex items-center text-Accent hover:text-Primarycolor mb-6 font-Jost">
           <ArrowLeft className="h-5 w-5 mr-1" /> Back to Cart
         </Link>
         <h2 className="text-3xl font-bold text-Primarycolor mb-8 font-Inter">Checkout</h2>
-        
-        {/* Debug Panel - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-bold text-yellow-800 mb-2">Debug Info:</h4>
-            <p className="text-sm text-yellow-700">
-              User ID: {user?.id || createdUserId}<br />
-              Is Guest: {isGuest?.toString()}<br />
-              First Order (DB): {user?.first_order?.toString()}<br />
-              First Order Discount: ₦{displayFirstOrderDiscount.toFixed(2)}<br />
-              Cart Subtotal: ₦{cart.subtotal.toFixed(2)}<br />
-              Guest Form Submitted: {guestFormSubmitted?.toString()}<br />
-              User Data Refreshed: {userDataRefreshed?.toString()}<br />
-              Idempotency Key: {idempotencyKey}
-            </p>
-            <button 
-              onClick={refreshUserData}
-              className="mt-2 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
-            >
-              Refresh User Data
-            </button>
-            <button 
-              onClick={debugButtonDisabled}
-              className="mt-2 ml-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-            >
-              Debug Button
-            </button>
-          </div>
-        )}
         
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">

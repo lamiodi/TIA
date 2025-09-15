@@ -324,15 +324,15 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden mt-8">
       <div className="p-6 sm:p-8 lg:p-12">
-        <div className="flex flex-col items-start sm:items-center sm:flex-row sm:justify-between mb-8 gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-Manrope font-bold text-Primarycolor mb-2">Customer Reviews</h2>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-              <div className="flex items-center  space-x-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-6">
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-Inter font-bold text-Primarycolor mb-3">Customer Reviews</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="flex items-center space-x-3">
                 <StarRating rating={Math.round(averageRating)} />
-                <span className="text-xl sm:text-2xl font-bold text-gray-900 font-Manrope">{averageRating.toFixed(1)}</span>
+                <span className="text-xl sm:text-2xl font-bold text-gray-900 font-Inter">{averageRating.toFixed(1)}</span>
               </div>
-              <span className="text-gray-600 font-Manrope">Based on {totalReviews} reviews</span>
+              <span className="text-gray-600 font-Jost text-sm sm:text-base">Based on {totalReviews} reviews</span>
             </div>
           </div>
           <button
@@ -349,9 +349,9 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
             Write a Review
           </button>
         </div>
-        <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-8 mb-8">
-          <div className="lg:col-span-1 mb-6 lg:mb-0">
-            <h3 className="font-semibold text-gray-900 mb-4 font-Manrope">Rating Breakdown</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
+          <div className="lg:col-span-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">Rating Breakdown</h3>
             <div className="space-y-3">
               {ratingDistribution.map(({ rating, count, percentage }) => (
                 <div key={rating} className="flex items-center space-x-3">
@@ -371,13 +371,13 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
             </div>
           </div>
           <div className="lg:col-span-2">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-                <div className="relative mb-2 sm:mb-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                <div className="relative min-w-0 flex-1 sm:flex-none sm:w-40">
                   <select
                     value={filterRating}
                     onChange={(e) => setFilterRating(e.target.value)}
-                    className="appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-2 pr-8 text-sm font-medium hover:border-gray-300 focus:border-gray-900 focus:outline-none transition-colors w-full"
+                    className="appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 pr-8 text-sm font-medium hover:border-gray-300 focus:border-gray-900 focus:outline-none transition-colors w-full font-Jost"
                   >
                     <option value="all">All Ratings</option>
                     <option value="5">5 Stars</option>
@@ -388,14 +388,14 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                   </select>
                   <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
-                <div className="relative">
+                <div className="relative min-w-0 flex-1 sm:flex-none sm:w-40">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-2 pr-8 text-sm font-medium hover:border-gray-300 focus:border-gray-900 focus:outline-none transition-colors w-full"
+                    className="appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 pr-8 text-sm font-medium hover:border-gray-300 focus:border-gray-900 focus:outline-none transition-colors w-full font-Jost"
                   >
                     <option value="newest">Newest First</option>
-                    <option value="oldest ">Oldest First</option>
+                    <option value="oldest">Oldest First</option>
                     <option value="highest">Highest Rated</option>
                     <option value="lowest">Lowest Rated</option>
                     <option value="helpful">Most Helpful</option>
@@ -403,23 +403,23 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                   <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 font-Jost whitespace-nowrap">
                 Showing {filteredReviews.length} of {totalReviews} reviews
               </div>
             </div>
           </div>
         </div>
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700">
+          <div className="mb-8 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 font-Jost">
             {error}
           </div>
         )}
         {showWriteReview && isAuthenticated() && (
           <div className="mb-8 p-6 bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Write Your Review</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Inter">Write Your Review</h3>
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-Manrope">Rating</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Rating</label>
                 <StarRating
                   rating={newReview.rating}
                   size="w-8 h-8"
@@ -428,29 +428,29 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Review Title</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Review Title</label>
                 <input
                   type="text"
                   value={newReview.title}
                   onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
                   placeholder="Summarize your experience"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:outline-none transition-colors font-Jost"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Your Review</label>
                 <textarea
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                   placeholder={`Tell others about your experience with this ${bundleId ? 'bundle' : 'product'}`}
                   rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:outline-none transition-colors resize-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:outline-none transition-colors resize-none font-Jost"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Images (Max 3)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Upload Images (Max 3)</label>
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center ${
@@ -458,7 +458,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                   } hover:border-gray-300 transition-colors`}
                 >
                   <input {...getInputProps()} />
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 font-Jost">
                     {isDragActive
                       ? 'Drop the images here...'
                       : 'Drag & drop images here, or click to select (max 3, JPG/PNG, 9MB each)'}
@@ -489,7 +489,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 <button
                   type="submit"
                   disabled={uploading}
-                  className={`w-full sm:w-auto px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all duration-200 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-full sm:w-auto px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all duration-200 font-Jost ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {uploading ? 'Submitting...' : 'Submit Review'}
                 </button>
@@ -500,7 +500,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                     setImageFiles([]);
                     imageFiles.forEach((file) => URL.revokeObjectURL(file.preview));
                   }}
-                  className="w-full sm:w-auto px-6 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-gray-300 transition-all duration-200"
+                  className="w-full sm:w-auto px-6 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-gray-300 transition-all duration-200 font-Jost"
                 >
                   Cancel
                 </button>
@@ -510,73 +510,84 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
         )}
         <div className="space-y-6">
           {filteredReviews.length === 0 ? (
-            <p className="text-gray-600 text-center">No reviews yet for this {bundleId ? 'bundle' : 'product'}.</p>
+            <div className="text-center py-12">
+              <p className="text-gray-600 font-Jost text-lg">No reviews yet for this {bundleId ? 'bundle' : 'product'}.</p>
+              <p className="text-gray-500 font-Jost text-sm mt-2">Be the first to share your experience!</p>
+            </div>
           ) : (
             filteredReviews.map((review) => (
-              <div key={review.id} className="p-6 border-2 border-gray-100 rounded-2xl hover:border-gray-200 transition-all duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br font-Jost from-gray-200 to-gray-300 rounded-full flex items-center justify-center font-bold text-gray-600">
+              <div key={review.id} className="p-6 sm:p-8 border-2 border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-lg transition-all duration-300 bg-white">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center font-bold text-blue-700 font-Inter text-sm sm:text-base flex-shrink-0">
                       {review.user_name && typeof review.user_name === 'string'
                         ? review.user_name.split(' ').map((n) => n[0]).join('').toUpperCase()
                         : 'AN'}
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="font-semibold text-gray-900 font-Manrope">{review.user_name || 'Anonymous'}</h4>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-2">
-                        <StarRating rating={review.rating} />
-                        <span className="text-sm text-gray-500 font-Jost">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900 font-Inter text-base sm:text-lg truncate">{review.user_name || 'Anonymous'}</h4>
+                        <span className="text-sm text-gray-500 font-Jost mt-1 sm:mt-0 sm:ml-4 flex-shrink-0">
                           {review.date ? new Date(review.date).toLocaleDateString() : 'Unknown Date'}
                         </span>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <StarRating rating={review.rating} />
+                        <span className="text-sm text-gray-600 font-Jost">({review.rating}/5)</span>
+                      </div>
                     </div>
                   </div>
-                  <button className="mt-2 sm:mt-0 p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <button className="mt-3 sm:mt-0 p-2 hover:bg-gray-100 rounded-lg transition-colors self-start">
                     <MoreHorizontal className="w-4 h-4 text-gray-400" />
                   </button>
                 </div>
-                <div className="mb-4">
-                  <h5 className="font-semibold text-gray-900 mb-2 font-Manrope">{review.title || 'No Title'}</h5>
-                  <p className="text-gray-700 leading-relaxed font-Jost">{review.comment || 'No comment provided.'}</p>
+                <div className="mb-6">
+                  <h5 className="font-semibold text-gray-900 mb-3 font-Inter text-lg">{review.title || 'No Title'}</h5>
+                  <p className="text-gray-700 leading-relaxed font-Jost text-base">{review.comment || 'No comment provided.'}</p>
                 </div>
                 {Array.isArray(review.images) && review.images.length > 0 && (
-                  <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {review.images.map((url, index) => (
-                      <img
-                        key={index}
-                        src={url}
-                        alt={`Review image ${index + 1}`}
-                        className="w-full aspect-auto rounded-lg"
-                      />
+                      <div key={index} className="relative group overflow-hidden rounded-xl">
+                        <img
+                          src={url}
+                          alt={`Review image ${index + 1}`}
+                          className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-xl"></div>
+                      </div>
                     ))}
                   </div>
                 )}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-100 gap-4">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm text-gray-600 font-Jost mr-3">Was this helpful?</span>
                     <button
                       onClick={() => handleVote(review.id, 'helpful')}
-                      className={`flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 transition-colors ${
-                        userVotes[review.id] === 'helpful' ? 'text-gray-900 font-semibold' : ''
+                      className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-sm transition-all duration-200 font-Jost ${
+                        userVotes[review.id] === 'helpful' 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                       }`}
                       disabled={userVotes[review.id]}
                     >
-                      <ThumbsUp className="w-4 h-4 font-Jost" />
-                      <span>Helpful ({review.helpful || 0})</span>
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                      <span>Yes ({review.helpful || 0})</span>
                     </button>
                     <button
                       onClick={() => handleVote(review.id, 'not_helpful')}
-                      className={`flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 transition-colors ${
-                        userVotes[review.id] === 'not_helpful' ? 'text-gray-900 font-semibold' : ''
+                      className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-sm transition-all duration-200 font-Jost ${
+                        userVotes[review.id] === 'not_helpful' 
+                          ? 'bg-red-100 text-red-700 border border-red-200' 
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                       }`}
                       disabled={userVotes[review.id]}
                     >
-                      <ThumbsDown className="w-4 h-4 font-Jost" />
-                      <span>Not helpful</span>
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                      <span>No</span>
                     </button>
                   </div>
-                  <button className="text-sm font-Jost text-gray-600 hover:text-gray-900 transition-colors">
+                  <button className="text-sm font-Jost text-gray-500 hover:text-gray-700 transition-colors self-start sm:self-center">
                     Report
                   </button>
                 </div>
@@ -585,10 +596,10 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
           )}
         </div>
         {filteredReviews.length > 0 && page * 10 < totalReviews && (
-          <div className="text-center mt-8">
+          <div className="text-center mt-10">
             <button
               onClick={() => setPage(page + 1)}
-              className="w-full sm:w-auto px-8 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-gray-300 hover:shadow-md transition-all duration-200 font-Manrope"
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-Jost"
             >
               Load More Reviews
             </button>

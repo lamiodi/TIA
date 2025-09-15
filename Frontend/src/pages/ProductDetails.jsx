@@ -5,12 +5,10 @@ import axios from "axios"
 import {
   ChevronLeft,
   ChevronRight,
-  Heart,
   Minus,
   Plus,
   Share2,
   ShoppingCart,
-  Star,
   Check,
   Truck,
   Shield,
@@ -43,7 +41,7 @@ const ProductDetails = () => {
   const [selectedSize, setSelectedSize] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [bundleType, setBundleType] = useState("3-in-1")
-  const [isWishlisted, setIsWishlisted] = useState(false)
+
   const [selectedBundleVariants, setSelectedBundleVariants] = useState({})
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [isGuest, setIsGuest] = useState(false)
@@ -449,18 +447,7 @@ const ProductDetails = () => {
       setIsAddingToCart(false)
     }
   }
-  const toggleWishlist = () => {
-    if (!isAuthenticated()) {
-      toastError("Please log in to add items to wishlist")
-      navigate(`/login`, {
-        state: {
-          from: `/product/${id}${variantParam ? `?variant=${variantParam}` : ""}`,
-        },
-      })
-      return
-    }
-    setIsWishlisted(!isWishlisted)
-  }
+
   const getBundlePrice = () => {
     if (!productData || productData.type !== "bundle") return 0
     const basePrice = Number.parseFloat(productData.data.price) || 0
@@ -535,7 +522,7 @@ const ProductDetails = () => {
         currentUrl={window.location.href}
       />
       <Navbar2 />
-      <div className="w-full border-b border-gray-800 relative" style={{
+      <div className="w-full border-b border-gray-800 relative mt-16" style={{
   background: 'linear-gradient(90deg, #1E1E1E 0%, #2A2A2A 40%, #6E6E6E 80%, #F5F5DC 100%)'
 }}>
   {/* Dark overlay for text readability */}
@@ -580,7 +567,7 @@ const ProductDetails = () => {
   {/* Bottom gradient border */}
   <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
 </div>
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pt-24 py-4">
         {/* Breadcrumb */}
         <nav className="flex mb-8 text-sm font-Jost">
           <a href="/home" className="text-gray-500 hover:text-Primarycolor">
@@ -669,23 +656,8 @@ const ProductDetails = () => {
                       <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-Inter">
                         {name}
                       </h1>
-                      <div className="flex items-center mt-2 space-x-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 font-Jost">(4.8) · 128 reviews</span>
-                      </div>
                     </div>
-                    <button
-                      onClick={toggleWishlist}
-                      className={`p-3 rounded-full transition-all duration-200 ${
-                        isWishlisted ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Heart className={`w-6 h-6 ${isWishlisted ? "fill-current" : ""}`} />
-                    </button>
+
                   </div>
                   <div className="flex flex-wrap items-baseline gap-2">
                     <p className="text-3xl font-bold text-gray-900 font-Inter">
@@ -784,7 +756,7 @@ const ProductDetails = () => {
                           <button
                             key={type}
                             onClick={() => handleBundleTypeChange(type)}
-                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Inter transition-all duration-200 ${
+                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Jost transition-all duration-200 ${
                               bundleType === type
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : "border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-md"
@@ -806,7 +778,7 @@ const ProductDetails = () => {
                             key={size.size_name}
                             onClick={() => handleSizeChange(size.size_name)}
                             disabled={size.stock_quantity === 0}
-                            className={`relative py-3 px-2 text-sm font-medium font-Inter border-2 rounded-xl transition-all duration-200 ${
+                            className={`relative py-3 px-2 text-sm font-medium font-Jost border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === size.size_name
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : size.stock_quantity > 0
@@ -828,7 +800,7 @@ const ProductDetails = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
                         Select Items
-                        <span className="text-sm font-normal text-gray-600 ml-2 font-Inter">
+                        <span className="text-sm font-normal text-gray-600 ml-2 font-Jost">
                           ({Object.keys(selectedBundleVariants).length}/{bundleType === "3-in-1" ? "3" : "5"})
                         </span>
                       </h3>
@@ -989,15 +961,15 @@ const ProductDetails = () => {
                 <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                   <div className="text-center space-y-2">
                     <Truck className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Inter">Free Shipping</p>
+                    <p className="text-xs text-gray-600 font-Jost">Free Shipping</p>
                   </div>
                   <div className="text-center space-y-2">
                     <RotateCcw className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Inter">Easy Returns</p>
+                    <p className="text-xs text-gray-600 font-Jost">Easy Returns</p>
                   </div>
                   <div className="text-center space-y-2">
                     <Shield className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Inter">2 Year Warranty</p>
+                    <p className="text-xs text-gray-600 font-Jost">2 Year Warranty</p>
                   </div>
                 </div>
               </div>
