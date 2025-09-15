@@ -912,7 +912,7 @@ const MorePage = () => {
       '--font-Jost': '"Jost", "sans-serif"'
     }}>
       <Navbar2 />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8 flex-1">
         {/* Breadcrumbs */}
         <nav aria-label="Breadcrumb" className="mb-6">
           <ol className="flex items-center space-x-2 text-sm sm:text-base">
