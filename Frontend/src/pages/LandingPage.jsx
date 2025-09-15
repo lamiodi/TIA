@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { Menu, X, Star, Shield, Truck, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar2 from '../components/Navbar2';
 import NewsletterForm from '../components/NewsletterForm';
 import Footer from '../components/Footer';
 import Button from '../components/Button';
+
+// Lazy load components for better performance
+const LocationPopup = lazy(() => import('../components/LocationPopup'));
+const WhatsAppChatWidget = lazy(() => import('../components/WhatsAppChatWidget'));
 
 const LandingPage = () => {
   const [videoError, setVideoError] = useState(false);
@@ -195,6 +199,14 @@ const LandingPage = () => {
       </main>
       {/* Footer */}
       <Footer />
+      
+      {/* Lazy-loaded components for better performance */}
+      <Suspense fallback={null}>
+        <WhatsAppChatWidget />
+      </Suspense>
+      <Suspense fallback={null}>
+        <LocationPopup />
+      </Suspense>
     </div>
   );
 };
