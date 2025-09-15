@@ -39,7 +39,7 @@ const DeliveryFeeThankYou = () => {
 
       try {
         const response = await axios.post(`${API_BASE_URL}/api/paystack/delivery-fee/verify`, { reference });
-        if (response.data.message === 'Delivery fee verified successfully' || response.data.message === 'Delivery fee already verified') {
+        if (response.data.message === 'Delivery fee payment verified successfully' || response.data.message === 'Delivery fee already verified') {
           toast.success('Delivery fee payment confirmed!');
           setStatus('success');
         } else {

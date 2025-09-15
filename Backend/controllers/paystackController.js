@@ -362,7 +362,8 @@ export const initializeDeliveryFeePayment = async (req, res) => {
 
 export const verifyDeliveryFeePayment = async (req, res) => {
   try {
-    const { reference } = req.query || req.body;
+    // Handle both GET (query params) and POST (request body) requests
+    const reference = req.method === 'GET' ? req.query.reference : req.body.reference;
     
     if (!reference) {
       console.error('Missing reference for delivery fee payment verification');

@@ -21,7 +21,6 @@ export const AdminAuthProvider = ({ children }) => {
       if (token && storedAdmin) {
         try {
           const parsedAdmin = JSON.parse(storedAdmin);
-          console.log('AdminAuthProvider: Parsed admin', parsedAdmin);
           
           // Check if the admin object has the required fields
           if (parsedAdmin && (parsedAdmin.id || parsedAdmin.userId)) {
@@ -31,7 +30,6 @@ export const AdminAuthProvider = ({ children }) => {
               id: parsedAdmin.id || parsedAdmin.userId,
               isAdmin: parsedAdmin.isAdmin !== false // Ensure isAdmin is defined
             };
-            console.log('AdminAuthProvider: Setting admin with standardized id', adminWithId);
             setAdmin(adminWithId);
           } else {
             throw new Error('Invalid admin object: missing required id field');

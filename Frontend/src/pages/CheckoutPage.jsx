@@ -966,7 +966,7 @@ const CheckoutPage = () => {
         callback_url: callbackUrl,
       };
       
-      console.log('Payment payload:', paymentData);
+
       
       // Try to initialize payment with multiple retries
       let paymentResponse;
@@ -989,7 +989,6 @@ const CheckoutPage = () => {
           break;
         } catch (err) {
           retryCount++;
-          console.warn(`Payment initialization attempt ${retryCount} failed:`, err.message);
           
           if (retryCount >= maxRetries) {
             throw new Error('Payment initialization failed after multiple attempts');
@@ -1042,13 +1041,9 @@ const CheckoutPage = () => {
       } else if (authorizationUrl) {
         window.location.href = authorizationUrl;
       } else {
-        console.error('Neither access_code nor authorization_url found in payment response:', paymentResponse.data);
         throw new Error('Failed to get payment information');
       }
     } catch (err) {
-      console.error('Payment processing error:', err);
-      console.error('Error response:', err.response?.data);
-      
       // Handle specific error cases
       let errorMessage = 'Failed to process order';
       
@@ -1101,7 +1096,6 @@ const CheckoutPage = () => {
         await processOrder();
       }
     } catch (err) {
-      console.error('Error in place order:', err);
     } finally {
       setLoading(false);
       setIsProcessing(false);
@@ -1721,22 +1715,7 @@ const CheckoutPage = () => {
     );
   }
   
-  // Debug information to help identify why the button is disabled
-  const debugButtonDisabled = () => {
-    console.log('Button disabled check:', {
-      loading,
-      isProcessing,
-      shippingFormAddressLine1: !!shippingForm.address_line_1,
-      shippingAddressId: !!shippingAddressId,
-      billingFormAddressLine1: !!billingForm.address_line_1,
-      billingAddressId: !!billingAddressId,
-      isNigeria,
-      shippingMethod: !!shippingMethod,
-      isGuest,
-      createdUserId: !!createdUserId,
-      guestFormSubmitted
-    });
-  };
+
   
   return (
     <div 
