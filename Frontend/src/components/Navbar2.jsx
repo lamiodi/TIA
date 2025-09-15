@@ -31,7 +31,7 @@ export default function Navbar2() {
       '/forgot-password',
       '/help',
       '/more',
-      '/thankyou'
+      '/thank-you'
     ];
     
     return whiteBackgroundPages.some(path => location.pathname.includes(path));
