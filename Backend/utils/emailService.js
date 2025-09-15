@@ -5,14 +5,27 @@ dotenv.config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Logo header function for all email templates
+const getLogoHeader = () => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  return `
+    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0;">
+      <img src="${frontendUrl}/favicon.png" alt="The Tia Brand Logo" style="height: 60px; width: auto; margin-bottom: 12px;" />
+      <h1 style="font-size: 28px; color: #000000; margin: 0; font-weight: 700; letter-spacing: 0.5px;">THE TIA BRAND</h1>
+      <p style="font-size: 14px; color: #666666; margin: 4px 0 0 0; font-style: italic;">Premium Fashion & Lifestyle</p>
+    </div>
+  `;
+};
+
 export const sendResetEmail = async (to, token) => {
   const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${token}`;
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">Reset Your Password</h2>
         <p style="font-size: 16px; color: #444444; margin-bottom: 24px; text-align: center;">
-          Tap the button below to reset your password.
+          Click the button below to reset your password. This link is valid for 15 minutes.
         </p>
         <div style="text-align: center; margin: 24px 0;">
           <a href="${resetLink}" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; display: inline-block;">
@@ -56,7 +69,9 @@ export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerN
           Great news! The delivery fee payment for order <strong>#${orderId}</strong> has been successfully processed and confirmed.
         </p>
         <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
-          The customer has completed their payment, and you can now proceed with shipping arrangements. Please update the order status and coordinate with DHL for delivery.
+          <strong>Next Steps:</strong> The customer has completed their delivery fee payment. Please:
+          <br>1. Coordinate with DHL for international shipping
+          <br>2. Proceed with order fulfillment
         </p>
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
@@ -98,12 +113,13 @@ export const sendAdminDeliveryFeeNotification = async (orderId, userName, countr
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">🌍 New International Order - DHL Quote Required</h2>
         <p style="font-size: 16px; color: #444444; margin-bottom: 16px;">
           A new international order <strong>#${orderId}</strong> has been placed and requires immediate attention for DHL delivery fee calculation.
         </p>
         <p style="font-size: 14px; color: #666666; margin-bottom: 20px;">
-          Please contact DHL to obtain an accurate shipping quote for this destination and set the delivery fee in the admin dashboard.
+          <strong>Action Required:</strong> Contact DHL to obtain an accurate shipping quote for this international destination, then set the delivery fee in the admin dashboard.
         </p>
         <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #007bff;">
           <p style="font-size: 14px; color: #333333; margin: 0 0 8px 0;">
@@ -369,6 +385,7 @@ export const sendOrderConfirmationEmail = async (to, name, orderId, total, curre
     const html = `
       <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          ${getLogoHeader()}
           <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Order Confirmation</h2>
           <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px; text-align: center;">
             Dear ${name},<br>Thank you for your order! Your order #${orderId} has been successfully placed.
@@ -464,6 +481,7 @@ export const sendOrderStatusUpdateEmail = async (to, name, orderId, status, addi
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">
           ${status === 'delivery_fee_paid' ? 'Delivery Fee Payment Confirmation' : 'Order Status Update'}
         </h2>
@@ -537,6 +555,7 @@ export const sendDeliveryFeePaymentConfirmation = async (to, userName, orderId, 
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">Delivery Fee Payment Confirmed</h2>
         <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px;">
           Dear ${userName},<br>Your delivery fee payment for order #${orderId} has been successfully processed.
@@ -582,12 +601,16 @@ export const sendAdminPaymentConfirmationNotification = async (orderId, customer
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #1f2937; margin-bottom: 20px; text-align: center;">💳 Payment Successfully Received</h2>
         <p style="font-size: 16px; color: #4b5563; margin-bottom: 16px;">
           Excellent! Payment for order <strong>#${orderId}</strong> has been successfully processed and confirmed.
         </p>
         <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
-          The customer's payment has been secured. You can now proceed with order fulfillment and prepare the items for shipping.
+          <strong>Next Steps:</strong> The customer's payment has been secured. Please:
+          <br>1. Prepare the order items for packaging
+          <br>2. Update inventory levels accordingly
+          <br>3. Coordinate shipping logistics
         </p>
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">
@@ -631,9 +654,10 @@ export const sendDeliveryFeePaymentLinkEmail = async (to, userName, orderId, del
   const html = `
     <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        ${getLogoHeader()}
         <h2 style="font-size: 24px; color: #000000; margin-bottom: 20px; text-align: center;">International Delivery Fee Payment</h2>
         <p style="font-size: 16px; color: #444444; margin-bottom: 24px; text-align: center;">
-          Dear ${userName},<br>Please complete your delivery fee payment for order #${orderId}.
+          Dear ${userName},<br>Your international order #${orderId} requires a delivery fee payment to proceed with shipping.
         </p>
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-size: 14px; color: #6b7280; margin: 0 0 8px 0;">

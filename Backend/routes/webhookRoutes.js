@@ -196,10 +196,10 @@ async function handleSuccessfulPayment(reference, res) {
   
   try {
     await sql.begin(async sql => {
-      // Update order status
+      // Update order status - keep status as 'Pending' for admin review
       await sql`
         UPDATE orders 
-        SET payment_status = 'completed', status = 'processing', updated_at = NOW() 
+        SET payment_status = 'completed', updated_at = NOW() 
         WHERE reference = ${reference}
       `;
       
