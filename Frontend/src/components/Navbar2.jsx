@@ -120,7 +120,7 @@ export default function Navbar2() {
               {/* Left-side Navigation Links for large screens - SHOP, CONTACT, MORE */}
               <div className="hidden lg:flex items-center gap-6 ml-6">
                 <Link 
-                  to="/shopall" 
+                  to="/shop" 
                   className={`text-sm font-medium hover:opacity-80 transition-opacity ${
                     isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
                   }`}
@@ -311,7 +311,7 @@ export default function Navbar2() {
                 aria-label="Product categories"
               >
                 <Link 
-                  to="/shopall" 
+                  to="/shop" 
                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
                 >
                   SHOP

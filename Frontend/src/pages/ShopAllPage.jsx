@@ -147,7 +147,7 @@ const ShopAllPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const endpoint = category ? `/shopall?category=${category}` : `/shopall`;
+      const endpoint = category ? `/api/shopall?category=${category}` : `/api/shopall`;
       const res = await api.get(endpoint);
   
       if (!Array.isArray(res.data)) {

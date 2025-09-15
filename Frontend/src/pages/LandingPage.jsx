@@ -119,7 +119,7 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">THE MICHEAL JORDAN</h3>
                   <p className="text-lg mb-4">₦19,999</p>
-                  <Link to="/shopall?category=briefs">
+                  <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
                     </button>
@@ -139,7 +139,7 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">YOU THE BOSS</h3>
                   <p className="text-lg mb-4">₦19,000</p>
-                  <Link to="/shopall?category=briefs">
+                  <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
                     </button>
@@ -159,7 +159,7 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">HIS AND HERS</h3>
                   <p className="text-lg mb-4">₦103,850</p>
-                  <Link to="/shopall">
+                  <Link to="/shop">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
                     </button>
@@ -179,7 +179,7 @@ const LandingPage = () => {
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">EVSS TEA I</h3>
                   <p className="text-lg mb-4">₦52,850.00</p>
-                  <Link to="/shopall?category=gymwear">
+                  <Link to="/shop?category=gymwear">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
                     </button>
