@@ -39,7 +39,7 @@ const SearchResults = () => {
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/shopall/search?q=${encodeURIComponent(searchQuery)}`;
+      let url = `/shopall/search?q=${encodeURIComponent(searchQuery)}`;
       
       // Add category filter if provided
       if (searchCategory) {
