@@ -250,69 +250,8 @@ const ShopAllPage = () => {
   };
 
   const handleAddToCart = async (id, name, isProduct) => {
-    try {
-      if (!user || !user.id) {
-        console.log('ShopAllPage.jsx: No user authenticated, redirecting to /login');
-        navigate('/login', { state: { from: `/shop${category ? `?category=${category}` : ''}` } });
-        return;
-      }
-      if (isProduct) {
-        // Fetch product details to get variant and size
-        const res = await api.get(`/products/${id}`);
-        const product = res.data;
-        if (product.type !== 'product' || !product.data.variants?.length) {
-          alert('Invalid product data');
-          return;
-        }
-        const variant = product.data.variants[0]; // Use first variant
-        const size = variant.sizes?.[0]; // Use first size
-        if (!variant || !size) {
-          alert('No valid variant or size available');
-          return;
-        }
-        await api.post('/cart', {
-          user_id: user.id,
-          variant_id: variant.variant_id,
-          size_id: size.size_id,
-          quantity: 1,
-          color_name: variant.color_name || 'Default',
-          size_name: size.size_name || 'M',
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        alert(`${name} added to cart!`);
-      } else {
-        // Fetch bundle details
-        const res = await api.get(`/products/${id}`);
-        const bundle = res.data;
-        if (bundle.type !== 'bundle' || !bundle.data.items?.length) {
-          alert('Invalid bundle data');
-          return;
-        }
-        // Use first variant and size for simplicity
-        const variant = bundle.data.items[0]?.all_variants?.[0];
-        const size = variant?.sizes?.[0];
-        if (!variant || !size) {
-          alert('No valid variant or size available for bundle');
-          return;
-        }
-        await api.post('/cart', {
-          user_id: user.id,
-          bundle_id: id,
-          quantity: 1,
-          items: [{
-            variant_id: variant.variant_id,
-            size_id: size.size_id,
-          }],
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        alert(`${name} bundle added to cart!`);
-      }
-    } catch (err) {
-      console.error('❌ Add to cart error:', err);
-      alert('Failed to add to cart. Please try again.');
-    }
+    // Redirect to product details page for proper size/color selection
+    navigate(`/product/${id}`);
   };
 
   const handleImageError = (e) => {
