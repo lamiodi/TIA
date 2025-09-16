@@ -4,9 +4,9 @@ import axios from 'axios';
 import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus, CreditCard } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
-import BillingAddressForm from '../components/BillingAddressForm';
-import ShippingAddressForm from '../components/ShippingAddressForm';
-import WhatsAppChatWidget from '../components/WhatsAppChatWidget';
+const BillingAddressForm = React.lazy(() => import('../components/BillingAddressForm'));
+const ShippingAddressForm = React.lazy(() => import('../components/ShippingAddressForm'));
+const WhatsAppChatWidget = React.lazy(() => import('../components/WhatsAppChatWidget'));
 import { useAuth } from '../context/AuthContext';
 import { useUserManager } from '../hooks/useUserManager';
 import { CurrencyContext } from './CurrencyContext';
@@ -56,11 +56,7 @@ const GuestCheckoutModal = React.memo(({
         </button>
       </div>
       
-      <div className="mb-4">
-        <p className="text-Accent font-Jost text-sm">
-          Your order details will be saved automatically. We'll send you order updates via email.
-        </p>
-      </div>
+
       
       {existingUserType && (
         <div className={`mb-4 p-3 rounded-lg ${
@@ -214,21 +210,11 @@ const GuestCheckoutModal = React.memo(({
           )}
         </div>
         
-        {/* Enhanced info box with solid colors */}
-        <div className="bg-Primarycolor/10 border border-Primarycolor/20 rounded-xl p-3">
-          <div className="flex items-start">
-            <div className="p-1 bg-Primarycolor rounded-lg mr-3 mt-0.5">
-              <CheckCircle className="h-3 w-3 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-Primarycolor font-Jost mb-1">
-                Temporary Account Creation
-              </p>
-              <p className="text-xs text-Accent font-Jost leading-relaxed">
-                We'll create a secure temporary account and send you order updates plus instructions to set a password for future access.
-              </p>
-            </div>
-          </div>
+        {/* Order details info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <p className="text-sm text-blue-800 font-Jost leading-relaxed">
+            Your order details will be saved automatically. We'll send you order updates via email.
+          </p>
         </div>
         
         {existingUserType === 'permanent' && (
@@ -258,7 +244,7 @@ const GuestCheckoutModal = React.memo(({
             {loading ? (
               <>
                 <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                Creating Account...
+                Processing...
               </>
             ) : (
               <>
@@ -270,25 +256,17 @@ const GuestCheckoutModal = React.memo(({
             )}
           </button>
           
-          {/* Secondary actions */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/cart')}
-              className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-xl text-Accent hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Return to Cart
-            </button>
-            <button
-              type="button"
-              onClick={onLoginRedirect}
-              className="flex-1 px-3 py-2 border-2 border-Primarycolor/20 rounded-xl text-Primarycolor hover:bg-Primarycolor/10 hover:border-Primarycolor/30 flex items-center justify-center font-Jost font-medium transition-all duration-200"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Log In Instead
-            </button>
-          </div>
+          {/* Secondary action */}
+          <button
+            type="button"
+            onClick={() => navigate('/cart')}
+            className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-Accent hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Return to Cart
+          </button>
+          
+
         </div>
       </form>
     </div>
@@ -613,8 +591,8 @@ const CheckoutPage = () => {
     }
   };
   
-  // Validate guest form
-  const validateGuestForm = () => {
+  // Memoized guest form validation to prevent unnecessary recalculations
+  const validateGuestForm = useCallback(() => {
     const errors = {};
     if (!guestForm.name.trim()) {
       errors.name = 'Please enter your full name';
@@ -639,7 +617,7 @@ const CheckoutPage = () => {
     
     setGuestFormErrors({});
     return true;
-  };
+  }, [guestForm.name, guestForm.email, guestForm.phone_number]);
   
   // Handle guest form submission
   const handleGuestFormSubmit = async (e) => {
@@ -1401,50 +1379,60 @@ const CheckoutPage = () => {
     return () => document.body.removeChild(script);
   }, []);
   
-  useEffect(() => {
-    const fetchCartAndAddresses = async () => {
-      // Check if user is authenticated
-      if (!isAuthenticated() && !createdUserId) {
-        // Load guest cart from localStorage
-        const guestCartData = localStorage.getItem('guestCart');
-        if (guestCartData) {
-          try {
-            const guestCart = JSON.parse(guestCartData);
-            setCart(guestCart);
-            setIsGuest(true); // Set isGuest to true
-            setShowGuestModal(true); // Show the modal for guests
-            setLoading(false);
-            return;
-          } catch (err) {
-            console.error('Error parsing guest cart:', err);
-          }
+  // Memoized fetch function to prevent unnecessary re-creation
+  const fetchCartAndAddresses = useCallback(async () => {
+    // Check if user is authenticated
+    if (!isAuthenticated() && !createdUserId) {
+      // Load guest cart from localStorage
+      const guestCartData = localStorage.getItem('guestCart');
+      if (guestCartData) {
+        try {
+          const guestCart = JSON.parse(guestCartData);
+          setCart(guestCart);
+          setIsGuest(true);
+          setShowGuestModal(true);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.error('Error parsing guest cart:', err);
         }
-        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
-        setIsGuest(true); // Set isGuest to true
-        setShowGuestModal(true); // Show the modal for guests
+      }
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+      setIsGuest(true);
+      setShowGuestModal(true);
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const userId = createdUserId || getUserId();
+      
+      // If we have a createdUserId but no token, we don't need to fetch addresses
+      if (createdUserId && !isAuthenticated()) {
+        setIsGuest(true);
         setLoading(false);
         return;
       }
       
-      setLoading(true);
-      try {
-        const userId = createdUserId || getUserId();
-        
-        // If we have a createdUserId but no token, we don't need to fetch addresses
-        if (createdUserId && !isAuthenticated()) {
-          // This is a guest user with a created temporary account
-          setIsGuest(true); // Ensure isGuest is set to true
-          setLoading(false);
-          return;
-        }
-        
-        const token = getToken();
-        
-        const cartResponse = await axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
+      const token = getToken();
+      
+      // Use Promise.allSettled for parallel API calls with better error handling
+      const [cartResult, shippingResult, billingResult] = await Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/cart/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        const cartData = cartResponse.data?.data || cartResponse.data;
+        }),
+        axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ]);
+      
+      // Handle cart data
+      if (cartResult.status === 'fulfilled') {
+        const cartData = cartResult.value.data?.data || cartResult.value.data;
         
         if (!cartData.cartId || !cartData.items?.length) {
           setError('Your cart is empty. Please add items to proceed.');
@@ -1454,78 +1442,70 @@ const CheckoutPage = () => {
         }
         
         setCart(cartData);
-        setIsGuest(false); // Set isGuest to false for authenticated users
-        
-        try {
-          const shippingResponse = await axios.get(`${API_BASE_URL}/api/addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('Shipping addresses response:', shippingResponse.data);
-          
-          let shippingData = shippingResponse.data;
-          if (shippingData && !Array.isArray(shippingData)) {
-            shippingData = [shippingData];
-          } else if (shippingData && Array.isArray(shippingData.data)) {
-            shippingData = shippingData.data;
-          } else if (!shippingData) {
-            shippingData = [];
-          }
-          
-          setShippingAddresses(shippingData);
-          if (shippingData.length > 0) {
-            setShippingAddressId(String(shippingData[0].id));
-          } else {
-            // Automatically show shipping form for logged-in users with no addresses
-            setShowShippingForm(true);
-          }
-        } catch (err) {
-          console.error('Error fetching shipping addresses:', err);
-          toast.error(`Failed to fetch shipping addresses: ${err.response?.data?.error || err.message}`);
-          setShippingAddresses([]);
-        }
-        
-        try {
-          const billingResponse = await axios.get(`${API_BASE_URL}/api/billing-addresses/user/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          console.log('Billing addresses response:', billingResponse.data);
-          
-          let billingData = billingResponse.data;
-          if (billingData && !Array.isArray(billingData)) {
-            billingData = [billingData];
-          } else if (billingData && Array.isArray(billingData.data)) {
-            billingData = billingData.data;
-          } else if (!billingData) {
-            billingData = [];
-          }
-          
-          setBillingAddresses(billingData);
-          if (billingData.length > 0) {
-            setBillingAddressId(String(billingData[0].id));
-          } else {
-            // Automatically show billing form for logged-in users with no addresses
-            setShowBillingForm(true);
-          }
-        } catch (err) {
-          console.error('Error fetching billing addresses:', err);
-          toast.error(`Failed to fetch billing addresses: ${err.response?.data?.error || err.message}`);
-          setBillingAddresses([]);
-        }
-        
-        toast.success('Checkout data loaded successfully');
-      } catch (err) {
-        const errorMessage = err.message || 'Unknown error';
-        setError(`Failed to load checkout data: ${errorMessage}`);
-        toast.error(`Failed to load checkout data: ${errorMessage}`);
-      } finally {
-        setLoading(false);
+        setIsGuest(false);
+      } else {
+        throw new Error('Failed to fetch cart data');
       }
-    };
-    
+      
+      // Handle shipping addresses
+      if (shippingResult.status === 'fulfilled') {
+        let shippingData = shippingResult.value.data;
+        if (shippingData && !Array.isArray(shippingData)) {
+          shippingData = [shippingData];
+        } else if (shippingData && Array.isArray(shippingData.data)) {
+          shippingData = shippingData.data;
+        } else if (!shippingData) {
+          shippingData = [];
+        }
+        
+        setShippingAddresses(shippingData);
+        if (shippingData.length > 0) {
+          setShippingAddressId(String(shippingData[0].id));
+        } else {
+          setShowShippingForm(true);
+        }
+      } else {
+        console.error('Error fetching shipping addresses:', shippingResult.reason);
+        setShippingAddresses([]);
+      }
+      
+      // Handle billing addresses
+      if (billingResult.status === 'fulfilled') {
+        let billingData = billingResult.value.data;
+        if (billingData && !Array.isArray(billingData)) {
+          billingData = [billingData];
+        } else if (billingData && Array.isArray(billingData.data)) {
+          billingData = billingData.data;
+        } else if (!billingData) {
+          billingData = [];
+        }
+        
+        setBillingAddresses(billingData);
+        if (billingData.length > 0) {
+          setBillingAddressId(String(billingData[0].id));
+        } else {
+          setShowBillingForm(true);
+        }
+      } else {
+        console.error('Error fetching billing addresses:', billingResult.reason);
+        setBillingAddresses([]);
+      }
+      
+      toast.success('Checkout data loaded successfully');
+    } catch (err) {
+      const errorMessage = err.message || 'Unknown error';
+      setError(`Failed to load checkout data: ${errorMessage}`);
+      toast.error(`Failed to load checkout data: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [createdUserId, navigate]);
+  
+  useEffect(() => {
     if (!authLoading && !contextLoading) {
       fetchCartAndAddresses();
     }
-  }, [user, authLoading, contextLoading, navigate, createdUserId]);
+  }, [authLoading, contextLoading, fetchCartAndAddresses]);
   
   // Update billing address when shipping address changes if option is 'same'
   useEffect(() => {
@@ -1619,25 +1599,47 @@ const CheckoutPage = () => {
   const addressCountry = shippingForm.country || country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
   
-  // Always use NGN for calculations
-  const subtotal = Number(cart?.subtotal) || 0;
-  const tax = isNigeria ? 0 : Number((subtotal * 0.05).toFixed(2));
-  const shippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+  // Memoize expensive calculations to prevent unnecessary recalculations
+  const calculatedValues = useMemo(() => {
+    const subtotal = Number(cart?.subtotal) || 0;
+    const tax = isNigeria ? 0 : Number((subtotal * 0.05).toFixed(2));
+    const shippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+    
+    // Calculate total discount (first order + coupon)
+    const totalDiscount = Number((firstOrderDiscount + couponDiscount).toFixed(2));
+    // Ensure total discount doesn't exceed subtotal
+    const finalDiscount = Math.min(totalDiscount, subtotal);
+    const discountedSubtotal = Number((subtotal - finalDiscount).toFixed(2));
+    const total = Number((discountedSubtotal + tax + shippingCost).toFixed(2));
+    
+    return {
+      subtotal,
+      tax,
+      shippingCost,
+      finalDiscount,
+      total,
+      displaySubtotal: subtotal,
+      displayFirstOrderDiscount: firstOrderDiscount,
+      displayCouponDiscount: couponDiscount,
+      displayTotalDiscount: finalDiscount,
+      displayTax: tax,
+      displayTotal: total
+    };
+  }, [cart?.subtotal, isNigeria, shippingMethod?.total_cost, firstOrderDiscount, couponDiscount]);
   
-  // Calculate total discount (first order + coupon)
-  const totalDiscount = Number((firstOrderDiscount + couponDiscount).toFixed(2));
-  // Ensure total discount doesn't exceed subtotal
-  const finalDiscount = Math.min(totalDiscount, subtotal);
-  const discountedSubtotal = Number((subtotal - finalDiscount).toFixed(2));
-  const total = Number((discountedSubtotal + tax + shippingCost).toFixed(2));
-  
-  // Display values
-  const displaySubtotal = subtotal;
-  const displayFirstOrderDiscount = firstOrderDiscount;
-  const displayCouponDiscount = couponDiscount;
-  const displayTotalDiscount = finalDiscount;
-  const displayTax = tax;
-  const displayTotal = total;
+  const {
+    subtotal,
+    tax,
+    shippingCost,
+    finalDiscount,
+    total,
+    displaySubtotal,
+    displayFirstOrderDiscount,
+    displayCouponDiscount,
+    displayTotalDiscount,
+    displayTax,
+    displayTotal
+  } = calculatedValues;
   
   const handleWhatsAppPayment = () => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
@@ -1676,11 +1678,58 @@ const CheckoutPage = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-Accent">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
-          <p className="mt-2 text-sm font-Jost">Loading checkout data...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar2 />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Checkout Form Skeleton */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-10 bg-gray-200 rounded"></div>
+                    <div className="h-10 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Right Column - Order Summary Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between">
+                      <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-5 bg-gray-200 rounded w-1/5"></div>
+                    </div>
+                  </div>
+                  <div className="h-12 bg-gray-200 rounded mt-6"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -1886,16 +1935,18 @@ const CheckoutPage = () => {
                           </div>
                         )
                       ) : (
-                        <ShippingAddressForm
-                          address={{ state: shippingForm, setState: setShippingForm }}
-                          onSubmit={handleShippingSubmit}
-                          onCancel={() => setShowShippingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
-                          isGuest={true}
-                          guestData={guestForm}
-                        />
+                        <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
+                          <ShippingAddressForm
+                            address={{ state: shippingForm, setState: setShippingForm }}
+                            onSubmit={handleShippingSubmit}
+                            onCancel={() => setShowShippingForm(false)}
+                            formErrors={formErrors}
+                            setFormErrors={setFormErrors}
+                            actionLoading={loading}
+                            isGuest={true}
+                            guestData={guestForm}
+                          />
+                        </React.Suspense>
                       )}
                     </div>
                     
@@ -1973,17 +2024,19 @@ const CheckoutPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <BillingAddressForm
-                          address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
-                          onCancel={() => setShowBillingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={loading}
-                          isGuest={true}
-                          guestData={guestForm}
-                          userData={null}
-                        />
+                        <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
+                          <BillingAddressForm
+                            address={{ state: billingForm, setState: setBillingForm }}
+                            onSubmit={handleBillingSubmit}
+                            onCancel={() => setShowBillingForm(false)}
+                            formErrors={formErrors}
+                            setFormErrors={setFormErrors}
+                            actionLoading={loading}
+                            isGuest={true}
+                            guestData={guestForm}
+                            userData={null}
+                          />
+                        </React.Suspense>
                       )}
                     </div>
                   </>
@@ -2084,15 +2137,17 @@ const CheckoutPage = () => {
                         <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">
                           {editingShippingAddress ? 'Edit Shipping Address' : 'Add Shipping Address'}
                         </h3>
-                        <ShippingAddressForm
-                          address={{ state: shippingForm, setState: setShippingForm }}
-                          onSubmit={handleShippingSubmit}
-                          onCancel={() => setShowShippingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={shippingAddressLoading}
-                          isGuest={false}
-                        />
+                        <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
+                          <ShippingAddressForm
+                            address={{ state: shippingForm, setState: setShippingForm }}
+                            onSubmit={handleShippingSubmit}
+                            onCancel={() => setShowShippingForm(false)}
+                            formErrors={formErrors}
+                            setFormErrors={setFormErrors}
+                            actionLoading={shippingAddressLoading}
+                            isGuest={false}
+                          />
+                        </React.Suspense>
                       </div>
                     )}
 
@@ -2251,16 +2306,18 @@ const CheckoutPage = () => {
                     {showBillingForm && (
                       <div className="p-5 md:p-6 bg-white rounded-lg shadow-md mb-6">
                         <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">Add Billing Address</h3>
-                        <BillingAddressForm
-                          address={{ state: billingForm, setState: setBillingForm }}
-                          onSubmit={handleBillingSubmit}
-                          onCancel={() => setShowBillingForm(false)}
-                          formErrors={formErrors}
-                          setFormErrors={setFormErrors}
-                          actionLoading={billingAddressLoading}
-                          isGuest={false}
-                          userData={user}
-                        />
+                        <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
+                          <BillingAddressForm
+                            address={{ state: billingForm, setState: setBillingForm }}
+                            onSubmit={handleBillingSubmit}
+                            onCancel={() => setShowBillingForm(false)}
+                            formErrors={formErrors}
+                            setFormErrors={setFormErrors}
+                            actionLoading={billingAddressLoading}
+                            isGuest={false}
+                            userData={user}
+                          />
+                        </React.Suspense>
                       </div>
                     )}
 
@@ -2768,7 +2825,9 @@ const CheckoutPage = () => {
           </>
         )}
       </div>
-      <WhatsAppChatWidget />
+      <React.Suspense fallback={<div></div>}>
+        <WhatsAppChatWidget />
+      </React.Suspense>
       <Footer />
     </div>
   );
