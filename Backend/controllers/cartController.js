@@ -190,6 +190,70 @@ const fetchCartItems = async (sql, cartId) => {
   }));
 };
 
+// Helper function to identify brief products and validate minimum quantity
+const validateBriefMinimumQuantity = async (sql, cartId) => {
+  // Get all cart items with product information
+  const cartItems = await sql`
+    SELECT 
+      ci.quantity,
+      p.name as product_name,
+      p.category,
+      b.bundle_type,
+      ci.is_bundle
+    FROM cart_items ci
+    LEFT JOIN product_variants pv ON ci.variant_id = pv.id
+    LEFT JOIN products p ON pv.product_id = p.id
+    LEFT JOIN bundles b ON ci.bundle_id = b.id
+    WHERE ci.cart_id = ${cartId}
+  `;
+
+  // Filter brief items (single products or bundles)
+  const briefItems = cartItems.filter(item => {
+    if (item.is_bundle && item.bundle_type) {
+      // Check if bundle contains briefs
+      const bundleType = item.bundle_type.toLowerCase();
+      return bundleType.includes('brief') || bundleType.includes('boxer') || 
+             bundleType.includes('underwear') || bundleType.includes('trunk');
+    } else if (item.product_name) {
+      // Check if single product is a brief
+      const productName = item.product_name.toLowerCase();
+      const category = (item.category || '').toLowerCase();
+      return category.includes('brief') || productName.includes('brief') || 
+             productName.includes('boxer') || productName.includes('underwear') || 
+             productName.includes('trunk');
+    }
+    return false;
+  });
+
+  // Calculate total brief quantity
+  const totalBriefQuantity = briefItems.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // Check if cart contains only briefs
+  const nonBriefItems = cartItems.filter(item => {
+    if (item.is_bundle && item.bundle_type) {
+      const bundleType = item.bundle_type.toLowerCase();
+      return !(bundleType.includes('brief') || bundleType.includes('boxer') || 
+               bundleType.includes('underwear') || bundleType.includes('trunk'));
+    } else if (item.product_name) {
+      const productName = item.product_name.toLowerCase();
+      const category = (item.category || '').toLowerCase();
+      return !(category.includes('brief') || productName.includes('brief') || 
+               productName.includes('boxer') || productName.includes('underwear') || 
+               productName.includes('trunk'));
+    }
+    return true; // If we can't identify the product, assume it's not a brief
+  });
+
+  const isBriefOnlyCart = briefItems.length > 0 && nonBriefItems.length === 0;
+  
+  return {
+    briefItems,
+    totalBriefQuantity,
+    isBriefOnlyCart,
+    hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3
+  };
+};
+
 // Helper function to update cart total
 const updateCartTotal = async (sql, cartId, country) => {
   const [subtotalResult] = await sql`
@@ -235,13 +299,29 @@ export const getCart = async (req, res) => {
     // Step 4: Calculate cart totals
     const { subtotal, tax, total } = calculateCartTotals(cartItems, country);
     
-    // Step 5: Update cart total in case of discrepancies
+    // Step 5: Check for brief minimum quantity requirement
+    const briefValidation = await validateBriefMinimumQuantity(sql, cartId);
+    let warningMessage = null;
+    
+    if (briefValidation.hasInsufficientBriefs) {
+      const remaining = 3 - briefValidation.totalBriefQuantity;
+      warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+    }
+    
+    // Step 6: Update cart total in case of discrepancies
     await sql`
       UPDATE cart SET total = ${total} WHERE id = ${cartId}
     `;
     
-    // Step 6: Return the cart payload
-    const payload = { cartId, subtotal, tax, total, items: cartItems };
+    // Step 7: Return the cart payload with warning if applicable
+    const payload = { 
+      cartId, 
+      subtotal, 
+      tax, 
+      total, 
+      items: cartItems,
+      ...(warningMessage && { warning: warningMessage })
+    };
     console.log('Get cart payload:', JSON.stringify(payload, null, 2));
     res.status(200).json(payload);
   } catch (err) {
@@ -297,6 +377,36 @@ export const addToCart = async (req, res) => {
       if (product_type === 'single') {
         const { base_price, color_name, size_name } = await validateSingleProduct(sql, variant_id, size_id, quantity);
         
+        // Check if this is a brief product
+        const [productInfo] = await sql`
+          SELECT p.name, p.category
+          FROM product_variants pv
+          JOIN products p ON pv.product_id = p.id
+          WHERE pv.id = ${variant_id}
+        `;
+        
+        const isBrief = productInfo && (
+          (productInfo.category || '').toLowerCase().includes('brief') ||
+          productInfo.name.toLowerCase().includes('brief') ||
+          productInfo.name.toLowerCase().includes('boxer') ||
+          productInfo.name.toLowerCase().includes('underwear') ||
+          productInfo.name.toLowerCase().includes('trunk')
+        );
+        
+        // If adding a brief, validate minimum quantity requirement
+        if (isBrief) {
+          const briefValidation = await validateBriefMinimumQuantity(sql, cart_id);
+          
+          // Calculate what the total would be after adding this item
+          const existingBriefQuantity = briefValidation.totalBriefQuantity;
+          const potentialTotalBriefs = existingBriefQuantity + quantity;
+          
+          // Enforce minimum of 3 briefs regardless of other products in cart
+          if (potentialTotalBriefs < 3) {
+            throw new Error('Minimum order quantity for briefs is 3 units. Please add more briefs to meet the minimum requirement.');
+          }
+        }
+        
         // First, let's check if there are any existing items for this variant and size
         const existingItems = await sql`
           SELECT id, quantity FROM cart_items 
@@ -351,6 +461,27 @@ export const addToCart = async (req, res) => {
       // Handle bundle
       else if (product_type === 'bundle') {
         const { bundle_price, bundle_type } = await validateBundle(sql, bundle_id, items, quantity);
+        
+        // Check if this is a brief bundle
+        const bundleTypeLower = bundle_type.toLowerCase();
+        const isBriefBundle = bundleTypeLower.includes('brief') || 
+                             bundleTypeLower.includes('boxer') || 
+                             bundleTypeLower.includes('underwear') || 
+                             bundleTypeLower.includes('trunk');
+        
+        // If adding a brief bundle, validate minimum quantity requirement
+        if (isBriefBundle) {
+          const briefValidation = await validateBriefMinimumQuantity(sql, cart_id);
+          
+          // Calculate what the total would be after adding this bundle
+          const existingBriefQuantity = briefValidation.totalBriefQuantity;
+          const potentialTotalBriefs = existingBriefQuantity + quantity;
+          
+          // Enforce minimum of 3 briefs regardless of other products in cart
+          if (potentialTotalBriefs < 3) {
+            throw new Error('Minimum order quantity for briefs is 3 units. Please add more briefs to meet the minimum requirement.');
+          }
+        }
         
         // Sort items for consistent comparison
         const sortedItems = items

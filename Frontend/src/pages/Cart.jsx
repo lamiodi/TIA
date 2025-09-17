@@ -1024,6 +1024,16 @@ const Cart = () => {
                     </button>
                   </Link>
                   
+                  {/* Warning for brief minimum quantity */}
+                  {cart.warning && (
+                    <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <p className="text-xs text-orange-700 font-Jost">{cart.warning}</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Warning for out of stock items */}
                   {cart.items.some((item) => item.item.stock_quantity === 0) && (
                     <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
