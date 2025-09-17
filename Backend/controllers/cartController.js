@@ -125,15 +125,17 @@ const fetchCartItems = async (sql, cartId) => {
         'name', p.name,
         'price', ci.price,
         'image', pi.image_url,
-        'size', ci.size_name,
+        'size', COALESCE(ci.size_name, s.size_name),
         'size_id', ci.size_id,
-        'color', ci.color_name,
+        'color', COALESCE(ci.color_name, c.color_name),
         'is_product', true,
         'stock_quantity', vs.stock_quantity
       ) AS item
     FROM cart_items ci
     JOIN product_variants pv ON ci.variant_id = pv.id
     JOIN products p ON pv.product_id = p.id
+    LEFT JOIN colors c ON pv.color_id = c.id
+    LEFT JOIN sizes s ON ci.size_id = s.id
     LEFT JOIN product_images pi ON pi.variant_id = pv.id AND pi.is_primary = TRUE
     LEFT JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ci.size_id
     WHERE ci.cart_id = ${cartId} AND ci.bundle_id IS NULL AND pv.deleted_at IS NULL AND p.deleted_at IS NULL

@@ -862,13 +862,13 @@ const CheckoutPage = () => {
             bundle_id: item.item?.is_product ? null : item.item.id,
             quantity: item.quantity || 1,
             price: basePrice,
-            size_id: item.item?.size_id || null,
+            size_id: item.size_id || null,
             image_url: item.item?.image_url || item.item?.image || (item.item?.is_product ? 
               (item.item?.product_images?.find(img => img.is_primary)?.image_url || null) : 
               (item.item?.bundle_images?.find(img => img.is_primary)?.image_url || null)),
             product_name: item.item?.name || 'Unknown Item',
             color_name: item.item?.color || null,
-            size_name: item.item?.size || null,
+            size_name: item.size_name || null,
           };
         }),
         note: orderNote,
