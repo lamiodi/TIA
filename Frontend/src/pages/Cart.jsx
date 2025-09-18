@@ -142,24 +142,31 @@ const Cart = () => {
   const isBriefItem = useCallback((item) => {
     if (!item || !item.item) return false;
     
-    // For bundles, check bundle_types or name
-    if (!item.item.is_product) {
-      const name = (item.item.name || '').toLowerCase();
-      return name.includes('brief') || 
-             name.includes('boxer') || 
-             name.includes('underwear') ||
-             name.includes('trunk');
-    }
-    
-    // For single products, check the name and category
     const name = (item.item.name || '').toLowerCase();
     const category = (item.item.category || '').toLowerCase();
     
-    return name.includes('brief') || 
-           name.includes('boxer') || 
-           name.includes('underwear') ||
-           name.includes('trunk') ||
-           category.includes('brief');
+    // Check for brief-related keywords in name or category
+    const isBrief = name.includes('brief') || 
+                   name.includes('boxer') || 
+                   name.includes('underwear') ||
+                   name.includes('trunk') ||
+                   name.includes('jordan') || // Include Jordan products as they appear to be briefs
+                   name.includes('micheal') || // Include Micheal products (common misspelling)
+                   name.includes('michael') || // Include Michael products
+                   category.includes('brief') ||
+                   category.includes('underwear') ||
+                   category.includes('intimates');
+    
+    // Additional check: if it's a single product with a price around typical brief pricing
+    if (item.item.is_product && !isBrief) {
+      const price = item.item.price || 0;
+      // If price is in the typical brief range (₦15,000 - ₦25,000), consider it a brief
+      if (price >= 15000 && price <= 25000) {
+        return true;
+      }
+    }
+    
+    return isBrief;
   }, []);
 
   // Helper function to validate brief minimum quantity for guest cart
@@ -300,7 +307,18 @@ const Cart = () => {
         if (typeof response.data === 'string' && response.data.startsWith('<!doctype html')) {
           throw new Error('Received HTML instead of JSON; check Vite proxy configuration');
         }
-        setCart(response.data);
+        
+        // Validate brief minimum quantity for logged-in users
+        const cartData = response.data;
+        const briefValidation = validateGuestBriefQuantity(cartData.items || []);
+        let warningMessage = null;
+        
+        if (briefValidation.hasInsufficientBriefs) {
+          const remaining = 3 - briefValidation.totalBriefQuantity;
+          warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+        }
+        
+        setCart({ ...cartData, warning: warningMessage });
         setIsGuest(false);
         setError('');
       } catch (err) {
@@ -422,7 +440,7 @@ const Cart = () => {
           return;
         }
         
-        // Optimistic update
+        // Optimistic update with brief validation
         setCart((prev) => {
           const updatedItems = prev.items.map((cartItem) =>
             cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
@@ -433,8 +451,18 @@ const Cart = () => {
           );
           const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
           const total = subtotal + tax;
-          console.log('Cart: Optimistic cart update:', { items: updatedItems, subtotal, tax, total });
-          return { ...prev, items: updatedItems, subtotal, tax, total };
+          
+          // Validate brief minimum quantity for logged-in users
+          const briefValidation = validateGuestBriefQuantity(updatedItems);
+          let warningMessage = null;
+          
+          if (briefValidation.hasInsufficientBriefs) {
+            const remaining = 3 - briefValidation.totalBriefQuantity;
+            warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+          }
+          
+          console.log('Cart: Optimistic cart update:', { items: updatedItems, subtotal, tax, total, warning: warningMessage });
+          return { ...prev, items: updatedItems, subtotal, tax, total, warning: warningMessage };
         });
         
         const authAxios = getAuthAxios();
@@ -447,7 +475,18 @@ const Cart = () => {
         const userId = getUserId();
         if (userId) {
           const cartResponse = await authAxios.get(`/cart/${userId}`);
-          setCart(cartResponse.data);
+          
+          // Validate brief minimum quantity for the final cart data
+          const cartData = cartResponse.data;
+          const briefValidation = validateGuestBriefQuantity(cartData.items || []);
+          let warningMessage = null;
+          
+          if (briefValidation.hasInsufficientBriefs) {
+            const remaining = 3 - briefValidation.totalBriefQuantity;
+            warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+          }
+          
+          setCart({ ...cartData, warning: warningMessage });
         }
         toast.success('Quantity updated successfully');
       } catch (err) {
@@ -534,7 +573,7 @@ const Cart = () => {
         
         console.log(`Cart: Removing item with cart_item_id ${itemId}`);
         
-        // Optimistic update
+        // Optimistic update with brief validation
         setCart((prev) => {
           const remaining = prev.items.filter((item) => item.id !== itemId);
           const subtotal = remaining.reduce(
@@ -543,7 +582,17 @@ const Cart = () => {
           );
           const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
           const total = subtotal + tax;
-          return { ...prev, items: remaining, subtotal, tax, total };
+          
+          // Validate brief minimum quantity for logged-in users
+          const briefValidation = validateGuestBriefQuantity(remaining);
+          let warningMessage = null;
+          
+          if (briefValidation.hasInsufficientBriefs) {
+            const remainingBriefs = 3 - briefValidation.totalBriefQuantity;
+            warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remainingBriefs} more brief${remainingBriefs > 1 ? 's' : ''} to meet the requirement.`;
+          }
+          
+          return { ...prev, items: remaining, subtotal, tax, total, warning: warningMessage };
         });
         
         const authAxios = getAuthAxios();
@@ -573,7 +622,18 @@ const Cart = () => {
           if (userId) {
             const authAxios = getAuthAxios();
             const response = await authAxios.get(`/cart/${userId}`);
-            setCart(response.data);
+            
+            // Validate brief minimum quantity for the refreshed cart data
+            const cartData = response.data;
+            const briefValidation = validateGuestBriefQuantity(cartData.items || []);
+            let warningMessage = null;
+            
+            if (briefValidation.hasInsufficientBriefs) {
+              const remaining = 3 - briefValidation.totalBriefQuantity;
+              warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+            }
+            
+            setCart({ ...cartData, warning: warningMessage });
           }
         }
       }
@@ -587,7 +647,7 @@ const Cart = () => {
       try {
         if (isGuest) {
           // Handle guest cart clearing
-          const updatedCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [] };
+          const updatedCart = { cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null };
           setCart(updatedCart);
           saveGuestCart(updatedCart);
           setError('');
@@ -629,7 +689,7 @@ const Cart = () => {
         }
         
         if (response.status === 200 || response.status === 204) {
-          setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+          setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
           setError('');
           toast.success('Cart cleared successfully');
         } else {
@@ -1082,13 +1142,23 @@ const Cart = () => {
                   
                   {/* Checkout Button */}
                   {cart.warning || cart.items.some((item) => item.item.stock_quantity === 0) ? (
-                    <button
-                      className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Inter cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
-                      disabled
-                    >
-                      <span>Proceed to Checkout</span>
-                      <ArrowRight className="h-5 w-5" />
-                    </button>
+                    <div className="relative">
+                      <button
+                        className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Inter cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
+                        disabled
+                        title={cart.warning || "Remove out of stock items to continue checkout"}
+                      >
+                        <span>Proceed to Checkout</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </button>
+                      {cart.warning && cart.warning.includes('brief') && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-orange-500 text-white text-xs font-medium px-2 py-1 rounded-md -mt-12">
+                            Minimum 3 briefs required
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <Link to="/checkout">
                       <button
@@ -1100,8 +1170,24 @@ const Cart = () => {
                     </Link>
                   )}
                   
-                  {/* Warning for brief minimum quantity */}
-                  {cart.warning && (
+                  {/* Enhanced Warning for brief minimum quantity */}
+                  {cart.warning && cart.warning.includes('brief') && (
+                    <div className="mt-3 p-4 bg-orange-50 rounded-lg border-2 border-orange-300">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-orange-800 font-Inter mb-1">Minimum Order Requirement</p>
+                          <p className="text-xs text-orange-700 font-Jost">{cart.warning}</p>
+                          <p className="text-xs text-orange-600 font-Jost mt-1">
+                            You can continue shopping to add more briefs to your cart.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Other warnings (non-brief related) */}
+                  {cart.warning && !cart.warning.includes('brief') && (
                     <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />

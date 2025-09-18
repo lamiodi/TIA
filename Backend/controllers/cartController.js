@@ -213,14 +213,18 @@ const validateBriefMinimumQuantity = async (sql, cartId) => {
       // Check if bundle contains briefs
       const bundleType = item.bundle_type.toLowerCase();
       return bundleType.includes('brief') || bundleType.includes('boxer') || 
-             bundleType.includes('underwear') || bundleType.includes('trunk');
+             bundleType.includes('underwear') || bundleType.includes('trunk') ||
+             bundleType.includes('jordan') || bundleType.includes('micheal') ||
+             bundleType.includes('michael');
     } else if (item.product_name) {
       // Check if single product is a brief
       const productName = item.product_name.toLowerCase();
       const category = (item.category || '').toLowerCase();
       return category.includes('brief') || productName.includes('brief') || 
              productName.includes('boxer') || productName.includes('underwear') || 
-             productName.includes('trunk');
+             productName.includes('trunk') || productName.includes('jordan') ||
+             productName.includes('micheal') || productName.includes('michael') ||
+             category.includes('underwear') || category.includes('intimates');
     }
     return false;
   });
