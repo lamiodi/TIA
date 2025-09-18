@@ -145,21 +145,31 @@ const Cart = () => {
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
         console.log('Guest cart loaded from localStorage:', parsedCart.items?.length || 0, 'items');
-        setCart(parsedCart);
+        
+        // Validate brief minimum quantity for guest cart
+        const briefValidation = validateGuestBriefQuantity(parsedCart.items || []);
+        let warningMessage = null;
+        
+        if (briefValidation.hasInsufficientBriefs) {
+          const remaining = 3 - briefValidation.totalBriefQuantity;
+          warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+        }
+        
+        setCart({ ...parsedCart, warning: warningMessage });
         setIsGuest(true);
       } else {
         console.log('No guest cart found in localStorage, initializing empty cart');
-        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
         setIsGuest(true);
       }
     } catch (err) {
       console.error('Error loading guest cart:', err);
-      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
       setIsGuest(true);
     }
     console.log('Cart loading completed - guest mode');
     setIsCartLoading(false);
-  }, []);
+  }, [validateGuestBriefQuantity]);
   
   // Save guest cart to localStorage
   const saveGuestCart = useCallback((updatedCart) => {
@@ -169,6 +179,45 @@ const Cart = () => {
       console.error('Error saving guest cart:', err);
     }
   }, []);
+
+  // Helper function to check if an item is a brief product
+  const isBriefItem = useCallback((item) => {
+    if (!item || !item.item) return false;
+    
+    // For bundles, check bundle_types or name
+    if (!item.item.is_product) {
+      const name = (item.item.name || '').toLowerCase();
+      return name.includes('brief') || 
+             name.includes('boxer') || 
+             name.includes('underwear') ||
+             name.includes('trunk');
+    }
+    
+    // For single products, check the name and category
+    const name = (item.item.name || '').toLowerCase();
+    const category = (item.item.category || '').toLowerCase();
+    
+    return name.includes('brief') || 
+           name.includes('boxer') || 
+           name.includes('underwear') ||
+           name.includes('trunk') ||
+           category.includes('brief');
+  }, []);
+
+  // Helper function to validate brief minimum quantity for guest cart
+  const validateGuestBriefQuantity = useCallback((cartItems) => {
+    const briefItems = cartItems.filter(isBriefItem);
+    const totalBriefQuantity = briefItems.reduce((sum, item) => sum + item.quantity, 0);
+    const nonBriefItems = cartItems.filter(item => !isBriefItem(item));
+    const isBriefOnlyCart = briefItems.length > 0 && nonBriefItems.length === 0;
+    
+    return {
+      briefItems,
+      totalBriefQuantity,
+      isBriefOnlyCart,
+      hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3
+    };
+  }, [isBriefItem]);
   
   // Function to migrate guest cart to user cart after account creation
   const migrateGuestCartToUserCart = useCallback(async (userId, token) => {
@@ -330,7 +379,16 @@ const Cart = () => {
           const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
           const total = subtotal + tax;
           
-          const updatedCart = { ...cart, items: updatedItems, subtotal, tax, total };
+          // Validate brief minimum quantity for guest cart
+          const briefValidation = validateGuestBriefQuantity(updatedItems);
+          let warningMessage = null;
+          
+          if (briefValidation.hasInsufficientBriefs) {
+            const remaining = 3 - briefValidation.totalBriefQuantity;
+            warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+          }
+          
+          const updatedCart = { ...cart, items: updatedItems, subtotal, tax, total, warning: warningMessage };
           setCart(updatedCart);
           saveGuestCart(updatedCart);
           toast.success('Quantity updated successfully');
@@ -447,7 +505,16 @@ const Cart = () => {
           const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
           const total = subtotal + tax;
           
-          const updatedCart = { ...cart, items: remaining, subtotal, tax, total };
+          // Validate brief minimum quantity for guest cart
+          const briefValidation = validateGuestBriefQuantity(remaining);
+          let warningMessage = null;
+          
+          if (briefValidation.hasInsufficientBriefs) {
+            const remaining = 3 - briefValidation.totalBriefQuantity;
+            warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+          }
+          
+          const updatedCart = { ...cart, items: remaining, subtotal, tax, total, warning: warningMessage };
           setCart(updatedCart);
           saveGuestCart(updatedCart);
           setError('');
@@ -1014,15 +1081,24 @@ const Cart = () => {
                   </div>
                   
                   {/* Checkout Button */}
-                  <Link to="/checkout">
+                  {cart.warning || cart.items.some((item) => item.item.stock_quantity === 0) ? (
                     <button
-                      className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Inter hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={cart.items.some((item) => item.item.stock_quantity === 0)}
+                      className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Inter cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
+                      disabled
                     >
                       <span>Proceed to Checkout</span>
                       <ArrowRight className="h-5 w-5" />
                     </button>
-                  </Link>
+                  ) : (
+                    <Link to="/checkout">
+                      <button
+                        className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Inter hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span>Proceed to Checkout</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </button>
+                    </Link>
+                  )}
                   
                   {/* Warning for brief minimum quantity */}
                   {cart.warning && (

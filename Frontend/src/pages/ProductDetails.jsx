@@ -115,6 +115,45 @@ const ProductDetails = () => {
       console.error("Error saving guest cart:", err)
     }
   }
+  // Helper function to check if an item is a brief product
+  const isBriefItem = (item) => {
+    if (!item || !item.item) return false;
+    
+    // For bundles, check bundle_types or name
+    if (!item.item.is_product) {
+      const name = (item.item.name || '').toLowerCase();
+      return name.includes('brief') || 
+             name.includes('boxer') || 
+             name.includes('underwear') ||
+             name.includes('trunk');
+    }
+    
+    // For single products, check the name and category
+    const name = (item.item.name || '').toLowerCase();
+    const category = (item.item.category || '').toLowerCase();
+    
+    return name.includes('brief') || 
+           name.includes('boxer') || 
+           name.includes('underwear') ||
+           name.includes('trunk') ||
+           category.includes('brief');
+  };
+
+  // Helper function to validate brief minimum quantity for guest cart
+  const validateGuestBriefQuantity = (cartItems) => {
+    const briefItems = cartItems.filter(isBriefItem);
+    const totalBriefQuantity = briefItems.reduce((sum, item) => sum + item.quantity, 0);
+    const nonBriefItems = cartItems.filter(item => !isBriefItem(item));
+    const isBriefOnlyCart = briefItems.length > 0 && nonBriefItems.length === 0;
+    
+    return {
+      briefItems,
+      totalBriefQuantity,
+      isBriefOnlyCart,
+      hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3
+    };
+  };
+
   // Add item to guest cart
   const addToGuestCart = (item) => {
     const guestCart = loadGuestCart()
@@ -140,6 +179,17 @@ const ProductDetails = () => {
     guestCart.subtotal = guestCart.items.reduce((sum, cartItem) => sum + cartItem.quantity * cartItem.price, 0)
     guestCart.tax = country === "Nigeria" ? 0 : guestCart.subtotal * 0.05
     guestCart.total = guestCart.subtotal + guestCart.tax
+    
+    // Validate brief minimum quantity for guest cart
+    const briefValidation = validateGuestBriefQuantity(guestCart.items);
+    let warningMessage = null;
+    
+    if (briefValidation.hasInsufficientBriefs) {
+      const remaining = 3 - briefValidation.totalBriefQuantity;
+      warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+    }
+    
+    guestCart.warning = warningMessage;
     saveGuestCart(guestCart)
     window.dispatchEvent(new Event("cartUpdated"))
   }
