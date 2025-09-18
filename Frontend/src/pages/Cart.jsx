@@ -138,48 +138,6 @@ const Cart = () => {
     });
   }, [getToken, country]);
   
-  // Load guest cart from localStorage
-  const loadGuestCart = useCallback(() => {
-    try {
-      const guestCart = localStorage.getItem('guestCart');
-      if (guestCart) {
-        const parsedCart = JSON.parse(guestCart);
-        console.log('Guest cart loaded from localStorage:', parsedCart.items?.length || 0, 'items');
-        
-        // Validate brief minimum quantity for guest cart
-        const briefValidation = validateGuestBriefQuantity(parsedCart.items || []);
-        let warningMessage = null;
-        
-        if (briefValidation.hasInsufficientBriefs) {
-          const remaining = 3 - briefValidation.totalBriefQuantity;
-          warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
-        }
-        
-        setCart({ ...parsedCart, warning: warningMessage });
-        setIsGuest(true);
-      } else {
-        console.log('No guest cart found in localStorage, initializing empty cart');
-        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
-        setIsGuest(true);
-      }
-    } catch (err) {
-      console.error('Error loading guest cart:', err);
-      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
-      setIsGuest(true);
-    }
-    console.log('Cart loading completed - guest mode');
-    setIsCartLoading(false);
-  }, [validateGuestBriefQuantity]);
-  
-  // Save guest cart to localStorage
-  const saveGuestCart = useCallback((updatedCart) => {
-    try {
-      localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-    } catch (err) {
-      console.error('Error saving guest cart:', err);
-    }
-  }, []);
-
   // Helper function to check if an item is a brief product
   const isBriefItem = useCallback((item) => {
     if (!item || !item.item) return false;
@@ -218,6 +176,48 @@ const Cart = () => {
       hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3
     };
   }, [isBriefItem]);
+
+  // Load guest cart from localStorage
+  const loadGuestCart = useCallback(() => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+        console.log('Guest cart loaded from localStorage:', parsedCart.items?.length || 0, 'items');
+        
+        // Validate brief minimum quantity for guest cart
+        const briefValidation = validateGuestBriefQuantity(parsedCart.items || []);
+        let warningMessage = null;
+        
+        if (briefValidation.hasInsufficientBriefs) {
+          const remaining = 3 - briefValidation.totalBriefQuantity;
+          warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
+        }
+        
+        setCart({ ...parsedCart, warning: warningMessage });
+        setIsGuest(true);
+      } else {
+        console.log('No guest cart found in localStorage, initializing empty cart');
+        setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
+        setIsGuest(true);
+      }
+    } catch (err) {
+      console.error('Error loading guest cart:', err);
+      setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
+      setIsGuest(true);
+    }
+    console.log('Cart loading completed - guest mode');
+    setIsCartLoading(false);
+  }, [validateGuestBriefQuantity])
+  
+  // Save guest cart to localStorage
+  const saveGuestCart = useCallback((updatedCart) => {
+    try {
+      localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+    } catch (err) {
+      console.error('Error saving guest cart:', err);
+    }
+  }, []);
   
   // Function to migrate guest cart to user cart after account creation
   const migrateGuestCartToUserCart = useCallback(async (userId, token) => {
