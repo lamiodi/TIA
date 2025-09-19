@@ -250,11 +250,21 @@ const validateBriefMinimumQuantity = async (sql, cartId) => {
 
   const isBriefOnlyCart = briefItems.length > 0 && nonBriefItems.length === 0;
   
+  // Check if cart contains at least one gymwear item and one single brief
+  const hasGymwear = cartItems.some(item => 
+    item.category && item.category.toLowerCase().includes('gymwear')
+  );
+  const hasSingleBrief = briefItems.some(item => item.quantity === 1);
+  const meetsMinimumCombination = hasGymwear && hasSingleBrief;
+  
+  // Allow gymwear-only carts (Scenario 4)
+  const isGymwearOnlyCart = hasGymwear && briefItems.length === 0;
+  
   return {
     briefItems,
     totalBriefQuantity,
     isBriefOnlyCart,
-    hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3
+    hasInsufficientBriefs: briefItems.length > 0 && totalBriefQuantity < 3 && !meetsMinimumCombination && !isGymwearOnlyCart
   };
 };
 
