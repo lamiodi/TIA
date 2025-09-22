@@ -534,12 +534,12 @@ const InventoryManager = () => {
       {/* Edit Modal */}
       {editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-gray-100">
+          <div className="bg-white rounded-lg p-4 md:p-6 max-w-md w-full mx-4 shadow-xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-lg font-bold text-gray-900">Edit {editingItem.type}</h4>
               <button
                 onClick={() => setEditingItem(null)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-gray-500 hover:text-gray-700 transition-colors p-1"
               >
                 <X size={20} />
               </button>
@@ -569,24 +569,24 @@ const InventoryManager = () => {
               {editingItem.type === 'product' && editingItem.variants?.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Variant Stock</label>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {editingItem.variants.map((variant) => (
                       <div
                         key={`edit-variant-${variant.id}`}
-                        className="border border-gray-200 rounded-lg p-3"
+                        className="border border-gray-200 rounded-lg p-3 bg-gray-50"
                       >
-                        <p className="font-medium text-gray-900">{variant.color_name}</p>
+                        <p className="font-medium text-gray-900 text-sm md:text-base">{variant.color_name}</p>
                         <div className="mt-2 space-y-2">
                           {variant.sizes?.map((size) => (
                             <div
                               key={`edit-size-${variant.id}-${size.size_id}`}
-                              className="flex items-center"
+                              className="flex items-center gap-2"
                             >
-                              <span className="w-20 text-sm text-gray-600">{size.size_name}:</span>
+                              <span className="w-16 md:w-20 text-sm text-gray-600 truncate">{size.size_name}:</span>
                               <input
                                 type="number"
                                 min="0"
-                                className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="flex-1 min-w-0 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 value={size.stock_quantity}
                                 onChange={(e) => {
                                   const updatedVariants = editingItem.variants.map((v) => {
@@ -616,17 +616,17 @@ const InventoryManager = () => {
                 </div>
               )}
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
                   disabled={loading}
                 >
                   {loading ? (
