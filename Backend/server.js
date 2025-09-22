@@ -122,7 +122,7 @@ app.use((err, req, res, next) => {
 });
 
 // ==== Cron Job ====
-cleanupOldOrders(); // runs on startup
+// cleanupOldOrders(); // runs on startup - REMOVED
 
 // ==== Start Server ====
 const PORT = process.env.PORT || 5000;
