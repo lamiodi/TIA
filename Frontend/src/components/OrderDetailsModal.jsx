@@ -33,19 +33,19 @@ const OrderDetailsModal = ({
   // Function to get shipping method icon and description
   const getShippingMethodInfo = (method) => {
     const shippingMethods = {
-      'Delivery within Lagos': { 
+      'Delivery within Lagos Island': { 
         icon: <Truck className="w-4 h-4" />, 
-        description: 'Fast delivery within Lagos state',
+        description: 'Fast delivery within Lagos Island',
         estimated: '3-5 business days'
       },
-      'GIG Logistics (Outside Lagos)': { 
+      'Delivery within Lagos Mainland': { 
         icon: <Package className="w-4 h-4" />, 
-        description: 'Reliable nationwide delivery',
+        description: 'Reliable delivery within Lagos Mainland',
         estimated: '5-7 business days'
       },
-      'Home Delivery – Outside Lagos': { 
+      'Outside Lagos': { 
         icon: <MapPin className="w-4 h-4" />, 
-        description: 'Direct to your doorstep',
+        description: 'Delivery outside Lagos state',
         estimated: '7-10 business days'
       },
       'International': { 

@@ -5,9 +5,9 @@ import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
 dotenv.config();
 
 const shippingOptions = [
-  { id: 1, method: 'Delivery within Lagos', total_cost: 4000, estimated_delivery: '3–5 business days' },
-  { id: 2, method: 'GIG Logistics (Outside Lagos)', total_cost: 6000, estimated_delivery: '5–7 business days' },
-  { id: 3, method: 'Home Delivery – Outside Lagos', total_cost: 10000, estimated_delivery: '7–10 business days' },
+  { id: 1, method: 'Delivery within Lagos Island', total_cost: 4000, estimated_delivery: '3–5 business days' },
+  { id: 2, method: 'Delivery within Lagos Mainland', total_cost: 6000, estimated_delivery: '5–7 business days' },
+  { id: 3, method: 'Outside Lagos', total_cost: 7000, estimated_delivery: '7–10 business days' },
 ];
 
 export const createOrder = async (req, res) => {
@@ -375,7 +375,7 @@ export const createOrder = async (req, res) => {
             product_name: variant.name,
             image_url: variant.image_url,
             color_name: variant.color_name,
-            size_name: variant.size_name,
+            size_name: item.size_name || variant.size_name, // Use size_name from cart item, fallback to variant.size_name
           });
         } else if (item.bundle_id) {
           // Fetch bundle
@@ -586,6 +586,21 @@ export const createOrder = async (req, res) => {
       
       // Insert order items and update stock
       for (const item of orderItems) {
+        // Validate that size information is not missing for items that should have sizes
+        if (item.variant_id && item.size_id && !item.size_name) {
+          console.warn(`⚠️ Missing size_name for variant ${item.variant_id}, size ${item.size_id} in order ${orderId}`);
+          // Try to get size name from sizes table as fallback
+          try {
+            const [sizeInfo] = await sql`SELECT name FROM sizes WHERE id = ${item.size_id}`;
+            if (sizeInfo) {
+              item.size_name = sizeInfo.name;
+              console.log(`✅ Retrieved size name from sizes table: ${sizeInfo.name}`);
+            }
+          } catch (sizeError) {
+            console.error(`❌ Failed to retrieve size name for size_id ${item.size_id}:`, sizeError.message);
+          }
+        }
+        
         await sql`
           INSERT INTO order_items (
             order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url, 
