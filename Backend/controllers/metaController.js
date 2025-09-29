@@ -4,12 +4,12 @@ import sql from '../db/index.js';
 export const getSizes = async (req, res) => {
   try {
     const result = await sql`
-      SELECT id, size_name AS label
+      SELECT id, size_name
       FROM sizes
       ORDER BY id
     `;
     // `sql` returns a normal JS array
-    res.json(result); // [{ id: 1, label: "S" }, ...]
+    res.json(result); // [{ id: 1, size_name: "S" }, ...]
   } catch (err) {
     console.error('Error fetching sizes:', err);
     res.status(500).json({ error: 'Failed to fetch sizes' });
