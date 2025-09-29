@@ -281,11 +281,11 @@ const ProductDetails = () => {
       return
     }
     const sizeMap = {
-      S: "Small",
-      M: "Medium",
-      L: "Large",
+      XS: "XS",
+      S: "S",
+      M: "M",
+      L: "L",
       XL: "XL",
-      XXL: "XXL",
     }
     const reverseSizeMap = Object.fromEntries(Object.entries(sizeMap).map(([k, v]) => [v, k]))
     const sizes = Array.isArray(variant.sizes) ? variant.sizes : []
@@ -546,7 +546,7 @@ const ProductDetails = () => {
       : []
     : []
   const sortSizes = (sizes) => {
-    const sizeOrder = ['S', 'M', 'L', 'XL', 'XXL', 'Small', 'Medium', 'Large']
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL']
     return sizes.sort((a, b) => {
       const aIndex = sizeOrder.indexOf(a.size_name)
       const bIndex = sizeOrder.indexOf(b.size_name)
