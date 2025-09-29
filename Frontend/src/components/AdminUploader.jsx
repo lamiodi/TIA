@@ -528,7 +528,7 @@ export default function AdminUploader() {
                     {variant.sizes.map((sz, sIdx) => (
                       <div key={sIdx}>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {sizes.find((s) => s.id === sz.size_id)?.size_name || sz.size_code}
+                          {sizes.find((s) => s.id === sz.size_id)?.size_name || 'Unknown Size'}
                         </label>
                         <input
                           type="number"

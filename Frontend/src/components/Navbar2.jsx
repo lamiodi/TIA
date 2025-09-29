@@ -23,6 +23,7 @@ export default function Navbar2() {
       '/shopall',
       '/search',
       '/product/',
+      '/bundle/',
       '/cart',
       '/checkout',
       '/orders',
