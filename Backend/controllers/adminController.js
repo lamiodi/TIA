@@ -117,10 +117,10 @@ export const getCompleteOrderDetails = async (req, res) => {
       const [order] = await sql`
         SELECT 
           o.*, 
-          COALESCE(u.first_name, o.shipping_first_name) AS first_name,
-          COALESCE(u.last_name, o.shipping_last_name) AS last_name,
-          COALESCE(u.email, o.shipping_email) AS email,
-          COALESCE(u.phone_number, o.shipping_phone) AS phone_number,
+          u.first_name,
+          u.last_name,
+          u.email,
+          u.phone_number,
           COALESCE(u.is_temporary, false) AS is_temporary
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
@@ -202,11 +202,11 @@ export const getCompleteOrderDetails = async (req, res) => {
       }
       
       const processedItems = items.map(item => {
-        const imageUrl = item.image_url || (item.variant_id ? variantImages[item.variant_id] : null);
-        const images = imageUrl ? [imageUrl] : [];
+        const itemImageUrl = item.image_url || (item.variant_id ? variantImages[item.variant_id] : null);
+        const images = itemImageUrl ? [itemImageUrl] : [];
         return {
           ...item,
-          primary_image_url: imageUrl,
+          primary_image_url: itemImageUrl,
           additional_images: [],
           images: images,
         };
@@ -224,19 +224,26 @@ export const getCompleteOrderDetails = async (req, res) => {
           }
         }
         
-        const images = item.image_url ? [imageUrl] : [];
+        const images = item.image_url ? [item.image_url] : [];
         const processedBundleContents = bundleContents.map(content => {
-          const imageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
-          const contentImages = imageUrl ? [imageUrl] : [];
-          return {
-            product_id: content.variant_id || content.product_id || null,
-            product_name: content.product_name || 'N/A',
-            color_name: content.color_name || null,
-            size_name: content.size_name || null,
-            primary_image_url: imageUrl,
-            additional_images: [],
-            images: contentImages,
-          };
+          try {
+            const imageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
+            const contentImages = imageUrl ? [imageUrl] : [];
+            return {
+              product_id: content.variant_id || content.product_id || null,
+              product_name: content.product_name || 'N/A',
+              color_name: content.color_name || null,
+              size_name: content.size_name || null,
+              primary_image_url: imageUrl,
+              additional_images: [],
+              images: contentImages,
+            };
+          } catch (error) {
+            console.error('Error processing bundle content:', error);
+            console.error('Content object:', content);
+            console.error('Variant images:', variantImages);
+            throw error; // Re-throw to maintain error behavior
+          }
         });
         
         return {
@@ -252,10 +259,10 @@ export const getCompleteOrderDetails = async (req, res) => {
       const completeOrder = {
         user: {
           id: order.user_id,
-          first_name: order.first_name || 'N/A',
-          last_name: order.last_name || 'N/A',
-          email: order.email || 'N/A',
-          phone_number: order.phone_number || 'N/A',
+          first_name: order.first_name || (shippingAddress ? shippingAddress.title : 'Guest'),
+          last_name: order.last_name || '',
+          email: order.email || (billingAddress ? billingAddress.email : 'N/A'),
+          phone_number: order.phone_number || (billingAddress ? billingAddress.phone_number : 'N/A'),
           is_temporary: order.is_temporary || false,
         },
         shippingAddress,
