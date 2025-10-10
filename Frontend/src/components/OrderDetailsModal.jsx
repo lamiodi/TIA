@@ -396,6 +396,7 @@ const OrderDetailsModal = ({
                                             <p className="text-xs font-medium text-gray-900">{item.product_name}</p>
                                             <div className="text-xs text-gray-600 space-y-1">
                                               <p><span className="font-medium">Product ID:</span> {item.product_id || 'N/A'}</p>
+                                              <p><span className="font-medium">Quantity:</span> {item.quantity || 1}</p>
                                               {item.color_name && (
                                                 <p className="flex items-center">
                                                   <span className="font-medium">Color:</span> 
