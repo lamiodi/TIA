@@ -117,9 +117,13 @@ export const getCompleteOrderDetails = async (req, res) => {
       const [order] = await sql`
         SELECT 
           o.*, 
-          u.first_name, u.last_name, u.email, u.phone_number, u.is_temporary
+          COALESCE(u.first_name, o.shipping_first_name) AS first_name,
+          COALESCE(u.last_name, o.shipping_last_name) AS last_name,
+          COALESCE(u.email, o.shipping_email) AS email,
+          COALESCE(u.phone_number, o.shipping_phone) AS phone_number,
+          COALESCE(u.is_temporary, false) AS is_temporary
         FROM orders o
-        JOIN users u ON o.user_id = u.id
+        LEFT JOIN users u ON o.user_id = u.id
         WHERE o.id = ${orderId} AND o.deleted_at IS NULL
       `;
       

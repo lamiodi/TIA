@@ -32,7 +32,7 @@ router.get('/users', authenticateToken, requireAdmin, getAllUsersForAdmin); // G
 router.get('/addresses/user/:userId', authenticateToken, requireAdmin, getUserAddresses); // Get all addresses for a specific user
 router.get('/orders/user/:userId', authenticateToken, requireAdmin, getUserOrders); // Get all orders for a specific user
 router.get('/orders', authenticateToken, requireAdmin, getAllOrdersForAdmin); // Get all orders for admin
-router.get('/orders/complete/:orderId', getCompleteOrderDetails); // Get complete order details
+router.get('/orders/complete/:orderId', authenticateToken, requireAdmin, getCompleteOrderDetails); // Get complete order details
 router.get('/orders/:orderId/items', authenticateToken, requireAdmin, getOrderItemsForAdmin); // Get order items for admin
 router.get('/orders/:orderId/bundle-items', authenticateToken, requireAdmin, getOrderBundleItemsForAdmin); // Get order bundle items for admin 
 router.get('/orders/:orderId/shipping-address', authenticateToken, requireAdmin, getOrderShippingAddress); // Get order shipping address for admin
