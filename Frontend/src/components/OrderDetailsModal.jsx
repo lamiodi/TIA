@@ -381,6 +381,7 @@ const OrderDetailsModal = ({
                                       <p><span className="font-medium">Order Item ID:</span> {bundle.id}</p>
                                       <p><span className="font-medium">Quantity:</span> {bundle.quantity}</p>
                                       <p><span className="font-medium">Price:</span> {formatCurrency(bundle.price, orderData.currency)}</p>
+                                      {bundle.bundle_type && <p><span className="font-medium">Bundle Type:</span> {bundle.bundle_type}</p>}
                                     </div>
                                   </div>
                                   <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>

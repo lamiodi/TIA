@@ -165,8 +165,10 @@ export const getCompleteOrderDetails = async (req, res) => {
       const bundleItems = await sql`
         SELECT 
           oi.id, oi.quantity, oi.price, oi.bundle_id, oi.product_name, 
-          oi.image_url, oi.bundle_details
+          oi.image_url, oi.bundle_details, oi.color_name, oi.size_name,
+          b.bundle_type
         FROM order_items oi
+        LEFT JOIN bundles b ON oi.bundle_id = b.id
         WHERE oi.order_id = ${orderId} AND oi.bundle_id IS NOT NULL
       `;
       
@@ -227,16 +229,17 @@ export const getCompleteOrderDetails = async (req, res) => {
         const images = item.image_url ? [item.image_url] : [];
         const processedBundleContents = bundleContents.map(content => {
           try {
-            const imageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
-            const contentImages = imageUrl ? [imageUrl] : [];
+            const contentImageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
+            const contentImages = contentImageUrl ? [contentImageUrl] : [];
             return {
               product_id: content.variant_id || content.product_id || null,
               product_name: content.product_name || 'N/A',
-              color_name: content.color_name || null,
-              size_name: content.size_name || null,
-              primary_image_url: imageUrl,
+              color_name: content.color_name || item.color_name || null,
+              size_name: content.size_name || content.size || item.size_name || null,
+              primary_image_url: contentImageUrl,
               additional_images: [],
               images: contentImages,
+              quantity: content.quantity || 1
             };
           } catch (error) {
             console.error('Error processing bundle content:', error);
@@ -246,13 +249,15 @@ export const getCompleteOrderDetails = async (req, res) => {
           }
         });
         
+        const bundleImageUrl = item.image_url;
         return {
           ...item,
           bundle_name: item.product_name || 'Unnamed Bundle',
-          bundle_image_url: item.image_url,
+          bundle_image_url: bundleImageUrl,
           bundle_additional_images: [],
           images: images,
           bundle_items: processedBundleContents,
+          bundle_type: item.bundle_type || 'N/A',
         };
       });
       
