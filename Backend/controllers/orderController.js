@@ -295,6 +295,20 @@ export const createOrder = async (req, res) => {
       const orderItems = [];
       
       // Validate and process items
+
+    // DEBUG: Log the entire request payload
+    console.log('=== DEBUG: Full request payload ===');
+    console.log('Items received from frontend:', JSON.stringify(items, null, 2));
+    console.log('Number of items:', items.length);
+    items.forEach((item, index) => {
+      console.log(`Item ${index}:`);
+      console.log(`  bundle_id: ${item.bundle_id}`);
+      console.log(`  bundle_items: ${JSON.stringify(item.bundle_items)}`);
+      console.log(`  bundle_items type: ${typeof item.bundle_items}`);
+      console.log(`  bundle_items length: ${item.bundle_items ? item.bundle_items.length : 'null'}`);
+    });
+    console.log('=== END DEBUG ===\n');
+
       for (const item of items) {
         if (!item.variant_id && !item.bundle_id) {
           console.error('Validation failed: Item must have either variant_id or bundle_id', item);
