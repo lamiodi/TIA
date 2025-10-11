@@ -214,16 +214,32 @@ export const getCompleteOrderDetails = async (req, res) => {
         };
       });
       
-      const processedBundleItems = bundleItems.map(item => {
+      const processedBundleItems = await Promise.all(bundleItems.map(async item => {
+        // Get the correct bundle configuration from bundle_items table
         let bundleContents = [];
-        if (item.bundle_details) {
-          try {
-            bundleContents = typeof item.bundle_details === 'string' ? JSON.parse(item.bundle_details) : item.bundle_details;
-            if (!Array.isArray(bundleContents)) bundleContents = [];
-          } catch (e) {
-            console.error(`Failed to parse bundle_details for orderItemId: ${item.id}: ${e.message}`);
-            bundleContents = [];
-          }
+        try {
+          bundleContents = await sql`
+            SELECT 
+              bi.variant_id,
+              pv.product_id,
+              p.name as product_name,
+              c.color_name,
+              s.size_name,
+              pi.image_url,
+              vs.stock_quantity
+            FROM bundle_items bi
+            JOIN product_variants pv ON bi.variant_id = pv.id
+            JOIN products p ON pv.product_id = p.id
+            LEFT JOIN colors c ON pv.color_id = c.id
+            LEFT JOIN variant_sizes vs ON pv.id = vs.variant_id
+            LEFT JOIN sizes s ON vs.size_id = s.id
+            LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
+            WHERE bi.bundle_id = ${item.bundle_id}
+            ORDER BY bi.id
+          `;
+        } catch (e) {
+          console.error(`Failed to fetch bundle items for bundle_id: ${item.bundle_id}: ${e.message}`);
+          bundleContents = [];
         }
         
         const images = item.image_url ? [item.image_url] : [];
@@ -232,14 +248,14 @@ export const getCompleteOrderDetails = async (req, res) => {
             const contentImageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
             const contentImages = contentImageUrl ? [contentImageUrl] : [];
             return {
-              product_id: content.variant_id || content.product_id || null,
+              product_id: content.product_id,
               product_name: content.product_name || 'N/A',
-              color_name: content.color_name || item.color_name || null,
-              size_name: content.size_name || content.size || item.size_name || null,
+              color_name: content.color_name || null,
+              size_name: content.size_name || null,
               primary_image_url: contentImageUrl,
               additional_images: [],
               images: contentImages,
-              quantity: content.quantity || 1
+              quantity: 1 // Bundle items are typically 1 each
             };
           } catch (error) {
             console.error('Error processing bundle content:', error);
@@ -259,7 +275,7 @@ export const getCompleteOrderDetails = async (req, res) => {
           bundle_items: processedBundleContents,
           bundle_type: item.bundle_type || 'N/A',
         };
-      });
+      }));
       
       const completeOrder = {
         user: {

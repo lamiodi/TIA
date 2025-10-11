@@ -857,7 +857,7 @@ const CheckoutPage = () => {
         reference: generateOrderReference(),
         items: cart.items.map(item => {
           const basePrice = Number(item.item?.price || 0);
-          return {
+          const orderItem = {
             variant_id: item.item?.is_product ? item.item.id : null,
             bundle_id: item.item?.is_product ? null : item.item.id,
             quantity: item.quantity || 1,
@@ -870,6 +870,16 @@ const CheckoutPage = () => {
             color_name: item.item?.color || null,
             size_name: item.size_name || null,
           };
+          
+          // Add bundle_items array for bundle orders
+          if (!item.item?.is_product && item.item?.items) {
+            orderItem.bundle_items = item.item.items.map(bundleItem => ({
+              variant_id: bundleItem.variant_id,
+              size_id: bundleItem.size_id
+            }));
+          }
+          
+          return orderItem;
         }),
         note: orderNote,
         exchange_rate: 1, // No conversion needed
