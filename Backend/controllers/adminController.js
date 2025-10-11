@@ -223,6 +223,8 @@ export const getCompleteOrderDetails = async (req, res) => {
             
             // Get additional details for each selected item
             const variantIds = parsedBundleDetails.map(detail => detail.variant_id);
+            const sizeIds = parsedBundleDetails.map(detail => detail.size_id);
+            
             if (variantIds.length > 0) {
               bundleContents = await sql`
                 SELECT 
@@ -240,6 +242,7 @@ export const getCompleteOrderDetails = async (req, res) => {
                 LEFT JOIN sizes s ON vs.size_id = s.id
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
                 WHERE pv.id = ANY(${variantIds})
+                  AND vs.size_id = ANY(${sizeIds})
                 ORDER BY pv.id
               `;
             }
