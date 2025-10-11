@@ -222,10 +222,10 @@ export const getCompleteOrderDetails = async (req, res) => {
             const parsedBundleDetails = typeof item.bundle_details === 'string' ? JSON.parse(item.bundle_details) : item.bundle_details;
             
             // Get additional details for each selected item
-            const variantIds = parsedBundleDetails.map(detail => detail.variant_id);
-            const sizeIds = parsedBundleDetails.map(detail => detail.size_id);
+            const variantIds = parsedBundleDetails.map(detail => detail.variant_id).filter(id => id);
+            const sizeIds = parsedBundleDetails.map(detail => detail.size_id).filter(id => id);
             
-            if (variantIds.length > 0) {
+            if (variantIds.length > 0 && sizeIds.length > 0) {
               bundleContents = await sql`
                 SELECT 
                   pv.id as variant_id,
@@ -243,6 +243,26 @@ export const getCompleteOrderDetails = async (req, res) => {
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
                 WHERE pv.id = ANY(${variantIds})
                   AND vs.size_id = ANY(${sizeIds})
+                ORDER BY pv.id
+              `;
+            } else {
+              // Fallback: if size IDs are missing, just use variant IDs
+              bundleContents = await sql`
+                SELECT 
+                  pv.id as variant_id,
+                  pv.product_id,
+                  p.name as product_name,
+                  c.color_name,
+                  s.size_name,
+                  pi.image_url,
+                  vs.stock_quantity
+                FROM product_variants pv
+                JOIN products p ON pv.product_id = p.id
+                LEFT JOIN colors c ON pv.color_id = c.id
+                LEFT JOIN variant_sizes vs ON pv.id = vs.variant_id
+                LEFT JOIN sizes s ON vs.size_id = s.id
+                LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
+                WHERE pv.id = ANY(${variantIds})
                 ORDER BY pv.id
               `;
             }
