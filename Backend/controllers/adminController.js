@@ -215,30 +215,37 @@ export const getCompleteOrderDetails = async (req, res) => {
       });
       
       const processedBundleItems = await Promise.all(bundleItems.map(async item => {
-        // Get the correct bundle configuration from bundle_items table
+        // Use the bundle_details field which contains the user's actual selections
         let bundleContents = [];
         try {
-          bundleContents = await sql`
-            SELECT 
-              bi.variant_id,
-              pv.product_id,
-              p.name as product_name,
-              c.color_name,
-              s.size_name,
-              pi.image_url,
-              vs.stock_quantity
-            FROM bundle_items bi
-            JOIN product_variants pv ON bi.variant_id = pv.id
-            JOIN products p ON pv.product_id = p.id
-            LEFT JOIN colors c ON pv.color_id = c.id
-            LEFT JOIN variant_sizes vs ON pv.id = vs.variant_id
-            LEFT JOIN sizes s ON vs.size_id = s.id
-            LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
-            WHERE bi.bundle_id = ${item.bundle_id}
-            ORDER BY bi.id
-          `;
+          if (item.bundle_details) {
+            const parsedBundleDetails = typeof item.bundle_details === 'string' ? JSON.parse(item.bundle_details) : item.bundle_details;
+            
+            // Get additional details for each selected item
+            const variantIds = parsedBundleDetails.map(detail => detail.variant_id);
+            if (variantIds.length > 0) {
+              bundleContents = await sql`
+                SELECT 
+                  pv.id as variant_id,
+                  pv.product_id,
+                  p.name as product_name,
+                  c.color_name,
+                  s.size_name,
+                  pi.image_url,
+                  vs.stock_quantity
+                FROM product_variants pv
+                JOIN products p ON pv.product_id = p.id
+                LEFT JOIN colors c ON pv.color_id = c.id
+                LEFT JOIN variant_sizes vs ON pv.id = vs.variant_id
+                LEFT JOIN sizes s ON vs.size_id = s.id
+                LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
+                WHERE pv.id = ANY(${variantIds})
+                ORDER BY pv.id
+              `;
+            }
+          }
         } catch (e) {
-          console.error(`Failed to fetch bundle items for bundle_id: ${item.bundle_id}: ${e.message}`);
+          console.error(`Failed to parse bundle_details for order item: ${item.id}: ${e.message}`);
           bundleContents = [];
         }
         
