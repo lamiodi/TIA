@@ -380,7 +380,7 @@ export const createOrder = async (req, res) => {
         } else if (item.bundle_id) {
           // Fetch bundle
           const [bundle] = await sql`
-            SELECT b.id, b.name, b.bundle_price, bi.image_url
+            SELECT b.id, b.name, b.bundle_price, b.bundle_type, bi.image_url
             FROM bundles b
             LEFT JOIN bundle_images bi ON b.id = bi.bundle_id AND bi.is_primary = true
             WHERE b.id = ${item.bundle_id}
@@ -389,6 +389,13 @@ export const createOrder = async (req, res) => {
           if (!bundle) {
             console.error(`Validation failed: Bundle ${item.bundle_id} not found`);
             throw new Error(`Bundle ${item.bundle_id} not found`);
+          }
+          
+          // Validate bundle item count matches bundle type
+          const expectedItemCount = bundle.bundle_type === '3-in-1' ? 3 : 5;
+          if (item.bundle_items && item.bundle_items.length !== expectedItemCount) {
+            console.error(`Validation failed: Invalid bundle configuration: ${bundle.bundle_type} bundle requires exactly ${expectedItemCount} items, but ${item.bundle_items.length} were provided`);
+            throw new Error(`Invalid bundle configuration: ${bundle.bundle_type} bundle requires exactly ${expectedItemCount} items, but ${item.bundle_items.length} were provided`);
           }
           
           // Validate bundle items (from frontend payload)
