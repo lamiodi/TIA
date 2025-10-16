@@ -45,18 +45,18 @@ const HelpPage = () => {
 
   const sizeChart = {
     briefs: [
+      { size: 'XS', waist: '26-28', hip: '32-34' },
       { size: 'S', waist: '28-30', hip: '34-36' },
       { size: 'M', waist: '32-34', hip: '38-40' },
       { size: 'L', waist: '36-38', hip: '42-44' },
-      { size: 'XL', waist: '40-42', hip: '46-48' },
-      { size: 'XXL', waist: '44-46', hip: '50-52' }
+      { size: 'XL', waist: '40-42', hip: '46-48' }
     ],
     gymwear: [
+      { size: 'XS', chest: '32-34', waist: '26-28', length: '26' },
       { size: 'S', chest: '34-36', waist: '28-30', length: '27' },
       { size: 'M', chest: '38-40', waist: '32-34', length: '28' },
       { size: 'L', chest: '42-44', waist: '36-38', length: '29' },
-      { size: 'XL', chest: '46-48', waist: '40-42', length: '30' },
-      { size: 'XXL', chest: '50-52', waist: '44-46', length: '31' }
+      { size: 'XL', chest: '46-48', waist: '40-42', length: '30' }
     ]
   };
 
@@ -138,44 +138,64 @@ const HelpPage = () => {
                 We offer fast and reliable shipping across Nigeria with multiple delivery options to suit your needs.
               </p>
             </div>
-            <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+            <div className="grid md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <h4 className="text-xl font-semibold font-Manrope text-Primarycolor mb-4 flex items-center">
                   <Truck className="w-6 h-6 text-blue-600 mr-3" />
-                  Standard Within Nigeria
+                  Delivery within Lagos Island
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Delivery Time:</span>
-                    <span className="font-semibold font-Jost">1-4 Business Days</span>
+                    <span className="font-semibold font-Jost">3–5 business days</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Cost:</span>
-                    <span className="font-semibold font-Jost">₦4000 - ₦10000</span>
+                    <span className="font-semibold font-Jost">₦4,000</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Available:</span>
-                    <span className="font-semibold font-Jost">All States</span>
+                    <span className="font-semibold font-Jost">Lagos Island areas</span>
                   </div>
                 </div>
               </div>
               <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <h4 className="text-xl font-semibold font-Manrope text-Primarycolor mb-4 flex items-center">
                   <Truck className="w-6 h-6 text-purple-600 mr-3" />
-                  Express Outside Nigeria
+                  Delivery within Lagos Mainland
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Delivery Time:</span>
-                    <span className="font-semibold font-Jost">1-5 Business Days</span>
+                    <span className="font-semibold font-Jost">5–7 business days</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Cost:</span>
-                    <span className="font-semibold font-Jost">Emailed Delivery Fee </span>
+                    <span className="font-semibold font-Jost">₦6,000</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Available:</span>
-                    <span className="font-semibold font-Jost">Most Countries Through DHL</span>
+                    <span className="font-semibold font-Jost">Lagos Mainland areas</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <h4 className="text-xl font-semibold font-Manrope text-Primarycolor mb-4 flex items-center">
+                  <Truck className="w-6 h-6 text-green-600 mr-3" />
+                  Outside Lagos
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="font-Jost text-gray-600">Delivery Time:</span>
+                    <span className="font-semibold font-Jost">7–10 business days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-Jost text-gray-600">Cost:</span>
+                    <span className="font-semibold font-Jost">₦7,000</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-Jost text-gray-600">Available:</span>
+                    <span className="font-semibold font-Jost">All other Nigerian states</span>
                   </div>
                 </div>
               </div>
