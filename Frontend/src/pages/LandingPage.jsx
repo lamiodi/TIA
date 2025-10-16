@@ -35,7 +35,7 @@ const LandingPage = () => {
   // Helper function to format prices dynamically
   const formatPrice = (priceInNaira) => {
     const parsedPrice = parseFloat(priceInNaira.replace(/[₦,]/g, '')) || 0;
-    const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice / exchangeRate);
+    const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate);
     const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
     
     return displayPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
