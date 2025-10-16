@@ -235,16 +235,17 @@ export const getCompleteOrderDetails = async (req, res) => {
                   c.color_name,
                   s.size_name,
                   pi.image_url,
-                  vs.stock_quantity
+                  vs.stock_quantity,
+                  vs.size_id
                 FROM product_variants pv
                 JOIN products p ON pv.product_id = p.id
                 LEFT JOIN colors c ON pv.color_id = c.id
                 LEFT JOIN variant_sizes vs ON pv.id = vs.variant_id
                 LEFT JOIN sizes s ON vs.size_id = s.id
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
-                WHERE pv.id = ANY(${variantIds})
-                  AND vs.size_id = ANY(${sizeIds})
-                ORDER BY pv.id
+                WHERE (pv.id = ANY(${variantIds}) AND vs.size_id = ANY(${sizeIds}))
+                   OR (pv.id = ANY(${variantIds}) AND vs.size_id IS NULL)
+                ORDER BY pv.id, vs.size_id
               `;
             } else {
               // Fallback: if size IDs are missing, just use variant IDs
@@ -256,7 +257,8 @@ export const getCompleteOrderDetails = async (req, res) => {
                   c.color_name,
                   s.size_name,
                   pi.image_url,
-                  vs.stock_quantity
+                  vs.stock_quantity,
+                  vs.size_id
                 FROM product_variants pv
                 JOIN products p ON pv.product_id = p.id
                 LEFT JOIN colors c ON pv.color_id = c.id
@@ -264,7 +266,7 @@ export const getCompleteOrderDetails = async (req, res) => {
                 LEFT JOIN sizes s ON vs.size_id = s.id
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
                 WHERE pv.id = ANY(${variantIds})
-                ORDER BY pv.id
+                ORDER BY pv.id, vs.size_id
               `;
             }
           }
@@ -274,22 +276,8 @@ export const getCompleteOrderDetails = async (req, res) => {
         }
         
         const images = item.image_url ? [item.image_url] : [];
-        // First aggregate the parsed bundle details by variant_id and size_id
-        const aggregatedBundleDetails = parsedBundleDetails.reduce((acc, detail) => {
-          const key = `${detail.variant_id}-${detail.size_id}`;
-          if (!acc[key]) {
-            acc[key] = {
-              ...detail,
-              quantity: parseInt(detail.quantity) || 1
-            };
-          } else {
-            acc[key].quantity += parseInt(detail.quantity) || 1;
-          }
-          return acc;
-        }, {});
-        
-        // Now process the aggregated bundle contents
-        const processedBundleContents = Object.values(aggregatedBundleDetails).map(detail => {
+        // Process each bundle item individually (don't aggregate)
+        const processedBundleContents = parsedBundleDetails.map(detail => {
           try {
             // Find the corresponding content from the database query
             const content = bundleContents.find(c => 
@@ -308,7 +296,7 @@ export const getCompleteOrderDetails = async (req, res) => {
               primary_image_url: contentImageUrl,
               additional_images: [],
               images: contentImages,
-              quantity: detail.quantity
+              quantity: parseInt(detail.quantity) || 1
             };
           } catch (error) {
             console.error('Error processing bundle content:', error);

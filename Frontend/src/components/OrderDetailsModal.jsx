@@ -387,57 +387,34 @@ const OrderDetailsModal = ({
                                   <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>
                                 </div>
                                 {bundle.bundle_items?.length > 0 && (
-                                  <div className="mt-3 pl-6">
-                                    <p className="text-xs font-medium text-gray-700 mb-2">Bundle Contents:</p>
-                                    <div className="space-y-2">
-                                      {(() => {
-                                        // Group identical bundle items by product_id, color, and size
-                                        const groupedItems = bundle.bundle_items.reduce((acc, item) => {
-                                          const key = `${item.product_id}-${item.color_name || 'no-color'}-${item.size_name || 'no-size'}`;
-                                          if (!acc[key]) {
-                                            acc[key] = {
-                                              ...item,
-                                              quantity: parseInt(item.quantity) || 1,
-                                              count: 1
-                                            };
-                                          } else {
-                                            acc[key].quantity += parseInt(item.quantity) || 1;
-                                            acc[key].count += 1;
-                                          }
-                                          return acc;
-                                        }, {});
-                                        
-                                        return Object.values(groupedItems).map((item, index) => (
-                                          <div key={index} className="flex items-start p-2 bg-gray-100 rounded">
-                                            {renderImageGallery(item.images, `bundle-item-${bundle.id}-${index}`, item.product_name)}
-                                            <div className="flex-1 ml-4">
-                                              <p className="text-xs font-medium text-gray-900">{item.product_name}</p>
-                                              <div className="text-xs text-gray-600 space-y-1">
-                                                <p><span className="font-medium">Product ID:</span> {item.product_id || 'N/A'}</p>
-                                                <p><span className="font-medium">Quantity:</span> {item.quantity}</p>
-                                                {item.color_name && (
-                                                  <p className="flex items-center">
-                                                    <span className="font-medium">Color:</span> 
-                                                    <span className="ml-1 inline-block w-3 h-3 rounded-full border border-gray-300" 
-                                                          style={{ backgroundColor: getColorCode(item.color_name) }}></span>
-                                                    <span className="ml-1">{item.color_name}</span>
-                                                  </p>
-                                                )}
-                                                {item.size_name && <p><span className="font-medium">Size:</span> {item.size_name}</p>}
-                                                {item.count > 1 && (
-                                                  <p className="text-xs text-blue-600">
-                                                    <span className="font-medium">Individual items:</span> {item.count}
-                                                  </p>
-                                                )}
+                                      <div className="mt-3 pl-6">
+                                        <p className="text-xs font-medium text-gray-700 mb-2">Bundle Contents:</p>
+                                        <div className="space-y-2">
+                                          {bundle.bundle_items.map((item, index) => (
+                                            <div key={index} className="flex items-start p-2 bg-gray-100 rounded">
+                                              {renderImageGallery(item.images, `bundle-item-${bundle.id}-${index}`, item.product_name)}
+                                              <div className="flex-1 ml-4">
+                                                <p className="text-xs font-medium text-gray-900">{item.product_name}</p>
+                                                <div className="text-xs text-gray-600 space-y-1">
+                                                  <p><span className="font-medium">Product ID:</span> {item.product_id || 'N/A'}</p>
+                                                  <p><span className="font-medium">Quantity:</span> {item.quantity}</p>
+                                                  {item.color_name && (
+                                                    <p className="flex items-center">
+                                                      <span className="font-medium">Color:</span> 
+                                                      <span className="ml-1 inline-block w-3 h-3 rounded-full border border-gray-300" 
+                                                            style={{ backgroundColor: getColorCode(item.color_name) }}></span>
+                                                      <span className="ml-1">{item.color_name}</span>
+                                                    </p>
+                                                  )}
+                                                  {item.size_name && <p><span className="font-medium">Size:</span> {item.size_name}</p>}
+                                                </div>
                                               </div>
+                                              <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>
                                             </div>
-                                            <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>
-                                          </div>
-                                        ));
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                               </div>
                             ))}
                           </div>
