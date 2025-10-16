@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy, useContext } from 'react';
 import { Menu, X, Star, Shield, Truck, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar2 from '../components/Navbar2';
+import { CurrencyContext } from '../pages/CurrencyContext';
 import NewsletterForm from '../components/NewsletterForm';
 import Footer from '../components/Footer';
 import Button from '../components/Button';
@@ -15,6 +16,34 @@ const LandingPage = () => {
   const [videoLoaded, setVideoLoaded] = useState({ mobile: false, desktop: false });
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
+  
+  // Access currency context for dynamic price formatting
+  const currencyContext = useContext(CurrencyContext) || {
+    currency: 'NGN',
+    exchangeRate: 1,
+    country: 'Nigeria',
+    contextLoading: false,
+  };
+  
+  const {
+    currency = 'NGN',
+    exchangeRate = 1,
+    country = 'Nigeria',
+    contextLoading = false,
+  } = currencyContext;
+  
+  // Helper function to format prices dynamically
+  const formatPrice = (priceInNaira) => {
+    const parsedPrice = parseFloat(priceInNaira.replace(/[₦,]/g, '')) || 0;
+    const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice / exchangeRate);
+    const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
+    
+    return displayPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+      style: 'currency',
+      currency: displayCurrency,
+      minimumFractionDigits: country === 'Nigeria' ? 0 : 2
+    });
+  };
 
   const handleVideoError = (videoType) => {
     console.error(`${videoType} video failed to load`);
@@ -122,7 +151,7 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">THE MICHEAL JORDAN</h3>
-                  <p className="text-lg mb-4">₦19,999</p>
+                  <p className="text-lg mb-4">{formatPrice('₦19,999')}</p>
                   <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -142,7 +171,7 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">YOU THE BOSS</h3>
-                  <p className="text-lg mb-4">₦19,000</p>
+                  <p className="text-lg mb-4">{formatPrice('₦19,000')}</p>
                   <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -162,7 +191,7 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">HIS AND HERS</h3>
-                  <p className="text-lg mb-4">₦103,850</p>
+                  <p className="text-lg mb-4">{formatPrice('₦103,850')}</p>
                   <Link to="/shop">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -182,7 +211,7 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
                   <h3 className="text-3xl font-bold mb-2">EVSS TEA I</h3>
-                  <p className="text-lg mb-4">₦52,850.00</p>
+                  <p className="text-lg mb-4">{formatPrice('₦52,850.00')}</p>
                   <Link to="/shop?category=gymwear">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW

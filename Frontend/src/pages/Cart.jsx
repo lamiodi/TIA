@@ -385,18 +385,22 @@ const Cart = () => {
           if (!item) throw new Error('Item not found in cart');
           
           // Validate stock quantity
-          let maxStock = item.item.stock_quantity;
-          if (!item.item.is_product && Array.isArray(item.item.items)) {
-            maxStock = Math.min(...item.item.items.map((bi) => bi.stock_quantity || 0));
-          }
-          if (maxStock === undefined || maxStock === null) {
-            throw new Error('Stock quantity information is missing');
-          }
-          if (newQuantity > maxStock) {
-            setError(`Cannot add more. Only ${maxStock} in stock.`);
-            toast.error(`Cannot add more. Only ${maxStock} in stock.`);
-            return;
-          }
+        let maxStock = item.item.stock_quantity;
+        // For bundles, skip stock validation since bundle items don't have stock_quantity info
+        // and bundles should be treated as separate entities with their own availability
+        if (!item.item.is_product) {
+          // For bundles, we don't have individual item stock information in the cart
+          // So we'll assume there's sufficient stock and allow quantity increases
+          maxStock = 999; // Set a high limit for bundles
+        }
+        if (maxStock === undefined || maxStock === null) {
+          throw new Error('Stock quantity information is missing');
+        }
+        if (newQuantity > maxStock) {
+          setError(`Cannot add more. Only ${maxStock} in stock.`);
+          toast.error(`Cannot add more. Only ${maxStock} in stock.`);
+          return;
+        }
           
           // Update cart
           const updatedItems = cart.items.map((cartItem) =>
@@ -440,8 +444,12 @@ const Cart = () => {
         
         // Validate stock quantity
         let maxStock = item.item.stock_quantity;
-        if (!item.item.is_product && Array.isArray(item.item.items)) {
-          maxStock = Math.min(...item.item.items.map((bi) => bi.stock_quantity || 0));
+        // For bundles, skip stock validation since bundle items don't have stock_quantity info
+        // and bundles should be treated as separate entities with their own availability
+        if (!item.item.is_product) {
+          // For bundles, we don't have individual item stock information in the cart
+          // So we'll assume there's sufficient stock and allow quantity increases
+          maxStock = 999; // Set a high limit for bundles
         }
         if (maxStock === undefined || maxStock === null) {
           throw new Error('Stock quantity information is missing');

@@ -162,7 +162,22 @@ const ProductDetails = () => {
       if (item.product_type === "single") {
         return cartItem.variant_id === item.variant_id && cartItem.size_id === item.size_id
       } else {
-        return cartItem.bundle_id === item.bundle_id
+        // For bundles, check if bundle_id AND items are identical
+        if (cartItem.bundle_id !== item.bundle_id) return false
+        
+        // Check if items array is identical (same variant_id and size_id combinations)
+        if (!cartItem.items || !item.items) return cartItem.bundle_id === item.bundle_id
+        
+        if (cartItem.items.length !== item.items.length) return false
+        
+        // Check each item in the bundle to see if they match
+        return cartItem.items.every((cartItemDetail, index) => {
+          const newItemDetail = item.items[index]
+          return (
+            cartItemDetail.variant_id === newItemDetail.variant_id &&
+            cartItemDetail.size_id === newItemDetail.size_id
+          )
+        })
       }
     })
     if (existingItemIndex >= 0) {

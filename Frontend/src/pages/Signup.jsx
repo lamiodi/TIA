@@ -131,7 +131,7 @@ const SignupPage = () => {
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-slate-500/5 rounded-full mix-blend-multiply filter blur-xl animate-pulse" style={{animationDelay: '4s'}}></div>
       </div>
       <Navbar2 />
-      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] relative z-10">
+      <div className="flex flex-col lg:flex-row min-h-screen pt-16 relative z-10">
         {/* Left Side - Image Carousel */}
         <div className="hidden lg:flex flex-1 relative overflow-hidden">
           {/* Background overlay */}
