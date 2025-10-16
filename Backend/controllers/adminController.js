@@ -274,30 +274,45 @@ export const getCompleteOrderDetails = async (req, res) => {
         }
         
         const images = item.image_url ? [item.image_url] : [];
-        const processedBundleContents = bundleContents.map(content => {
+        // First aggregate the parsed bundle details by variant_id and size_id
+        const aggregatedBundleDetails = parsedBundleDetails.reduce((acc, detail) => {
+          const key = `${detail.variant_id}-${detail.size_id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              ...detail,
+              quantity: parseInt(detail.quantity) || 1
+            };
+          } else {
+            acc[key].quantity += parseInt(detail.quantity) || 1;
+          }
+          return acc;
+        }, {});
+        
+        // Now process the aggregated bundle contents
+        const processedBundleContents = Object.values(aggregatedBundleDetails).map(detail => {
           try {
-            const contentImageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
+            // Find the corresponding content from the database query
+            const content = bundleContents.find(c => 
+              c.variant_id === detail.variant_id && 
+              c.size_id === detail.size_id
+            ) || {};
+            
+            const contentImageUrl = content.image_url || (detail.variant_id ? variantImages[detail.variant_id] : null);
             const contentImages = contentImageUrl ? [contentImageUrl] : [];
             
-            // Find the original bundle detail to get the actual quantity
-            const originalBundleDetail = parsedBundleDetails.find(detail => 
-              detail.variant_id === content.variant_id && 
-              detail.size_id === content.size_id
-            );
-            
             return {
-              product_id: content.product_id,
-              product_name: content.product_name || 'N/A',
-              color_name: content.color_name || null,
-              size_name: content.size_name || null,
+              product_id: content.product_id || detail.product_id,
+              product_name: content.product_name || detail.product_name || 'N/A',
+              color_name: content.color_name || detail.color_name || null,
+              size_name: content.size_name || detail.size_name || null,
               primary_image_url: contentImageUrl,
               additional_images: [],
               images: contentImages,
-              quantity: originalBundleDetail ? (originalBundleDetail.quantity || 1) : 1
+              quantity: detail.quantity
             };
           } catch (error) {
             console.error('Error processing bundle content:', error);
-            console.error('Content object:', content);
+            console.error('Detail object:', detail);
             console.error('Variant images:', variantImages);
             throw error; // Re-throw to maintain error behavior
           }
