@@ -277,6 +277,13 @@ export const getCompleteOrderDetails = async (req, res) => {
           try {
             const contentImageUrl = content.image_url || (content.variant_id ? variantImages[content.variant_id] : null);
             const contentImages = contentImageUrl ? [contentImageUrl] : [];
+            
+            // Find the original bundle detail to get the actual quantity
+            const originalBundleDetail = parsedBundleDetails.find(detail => 
+              detail.variant_id === content.variant_id && 
+              detail.size_id === content.size_id
+            );
+            
             return {
               product_id: content.product_id,
               product_name: content.product_name || 'N/A',
@@ -285,7 +292,7 @@ export const getCompleteOrderDetails = async (req, res) => {
               primary_image_url: contentImageUrl,
               additional_images: [],
               images: contentImages,
-              quantity: 1 // Bundle items are typically 1 each
+              quantity: originalBundleDetail ? (originalBundleDetail.quantity || 1) : 1
             };
           } catch (error) {
             console.error('Error processing bundle content:', error);
