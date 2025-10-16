@@ -217,9 +217,10 @@ export const getCompleteOrderDetails = async (req, res) => {
       const processedBundleItems = await Promise.all(bundleItems.map(async item => {
         // Use the bundle_details field which contains the user's actual selections
         let bundleContents = [];
+        let parsedBundleDetails = [];
         try {
           if (item.bundle_details) {
-            const parsedBundleDetails = typeof item.bundle_details === 'string' ? JSON.parse(item.bundle_details) : item.bundle_details;
+            parsedBundleDetails = typeof item.bundle_details === 'string' ? JSON.parse(item.bundle_details) : item.bundle_details;
             
             // Get additional details for each selected item
             const variantIds = parsedBundleDetails.map(detail => detail.variant_id).filter(id => id);
