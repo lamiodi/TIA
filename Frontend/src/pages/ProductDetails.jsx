@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Package,
   User,
+  Ban,
 } from "lucide-react"
 import Footer from "../components/Footer"
 import { useAuth } from "../context/AuthContext"
@@ -790,6 +791,7 @@ const ProductDetails = () => {
                             key={s.size_name}
                             onClick={() => handleSizeChange(s.size_name)}
                             disabled={s.stock_quantity === 0}
+                            title={s.stock_quantity === 0 ? "Sold Out" : "Select size"}
                             className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === s.size_name
                                 ? "border-Primarycolor bg-gray-900 text-white shadow-lg"
@@ -801,7 +803,7 @@ const ProductDetails = () => {
                             {s.size_name}
                             {s.stock_quantity === 0 && (
                               <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-full h-0.5 bg-gray-300 rotate-45"></div>
+                                <Ban className="w-4 h-4 text-red-500" aria-label="Sold Out" />
                               </div>
                             )}
                           </button>
@@ -843,6 +845,7 @@ const ProductDetails = () => {
                             key={size.size_name}
                             onClick={() => handleSizeChange(size.size_name)}
                             disabled={size.stock_quantity === 0}
+                            title={size.stock_quantity === 0 ? "Sold Out" : "Select size"}
                             className={`relative py-3 px-2 text-sm font-medium font-Jost border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === size.size_name
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
@@ -854,7 +857,7 @@ const ProductDetails = () => {
                             {size.size_name}
                             {size.stock_quantity === 0 && (
                               <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-full h-0.5 bg-gray-300 rotate-45"></div>
+                                <Ban className="w-4 h-4 text-red-500" aria-label="Sold Out" />
                               </div>
                             )}
                           </button>
