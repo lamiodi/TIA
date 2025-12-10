@@ -577,6 +577,10 @@ const ProductDetails = () => {
     ? sortSizes(Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : [])
     : sortSizes(Array.isArray(data?.items?.[0]?.all_variants?.[0]?.sizes) ? data.items[0].all_variants[0].sizes : [])
   const bundleTypes = ["3-in-1", "5-in-1"]
+  
+  // Calculate if all sizes are sold out
+  const isAllSoldOut = sizeOptions.length > 0 && sizeOptions.every(s => s.stock_quantity <= 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Product Schema for SEO */}
@@ -658,8 +662,17 @@ const ProductDetails = () => {
                     alt="Product"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {/* Sold Out Overlay */}
+                  {isAllSoldOut && (
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
+                      <div className="bg-red-600/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl transform scale-110 border border-red-400/50">
+                        <Ban className="w-6 h-6" />
+                        <span className="text-lg font-bold tracking-wider font-Inter uppercase">Sold Out</span>
+                      </div>
+                    </div>
+                  )}
                   {/* Bundle Badge */}
-                  {!isProduct && (
+                  {!isProduct && !isAllSoldOut && (
                     <div className="absolute top-4 left-4 bg-gradient-to-r font-Inter from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                       <Package className="w-4 h-4" />
                       <span>Bundle</span>
@@ -734,8 +747,12 @@ const ProductDetails = () => {
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
-                    <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
-                        In Stock
+                    <span className={`text-sm px-2 py-1 rounded-full font-Jost whitespace-nowrap ${
+                        isAllSoldOut 
+                          ? "text-red-600 bg-red-50" 
+                          : "text-green-600 bg-green-50"
+                      }`}>
+                        {isAllSoldOut ? "Sold Out" : "In Stock"}
                       </span>
                       {!isProduct && (
                         <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">

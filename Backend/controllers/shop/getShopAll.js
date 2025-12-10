@@ -96,7 +96,16 @@ export const getShopAll = async (req, res) => {
           LIMIT 1
         ) AS primary_image,
         c.color_name,
-        p.category
+        p.category,
+        (
+          SELECT COALESCE(json_agg(
+            json_build_object(
+              'stock_quantity', vs.stock_quantity
+            )
+          ), '[]'::json)
+          FROM variant_sizes vs
+          WHERE vs.variant_id = pv.id
+        ) AS sizes
       FROM products p
       JOIN product_variants pv ON p.id = pv.product_id
       JOIN colors c ON pv.color_id = c.id
@@ -121,7 +130,8 @@ export const getShopAll = async (req, res) => {
       color: row.color_name,
       variantId: row.variant_id,
       category: row.category,
-      is_product: true
+      is_product: true,
+      sizes: row.sizes // Include sizes in the response
     }));
 
     return res.status(200).json(products);
