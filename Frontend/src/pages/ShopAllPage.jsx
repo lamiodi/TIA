@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+import { Ban } from 'lucide-react';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
@@ -417,6 +418,8 @@ const ShopAllPage = () => {
 const ProductCard = ({ product, onImageError }) => {
   const { id, name, price, image, is_product, variantId, bundle_types } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
+  const sizes = product.sizes || [];
+  const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   
   // Clean product name (remove trailing "– Something")
   let displayName = name || 'Unnamed Product';
@@ -443,9 +446,17 @@ const ProductCard = ({ product, onImageError }) => {
             onError={onImageError}
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 z-10"></div>
+          {isSoldOut && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] z-20">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-600 text-white shadow-md">
+                <Ban className="h-4 w-4 mr-1" />
+                Sold Out
+              </span>
+            </div>
+          )}
           {bundle_types?.[0] && (
-            <span className="absolute top-3 right-3 bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+            <span className="absolute top-3 right-3 bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm z-30">
               {bundle_types[0]}
             </span>
           )}
