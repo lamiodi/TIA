@@ -10,26 +10,26 @@ export const getShopAll = async (req, res) => {
 
       const bundleRes = await sql`
         SELECT 
-          MIN(b.id) AS id,
+          b.id,
           p.id AS product_id,
-          p.name,
-          MIN(b.bundle_price) AS price,
-          ARRAY_AGG(DISTINCT b.bundle_type) AS bundle_types,
+          b.name,
+          b.bundle_price AS price,
+          ARRAY_AGG(b.bundle_type) AS bundle_types,
           COALESCE(
             (SELECT bi.image_url
              FROM bundle_images bi
-             WHERE bi.bundle_id = MIN(b.id) AND bi.is_primary = TRUE
+             WHERE bi.bundle_id = b.id AND bi.is_primary = TRUE
              LIMIT 1),
             (SELECT bi.image_url
              FROM bundle_images bi
-             WHERE bi.bundle_id = MIN(b.id)
+             WHERE bi.bundle_id = b.id
              LIMIT 1)
           ) AS image,
           FALSE AS is_product
         FROM bundles b
         JOIN products p ON b.product_id = p.id
         WHERE b.is_active = TRUE AND b.bundle_type = ${bundleType}
-        GROUP BY p.id, p.name
+        GROUP BY b.id, p.id, b.name, b.bundle_price
       `;
 
       const bundles = bundleRes.map(row => ({
@@ -48,26 +48,26 @@ export const getShopAll = async (req, res) => {
     if (category === 'all-bundles') {
       const bundleRes = await sql`
         SELECT 
-          MIN(b.id) AS id,
+          b.id,
           p.id AS product_id,
-          p.name,
-          MIN(b.bundle_price) AS price,
-          ARRAY_AGG(DISTINCT b.bundle_type) AS bundle_types,
+          b.name,
+          b.bundle_price AS price,
+          ARRAY_AGG(b.bundle_type) AS bundle_types,
           COALESCE(
             (SELECT bi.image_url
              FROM bundle_images bi
-             WHERE bi.bundle_id = MIN(b.id) AND bi.is_primary = TRUE
+             WHERE bi.bundle_id = b.id AND bi.is_primary = TRUE
              LIMIT 1),
             (SELECT bi.image_url
              FROM bundle_images bi
-             WHERE bi.bundle_id = MIN(b.id)
+             WHERE bi.bundle_id = b.id
              LIMIT 1)
           ) AS image,
           FALSE AS is_product
         FROM bundles b
         JOIN products p ON b.product_id = p.id
         WHERE b.is_active = TRUE
-        GROUP BY p.id, p.name
+        GROUP BY b.id, p.id, b.name, b.bundle_price
       `;
 
       const bundles = bundleRes.map(row => ({

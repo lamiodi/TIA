@@ -66,13 +66,14 @@ export const uploadProduct = async (req, res) => {
 export const getProductById = async (req, res) => {
   console.log('🔥 DEBUG: getProductById function called');
   const { id } = req.params;
-  const { type } = req.query; // 'product' or 'bundle'
+  const type = req.query.type ? req.query.type.trim() : null; // 'product' or 'bundle'
   
-  console.log('🔥 DEBUG: getProductById called with id:', id, 'type:', type);
+  console.log('🔥 DEBUG: getProductById called with id:', id, 'type:', type, 'raw query:', req.query);
   
   try {
     // If type is explicitly specified as 'bundle', check bundle first
     if (type === 'bundle') {
+      console.log('🔥 DEBUG: Checking for bundle with id:', id);
       const [bundle] = await sql`
         SELECT 
           b.id, b.name, b.description, b.bundle_price AS price, b.sku_prefix AS type, b.is_active,
@@ -122,14 +123,21 @@ export const getProductById = async (req, res) => {
         GROUP BY b.id
       `;
       
+      console.log('🔥 DEBUG: Bundle query result:', bundle);
+      console.log('🔥 DEBUG: Bundle exists:', !!bundle);
+      
       if (bundle && bundle.id) {
+        console.log('🔥 DEBUG: Returning bundle data for id:', id);
         return res.json({ type: 'bundle', data: bundle });
+      } else {
+        console.log('🔥 DEBUG: Bundle not found for id:', id);
+        return res.status(404).json({ error: 'Bundle not found' });
       }
-      // If bundle not found, fall back to product check
     }
     
     // If type is explicitly specified as 'product', check product only
     if (type === 'product') {
+      console.log('🔥 DEBUG: Checking for product with id:', id);
       const [product] = await sql`
         SELECT 
           p.id, 
@@ -175,59 +183,21 @@ export const getProductById = async (req, res) => {
         GROUP BY p.id
       `;
       
+      console.log('🔥 DEBUG: Product query result:', product);
+      console.log('🔥 DEBUG: Product exists:', !!product);
+      
       if (product && product.id) {
+        console.log('🔥 DEBUG: Returning product data for id:', id);
         return res.json({ type: 'product', data: product });
+      } else {
+        console.log('🔥 DEBUG: Product not found for id:', id);
+        return res.status(404).json({ error: 'Product not found' });
       }
-      return res.status(404).json({ error: 'Item not found' });
     }
     
-    // Default behavior: check product first, then bundle (for backward compatibility)
-    // Attempt to fetch product by ID
-    const [product] = await sql`
-      SELECT 
-        p.id, 
-        CASE 
-          WHEN COUNT(pv.id) = 1 THEN MAX(pv.name)
-          ELSE p.name
-        END as name, 
-        p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
-        p.is_new_release, p.category, p.gender, TRUE AS is_product, p.created_at,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'variant_id', pv.id,
-              'color_id', pv.color_id,
-              'color_name', c.color_name,
-              'color_code', c.color_code,
-              'sku', pv.sku,
-              'name', pv.name,
-              'images', (
-                SELECT COALESCE(json_agg(image_url), '[]'::json)
-                FROM product_images pi
-                WHERE pi.variant_id = pv.id
-              ),
-              'sizes', (
-                SELECT COALESCE(json_agg(
-                  json_build_object(
-                    'size_id', s.id,
-                    'size_name', s.size_name,
-                    'stock_quantity', vs.stock_quantity
-                  )
-                ), '[]'::json)
-                FROM variant_sizes vs
-                JOIN sizes s ON vs.size_id = s.id
-                WHERE vs.variant_id = pv.id
-              )
-            )
-          ), '[]'::json
-        ) AS variants
-      FROM products p
-      LEFT JOIN product_variants pv ON p.id = pv.product_id
-      LEFT JOIN colors c ON pv.color_id = c.id
-      WHERE p.id = ${id} AND p.is_active = TRUE
-      GROUP BY p.id
-    `;
-
+    // Default behavior: check bundle first, then product (to avoid ID conflicts where product shadows bundle)
+    console.log('🔥 DEBUG: Default behavior - checking bundle first for id:', id);
+    
     // Attempt to fetch bundle by ID
     const [bundle] = await sql`
       SELECT 
@@ -278,13 +248,66 @@ export const getProductById = async (req, res) => {
       GROUP BY b.id
     `;
 
-    if (product && product.id) {
-      return res.json({ type: 'product', data: product });
-    } else if (bundle && bundle.id) {
+    if (bundle && bundle.id) {
+      console.log('🔥 DEBUG: Found bundle in default behavior, returning bundle data');
       return res.json({ type: 'bundle', data: bundle });
-    } else {
-      return res.status(404).json({ error: 'Item not found' });
     }
+
+    console.log('🔥 DEBUG: Bundle not found in default behavior, checking product');
+
+    // Attempt to fetch product by ID
+    const [product] = await sql`
+      SELECT 
+        p.id, 
+        CASE 
+          WHEN COUNT(pv.id) = 1 THEN MAX(pv.name)
+          ELSE p.name
+        END as name, 
+        p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
+        p.is_new_release, p.category, p.gender, TRUE AS is_product, p.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'variant_id', pv.id,
+              'color_id', pv.color_id,
+              'color_name', c.color_name,
+              'color_code', c.color_code,
+              'sku', pv.sku,
+              'name', pv.name,
+              'images', (
+                SELECT COALESCE(json_agg(image_url), '[]'::json)
+                FROM product_images pi
+                WHERE pi.variant_id = pv.id
+              ),
+              'sizes', (
+                SELECT COALESCE(json_agg(
+                  json_build_object(
+                    'size_id', s.id,
+                    'size_name', s.size_name,
+                    'stock_quantity', vs.stock_quantity
+                  )
+                ), '[]'::json)
+                FROM variant_sizes vs
+                JOIN sizes s ON vs.size_id = s.id
+                WHERE vs.variant_id = pv.id
+              )
+            )
+          ), '[]'::json
+        ) AS variants
+      FROM products p
+      LEFT JOIN product_variants pv ON p.id = pv.product_id
+      LEFT JOIN colors c ON pv.color_id = c.id
+      WHERE p.id = ${id} AND p.is_active = TRUE
+      GROUP BY p.id
+    `;
+
+    if (product && product.id) {
+      console.log('🔥 DEBUG: Found product in default behavior, returning product data');
+      return res.json({ type: 'product', data: product });
+    }
+
+    console.log('🔥 DEBUG: Neither bundle nor product found for id:', id);
+    return res.status(404).json({ error: 'Item not found' });
   } catch (err) {
     console.error('Get product error:', err);
     return res.status(500).json({ error: 'Server error' });
