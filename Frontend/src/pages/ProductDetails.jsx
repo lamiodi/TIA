@@ -55,6 +55,7 @@ const ProductDetails = () => {
     Brown: "#8B4513",
     Cream: "#F5F5DC",
     Pink: "#FFC0CB",
+    Beige: "#E8DCC4",
   }
   // Helper function to decode JWT token
   const decodeToken = (token) => {
@@ -520,7 +521,25 @@ const ProductDetails = () => {
   const getBundlePrice = () => {
     if (!productData || productData.type !== "bundle") return 0
     const basePrice = Number.parseFloat(productData.data.price) || 0
-    return bundleType === "5-in-1" ? basePrice * 1.5 : basePrice
+    const loadedType = productData.data.bundle_type || "3-in-1"
+    
+    // If the selected type matches the loaded bundle's type, return the actual price
+    if (bundleType === loadedType) {
+      return basePrice
+    }
+    
+    // Calculate ratio based on standard pricing: 5-in-1 (98000) / 3-in-1 (59999) ≈ 1.6334
+    const ratio = 1.6334
+    
+    if (loadedType === "3-in-1" && bundleType === "5-in-1") {
+      return basePrice * ratio
+    }
+    
+    if (loadedType === "5-in-1" && bundleType === "3-in-1") {
+      return basePrice / ratio
+    }
+    
+    return basePrice
   }
   if (loading || contextLoading || authLoading) {
     return (
