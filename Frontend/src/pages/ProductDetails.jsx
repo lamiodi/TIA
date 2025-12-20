@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react"
-import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom"
+import { useParams, useSearchParams, useNavigate, useLocation, Link } from "react-router-dom"
 import Navbar2 from "../components/Navbar2"
 import axios from "axios"
 import {
@@ -29,6 +29,7 @@ const ProductDetails = () => {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, loading: authLoading } = useAuth()
   const currencyContext = useContext(CurrencyContext)
   const { currency = "NGN", exchangeRate = 1, country = "Nigeria", contextLoading = false } = currencyContext || {}
@@ -220,7 +221,9 @@ const ProductDetails = () => {
       }
       try {
         setLoading(true)
-        const res = await axios.get(`${API_BASE_URL}/api/products/${id}`)
+        // Determine item type from URL path
+        const itemType = location.pathname.startsWith('/bundle/') ? 'bundle' : 'product'
+        const res = await axios.get(`${API_BASE_URL}/api/products/${id}?type=${itemType}`)
         // Validate response data
         if (!res.data) {
           setError("Invalid product data received")
