@@ -528,15 +528,13 @@ const ProductDetails = () => {
       return basePrice
     }
     
-    // Calculate ratio based on standard pricing: 5-in-1 (98000) / 3-in-1 (59999) ≈ 1.6334
-    const ratio = 1.6334
-    
-    if (loadedType === "3-in-1" && bundleType === "5-in-1") {
-      return basePrice * ratio
+    // Use standard bundle pricing when switching types to avoid rounding errors
+    if (bundleType === "5-in-1") {
+      return 98000
     }
     
-    if (loadedType === "5-in-1" && bundleType === "3-in-1") {
-      return basePrice / ratio
+    if (bundleType === "3-in-1") {
+      return 59999
     }
     
     return basePrice
