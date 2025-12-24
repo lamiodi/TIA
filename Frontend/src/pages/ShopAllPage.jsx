@@ -70,12 +70,12 @@ const ShopAllPage = () => {
   const navigate = useNavigate();
   const itemsPerPage = 16;
   const category = searchParams.get('category');
-  const filterCategories = ['All', 'Briefs', 'Gymwear', 'Sets', 'New Arrivals', '3 in 1', '5 in 1'];
+  const filterCategories = ['All', 'Briefs', 'Gymwear', 'Lounge Set', 'New Arrivals', '3 in 1', '5 in 1'];
   const categoryMap = {
     'New Arrivals': 'new',
     'Briefs': 'briefs',
     'Gymwear': 'gymwear',
-    'Sets': 'sets',
+    'Lounge Set': 'lounge set',
     '3 in 1': '3in1',
     '5 in 1': '5in1'
   };
@@ -83,7 +83,7 @@ const ShopAllPage = () => {
     'new': 'New Arrivals',
     'briefs': 'Briefs',
     'gymwear': 'Gymwear',
-    'sets': 'Sets',
+    'lounge set': 'Lounge Set',
     '3in1': '3 in 1',
     '5in1': '5 in 1'
   };
@@ -102,9 +102,9 @@ const ShopAllPage = () => {
       title: 'Premium Gymwear & Activewear Collection | The Tia Brand',
       description: 'Shop high-performance gymwear and activewear. Moisture-wicking fabrics, superior comfort, and stylish designs for your workout routine.'
     },
-    'Sets': {
-      title: 'Matching Sets Collection | The Tia Brand',
-      description: 'Shop our coordinated sets. Perfect matching combinations for style and comfort.'
+    'Lounge Set': {
+      title: 'Lounge Sets Collection | The Tia Brand',
+      description: 'Shop our coordinated lounge sets. Perfect matching combinations for style and comfort.'
     },
     'New Arrivals': {
       title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
