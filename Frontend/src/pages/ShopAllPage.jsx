@@ -70,14 +70,16 @@ const ShopAllPage = () => {
   const navigate = useNavigate();
   const itemsPerPage = 16;
   const category = searchParams.get('category');
-  const filterCategories = ['All', 'Briefs', 'Gymwear', 'Lounge Set', 'New Arrivals', '3 in 1', '5 in 1'];
+  const filterCategories = ['All', 'Briefs', 'Gymwear', 'Lounge Set', 'New Arrivals', '3 in 1', '5 in 1', 'His', 'Hers'];
   const categoryMap = {
     'New Arrivals': 'new',
     'Briefs': 'briefs',
     'Gymwear': 'gymwear',
     'Lounge Set': 'lounge set',
     '3 in 1': '3in1',
-    '5 in 1': '5in1'
+    '5 in 1': '5in1',
+    'His': 'his',
+    'Hers': 'hers'
   };
   const reverseCategoryMap = {
     'new': 'New Arrivals',
@@ -85,7 +87,9 @@ const ShopAllPage = () => {
     'gymwear': 'Gymwear',
     'lounge set': 'Lounge Set',
     '3in1': '3 in 1',
-    '5in1': '5 in 1'
+    '5in1': '5 in 1',
+    'his': 'His',
+    'hers': 'Hers'
   };
 
   // Meta tags configuration for each category
@@ -117,6 +121,14 @@ const ShopAllPage = () => {
     '5 in 1': {
       title: '5-in-1 Luxury Bundles Collection | The Tia Brand',
       description: 'Discover our premium 5-in-1 bundles with complete outfit coordination. Multiple pieces designed to work together for versatile styling options.'
+    },
+    'His': {
+      title: 'Shop for Him - Premium Men\'s Collection | The Tia Brand',
+      description: 'Discover our premium collection for men. Luxury boxers, gymwear, and sets designed for superior comfort and style.'
+    },
+    'Hers': {
+      title: 'Shop for Her - Premium Women\'s Collection | The Tia Brand',
+      description: 'Explore our premium collection for women. Elegant activewear, lounge sets, and comfort wear designed for the modern woman.'
     }
   };
 

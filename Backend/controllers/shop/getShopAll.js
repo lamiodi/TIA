@@ -115,6 +115,10 @@ export const getShopAll = async (req, res) => {
     if (category) {
       if (category.toLowerCase() === 'new') {
         productQuery = sql`${productQuery} AND p.is_new_release = TRUE`;
+      } else if (category.toLowerCase() === 'his') {
+        productQuery = sql`${productQuery} AND (p.gender = 'Male' OR p.gender = 'Unisex')`;
+      } else if (category.toLowerCase() === 'hers') {
+        productQuery = sql`${productQuery} AND (p.gender = 'Female' OR p.gender = 'Unisex')`;
       } else {
         const cat = category.toLowerCase();
         productQuery = sql`${productQuery} AND LOWER(p.category) = ${cat}`;
