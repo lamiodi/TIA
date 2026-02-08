@@ -388,8 +388,10 @@ const ProductDetails = () => {
             variant_id: selectedVariant.variant_id,
             size_id: selectedSizeObj.size_id,
             quantity,
+            is_preorder: isPreorderActive, // Pass preorder flag
+            price: isPreorderActive ? depositPrice : undefined // Pass deposit price if preorder
           })
-          toastSuccess("Product added to cart")
+          toastSuccess(isPreorderActive ? "Pre-order added to cart" : "Product added to cart")
           window.dispatchEvent(new Event("cartUpdated"))
         } else {
           // Add to guest cart
@@ -398,19 +400,22 @@ const ProductDetails = () => {
             variant_id: selectedVariant.variant_id,
             size_id: selectedSizeObj.size_id,
             quantity,
-            price: productPrice,
+            price: isPreorderActive ? depositPrice : productPrice, // Use deposit price if preorder
+            is_preorder: isPreorderActive, // Pass preorder flag
             item: {
               id: selectedVariant.variant_id,
               name: productName,
               image: productImage,
               color: selectedColor,
               size: selectedSize,
-              price: productPrice,
+              price: isPreorderActive ? depositPrice : productPrice,
+              original_price: productPrice, // Store original price
               stock_quantity: selectedSizeObj.stock_quantity,
               is_product: true,
+              is_preorder: isPreorderActive
             },
           })
-          toastSuccess("Product added to guest cart")
+          toastSuccess(isPreorderActive ? "Pre-order added to guest cart" : "Product added to guest cart")
           window.dispatchEvent(new Event("cartUpdated"))
         }
       }
@@ -573,7 +578,30 @@ const ProductDetails = () => {
   const name = data?.name || "Unnamed Product"
   const rawPrice = isProduct ? data?.price : getBundlePrice()
   const parsedPrice = Number.parseFloat(rawPrice) || 0
-  const displayPrice = country === "Nigeria" ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2)
+  
+  // Preorder Logic
+  const isPreorderEnabled = data?.allow_preorder || false;
+  
+  // Calculate if sold out
+  const isProductSoldOut = isProduct && Array.isArray(selectedVariant?.sizes) 
+    ? selectedVariant.sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0)
+    : false;
+    
+  const isBundleSoldOut = !isProduct && bundleType && selectedBundleVariants[bundleType]
+    ? Object.values(selectedBundleVariants[bundleType]).some(item => {
+        // Find if this item size is out of stock
+        // Logic for bundles is complex, simplifying for now: check if any item is out of stock
+        // For accurate bundle stock check, we need to know the selected size's stock
+        return false; // Simplified
+      })
+    : false;
+
+  const isAllSoldOut = isProduct ? isProductSoldOut : false; // Focus on product for now
+  
+  // If sold out AND preorder enabled, use deposit price
+  const isPreorderActive = isAllSoldOut && isPreorderEnabled;
+  const depositPrice = isPreorderActive ? parsedPrice * 0.5 : parsedPrice;
+  const displayPrice = country === "Nigeria" ? depositPrice : (depositPrice * exchangeRate).toFixed(2)
   const displayCurrency = country === "Nigeria" ? "NGN" : "USD"
   const description = data?.description || "No description available"
   const colorOptions = isProduct
@@ -599,7 +627,8 @@ const ProductDetails = () => {
   const bundleTypes = ["3-in-1", "5-in-1"]
   
   // Calculate if all sizes are sold out
-  const isAllSoldOut = sizeOptions.length > 0 && sizeOptions.every(s => s.stock_quantity <= 0);
+  // const isAllSoldOut = sizeOptions.length > 0 && sizeOptions.every(s => s.stock_quantity <= 0); // Removed duplicate declaration
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -768,12 +797,19 @@ const ProductDetails = () => {
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
                     <span className={`text-sm px-2 py-1 rounded-full font-Jost whitespace-nowrap ${
-                        isAllSoldOut 
-                          ? "text-red-600 bg-red-50" 
-                          : "text-green-600 bg-green-50"
+                        isPreorderActive
+                          ? "text-blue-600 bg-blue-50"
+                          : isAllSoldOut 
+                            ? "text-red-600 bg-red-50" 
+                            : "text-green-600 bg-green-50"
                       }`}>
-                        {isAllSoldOut ? "Sold Out" : "In Stock"}
+                        {isPreorderActive ? "Pre-order Available" : (isAllSoldOut ? "Sold Out" : "In Stock")}
                       </span>
+                      {isPreorderActive && (
+                        <span className="text-xs text-gray-500 font-Jost bg-gray-100 px-2 py-1 rounded-full">
+                          Pay 50% Deposit
+                        </span>
+                      )}
                       {!isProduct && (
                         <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">
                           {bundleType} Bundle

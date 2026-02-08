@@ -11,10 +11,7 @@ import { Ban } from 'lucide-react';
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
   useEffect(() => {
-    // Update title
     document.title = title;
-    
-    // Update or create meta description
     let metaDescription = document.querySelector('meta[name="description"]');
     if (!metaDescription) {
       metaDescription = document.createElement('meta');
@@ -22,8 +19,6 @@ const useMetaTags = (title, description) => {
       document.head.appendChild(metaDescription);
     }
     metaDescription.content = description;
-    
-    // Cleanup on component unmount
     return () => {
       document.title = 'The Tia Brand - Premium Comfort Wear';
     };
@@ -51,6 +46,7 @@ const CollectionPageSchema = () => {
     </script>
   );
 };
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : 'https://tia-backend-r331.onrender.com/api';
@@ -60,7 +56,8 @@ const ShopAllPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentFilter, setCurrentFilter] = useState('All');
+  const [currentFilter, setCurrentFilter] = useState('ALL');
+  const [subFilter, setSubFilter] = useState('VIEW ALL');
   const [sortBy, setSortBy] = useState('default');
   const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -69,176 +66,137 @@ const ShopAllPage = () => {
   const { currency, exchangeRate, country, loading: contextLoading } = useContext(CurrencyContext);
   const navigate = useNavigate();
   const itemsPerPage = 16;
+  
   const category = searchParams.get('category');
-  const filterCategories = ['All', 'Briefs', 'Gymwear', 'Lounge Set', 'New Arrivals', '3 in 1', '5 in 1', 'His', 'Hers'];
+
+  const primaryFilters = ['ALL', 'BRIEFS', 'LOUNGE SETS', '3 IN 1', '5 IN 1', 'NEW ARRIVALS'];
+
+  // Removed subFiltersMap as per new requirement for flat filter list
+
   const categoryMap = {
-    'New Arrivals': 'new',
-    'Briefs': 'briefs',
-    'Gymwear': 'gymwear',
-    'Lounge Set': 'lounge set',
-    '3 in 1': '3in1',
-    '5 in 1': '5in1',
-    'His': 'his',
-    'Hers': 'hers'
-  };
-  const reverseCategoryMap = {
-    'new': 'New Arrivals',
-    'briefs': 'Briefs',
-    'gymwear': 'Gymwear',
-    'lounge set': 'Lounge Set',
-    '3in1': '3 in 1',
-    '5in1': '5 in 1',
-    'his': 'His',
-    'hers': 'Hers'
+    'ALL': 'all',
+    'BRIEFS': 'briefs',
+    'LOUNGE SETS': 'lounge sets',
+    '3 IN 1': '3in1',
+    '5 IN 1': '5in1',
+    'NEW ARRIVALS': 'new'
   };
 
-  // Meta tags configuration for each category
+  const reverseCategoryMap = {
+    'all': 'ALL',
+    'briefs': 'BRIEFS',
+    'lounge set': 'LOUNGE SETS', // Handle singular backend response
+    'lounge sets': 'LOUNGE SETS',
+    '3in1': '3 IN 1',
+    '5in1': '5 IN 1',
+    'new': 'NEW ARRIVALS'
+  };
+
+  // Meta tags configuration
   const metaConfig = {
-    'All': {
+    'ALL': {
       title: 'Shop All - Premium Boxers, Gymwears & Bundles | The Tia Brand',
-      description: 'Explore our complete collection of premium underwear, activewear, and exclusive bundles. Premium comfort wear designed for everyday luxury.'
+      description: 'Explore our complete collection of premium underwear, activewear, and exclusive bundles.'
     },
-    'Briefs': {
+    'BRIEFS': {
       title: 'Premium Boxers & Briefs Collection | The Tia Brand',
       description: 'Discover our luxury boxers and briefs collection. Premium comfort underwear with superior fit, breathable fabrics, and modern designs.'
     },
-    'Gymwear': {
-      title: 'Premium Gymwear & Activewear Collection | The Tia Brand',
-      description: 'Shop high-performance gymwear and activewear. Moisture-wicking fabrics, superior comfort, and stylish designs for your workout routine.'
-    },
-    'Lounge Set': {
+    'LOUNGE SETS': {
       title: 'Lounge Sets Collection | The Tia Brand',
       description: 'Shop our coordinated lounge sets. Perfect matching combinations for style and comfort.'
     },
-    'New Arrivals': {
-      title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
-      description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest boxers, gymwears, and exclusive bundle designs.'
-    },
-    '3 in 1': {
+    '3 IN 1': {
       title: '3-in-1 Premium Bundles Collection | The Tia Brand',
-      description: 'Explore our exclusive 3-in-1 bundles featuring coordinated boxers, gymwears, and accessories. Perfect matching sets for ultimate style and comfort.'
+      description: 'Explore our exclusive 3-in-1 bundles featuring coordinated boxers, gymwears, and accessories.'
     },
-    '5 in 1': {
+    '5 IN 1': {
       title: '5-in-1 Luxury Bundles Collection | The Tia Brand',
-      description: 'Discover our premium 5-in-1 bundles with complete outfit coordination. Multiple pieces designed to work together for versatile styling options.'
+      description: 'Discover our premium 5-in-1 bundles with complete outfit coordination.'
     },
-    'His': {
-      title: 'Shop for Him - Premium Men\'s Collection | The Tia Brand',
-      description: 'Discover our premium collection for men. Luxury boxers, gymwear, and sets designed for superior comfort and style.'
-    },
-    'Hers': {
-      title: 'Shop for Her - Premium Women\'s Collection | The Tia Brand',
-      description: 'Explore our premium collection for women. Elegant activewear, lounge sets, and comfort wear designed for the modern woman.'
+    'NEW ARRIVALS': {
+      title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
+      description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest designs.'
     }
   };
 
-  // Use meta tags hook
-  const currentMeta = metaConfig[currentFilter] || metaConfig['All'];
+  const currentMeta = metaConfig[currentFilter] || metaConfig['ALL'];
   useMetaTags(currentMeta.title, currentMeta.description);
 
-  // Helper function to check if a product is a brief
+  // Helper to check for brief keywords
   const isBrief = useCallback((product) => {
     if (!product) return false;
-    
-    // For bundles, check bundle_types
-    if (!product.is_product && product.bundle_types && product.bundle_types.length > 0) {
+    // Check bundles
+    if (!product.is_product && product.bundle_types?.length > 0) {
       return product.bundle_types.some(type => {
-        const typeLower = type.toLowerCase();
-        return typeLower.includes('brief') || 
-               typeLower.includes('underwear') ||
-               typeLower.includes('boxer') ||
-               typeLower.includes('trunk');
+        const t = type.toLowerCase();
+        return t.includes('brief') || t.includes('underwear') || t.includes('boxer') || t.includes('trunk');
       });
     }
-    
-    // For products, check the name and category
+    // Check products
     const name = (product.name || '').toLowerCase();
-    const category = (product.category || '').toLowerCase();
-    
-    return name.includes('brief') || 
-           name.includes('boxer') || 
-           name.includes('underwear') ||
-           name.includes('trunk') ||
-           category === 'briefs';
+    const cat = (product.category || '').toLowerCase();
+    return name.includes('brief') || name.includes('boxer') || name.includes('underwear') || name.includes('trunk') || cat === 'briefs';
   }, []);
 
+  // Fetch products based on primary filter
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const endpoint = category ? `/shopall?category=${category}` : `/shopall`;
+      const catParam = category ? category.toLowerCase() : 'all';
+      // Map URL param to primary filter if possible, else default to ALL logic
+      const endpoint = `/shopall?category=${catParam}`;
       const res = await api.get(endpoint);
-  
+
       if (!Array.isArray(res.data)) {
         throw new Error('Unexpected response format');
       }
-  
-      const processedData = res.data.map(item => {
-        const baseItem = {
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          image: item.image,
-          created_at: item.created_at,
-          category: item.category, // Include category for brief detection
-        };
-  
-        if (!item.is_product) {
-          return {
-            ...baseItem,
-            is_product: false,
-            bundle_types: item.bundle_types || [],
-          };
-        }
-  
-        return {
-          ...baseItem,
-          is_product: true,
-          variantId: item.variantId,
-          sizes: item.sizes || [], // Include sizes for add to cart
-        };
-      });
-  
-      // Sort to show briefs first when "All" is selected
-      if (!category) {
-        processedData.sort((a, b) => {
-          const aIsBrief = isBrief(a);
-          const bIsBrief = isBrief(b);
-          
-          // Sort briefs first, then everything else
-          if (aIsBrief && !bIsBrief) return -1; // a comes before b
-          if (!aIsBrief && bIsBrief) return 1;  // b comes before a
-          return 0; // maintain original order for non-briefs
-        });
-      }
-  
+
+      const processedData = res.data.map(item => ({
+        ...item,
+        // Ensure numeric price
+        price: Number(item.price) || 0,
+        // Ensure array for bundle_types
+        bundle_types: item.bundle_types || [],
+        // Ensure array for sizes
+        sizes: item.sizes || []
+      }));
+
       setProducts(processedData);
-      setCurrentFilter(reverseCategoryMap[category?.toLowerCase()] || 'All');
+      
+      // Update primary filter state based on URL, or default to ALL
+      const mappedFilter = reverseCategoryMap[catParam] || 'ALL';
+      setCurrentFilter(mappedFilter);
+
     } catch (err) {
+      console.error(err);
       setError(err?.response?.data?.message || err.message || 'Failed to fetch products');
     } finally {
       setLoading(false);
     }
-  }, [category, isBrief]);
+  }, [category]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Reset page when primary filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [currentFilter]);
+
+  // Filter products based on sub-filter (Logic simplified since sub-filters removed)
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
-    if (currentFilter === '3 in 1' || currentFilter === '5 in 1') {
-      filtered = filtered.filter(item =>
-        !item.is_product &&
-        item.bundle_types?.includes(currentFilter === '3 in 1' ? '3-in-1' : '5-in-1')
-      );
-    }
+
+    // Sort Logic
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+        filtered.sort((a, b) => a.price - b.price);
         break;
       case 'price-high':
-        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+        filtered.sort((a, b) => b.price - a.price);
         break;
       case 'name':
         filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -247,10 +205,20 @@ const ShopAllPage = () => {
         filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         break;
       default:
+        // Default sort: Briefs first if 'ALL'
+        if (currentFilter === 'ALL') {
+           filtered.sort((a, b) => {
+             const aBrief = isBrief(a);
+             const bBrief = isBrief(b);
+             if (aBrief && !bBrief) return -1;
+             if (!aBrief && bBrief) return 1;
+             return 0;
+           });
+        }
         break;
     }
     return filtered;
-  }, [products, currentFilter, sortBy]);
+  }, [products, sortBy, currentFilter, isBrief]);
 
   const displayedProducts = useMemo(() => {
     return filteredProducts.slice(0, page * itemsPerPage);
@@ -258,18 +226,20 @@ const ShopAllPage = () => {
 
   const hasMoreProducts = displayedProducts.length < filteredProducts.length;
 
-  const handleFilterChange = (filter) => {
+  const handlePrimaryFilterChange = (filter) => {
+    if (filter === currentFilter) return;
     setCurrentFilter(filter);
     const newParams = new URLSearchParams();
-    if (filter !== 'All') {
-      newParams.set('category', categoryMap[filter] || filter.toLowerCase());
+    if (filter !== 'ALL') {
+      newParams.set('category', categoryMap[filter]);
+    } else {
+      newParams.delete('category');
     }
     setSearchParams(newParams);
-    setPage(1);
+    // Subfilter reset handled by useEffect
   };
 
-  const handleAddToCart = async (id, name, isProduct) => {
-    // Redirect to product details page for proper size/color selection
+  const handleAddToCart = (id) => {
     navigate(`/product/${id}`);
   };
 
@@ -277,28 +247,28 @@ const ShopAllPage = () => {
     e.target.src = 'https://via.placeholder.com/400x500?text=No+Image';
   };
 
-  const getPageTitle = () => currentFilter === 'All' ? 'All Products' : currentFilter;
-  const getPageDescription = () => currentFilter === 'All'
-    ? 'Premium comfort, tailored for everyday movement.'
-    : `Explore our ${currentFilter.toLowerCase()} collection.`;
+  const getPageTitle = () => {
+    if (currentFilter === 'ALL') return 'All Products';
+    return currentFilter;
+  };
+  
+  const getPageDescription = () => {
+    if (currentFilter === 'NEW ARRIVALS') return 'Check out our latest additions.';
+    if (currentFilter === 'HIS') return 'Premium collection for Him.';
+    if (currentFilter === 'HERS') return 'Premium collection for Her.';
+    return 'Premium comfort, tailored for everyday movement.';
+  };
 
   if (loading || contextLoading) {
     return (
-      <div className="container-padding typography  flex flex-col min-h-screen">
+      <div className="container-padding typography flex flex-col min-h-screen">
         <Navbar2 />
-        <div className={`grid gap-2 sm:gap-3 md:gap-4 lg:gap-5 mb-8 ${
-          mobileLayout === 'one' 
-            ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-            : 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-        }`}>
-          {[...Array(12)].map((_, index) => (
-            <div key={index} className="bg-gray-100 rounded-xl p-3 animate-pulse shadow-sm">
-              <div className="w-full aspect-[3/4] bg-gray-200 rounded-lg mb-3"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
-              <div className="h-8 bg-gray-200 rounded-lg"></div>
+        <div className="pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+              {[...Array(10)].map((_, i) => (
+                 <div key={i} className="bg-gray-100 h-64 rounded-xl animate-pulse"></div>
+              ))}
             </div>
-          ))}
         </div>
         <Footer />
       </div>
@@ -309,7 +279,7 @@ const ShopAllPage = () => {
     return (
       <div className="typography container-padding flex flex-col min-h-screen">
         <Navbar2 />
-        <div className="text-center py-12">
+        <div className="text-center py-12 pt-32">
           <h3 className="text-red-600 mb-4">Error</h3>
           <p className="text-gray-600">{error}</p>
           <button 
@@ -326,10 +296,11 @@ const ShopAllPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* CollectionPage Schema for SEO */}
       <CollectionPageSchema />
       <Navbar2 />
       <div className="typography container-padding flex flex-col pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
+        
+        {/* Header Section */}
         <div className="mb-8">
           <h3 className="text-3xl font-bold mb-2 capitalize">{getPageTitle()}</h3>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -339,56 +310,54 @@ const ShopAllPage = () => {
             </p>
           </div>
         </div>
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div className="flex flex-wrap gap-3">
-              {filterCategories.map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => handleFilterChange(filter)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                    currentFilter === filter
-                      ? 'bg-accent text-black'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex sm:hidden bg-gray-100 rounded-lg p-1">
+
+        {/* Filter Section */}
+        <div className="mb-8 space-y-6">
+          {/* Primary Filters */}
+          <div className="flex flex-wrap gap-3 justify-center sm:justify-start border-b border-gray-200 pb-4">
+            {primaryFilters.map((filter) => (
+              <button
+                key={filter}
+                onClick={() => handlePrimaryFilterChange(filter)}
+                className={`px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-300 ${
+                  currentFilter === filter
+                    ? 'bg-black text-white shadow-md transform scale-105'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub Filters & Sort - Sub Filters removed */}
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
+            
+            {/* Layout & Sort */}
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setMobileLayout('one')}
-                  className={`p-2 rounded-md transition-colors ${
-                    mobileLayout === 'one'
-                      ? 'bg-white shadow-sm text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
+                  className={`p-1.5 rounded-md transition-colors ${
+                    mobileLayout === 'one' ? 'bg-white shadow-sm text-black' : 'text-gray-400'
                   }`}
-                  title="Single column view"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
                 <button
                   onClick={() => setMobileLayout('two')}
-                  className={`p-2 rounded-md transition-colors ${
-                    mobileLayout === 'two'
-                      ? 'bg-white shadow-sm text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
+                  className={`p-1.5 rounded-md transition-colors ${
+                    mobileLayout === 'two' ? 'bg-white shadow-sm text-black' : 'text-gray-400'
                   }`}
-                  title="Two column view"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7M4 12h7M4 18h7M15 6h5M15 12h5M15 18h5" />
-                  </svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7M4 12h7M4 18h7M15 6h5M15 12h5M15 18h5" /></svg>
                 </button>
               </div>
+
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-Primarycolor focus:border-transparent"
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black cursor-pointer bg-white"
               >
                 <option value="default">Sort by: Default</option>
                 <option value="price-low">Price: Low to High</option>
@@ -399,7 +368,9 @@ const ShopAllPage = () => {
             </div>
           </div>
         </div>
-        <div className={`grid gap-x-2 gap-y-[0.7em] sm:gap-x-3 sm:gap-y-[1.05em] md:gap-x-4 md:gap-y-[1.4em] lg:gap-x-3 lg:gap-y-[0.95em] mb-8 ${
+
+        {/* Product Grid */}
+        <div className={`grid gap-x-3 gap-y-6 mb-8 ${
           mobileLayout === 'one' 
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
             : 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
@@ -413,16 +384,14 @@ const ShopAllPage = () => {
             />
           ))}
         </div>
+
+        {/* Load More */}
         {hasMoreProducts && (
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-8">
             <Button
               label={`Load More (${filteredProducts.length - displayedProducts.length} remaining)`}
               variant="tertiary"
               size="medium"
-              stateProp="default"
-              className="w-38"
-              divClassName="w-full h-9"
-              iconclassname="text-base"
               onClick={() => setPage(prev => prev + 1)}
             />
           </div>
@@ -439,7 +408,6 @@ const ProductCard = ({ product, onImageError }) => {
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   
-  // Clean product name (remove trailing "– Something")
   let displayName = name || 'Unnamed Product';
   if (displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
@@ -454,36 +422,45 @@ const ProductCard = ({ product, onImageError }) => {
   const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
   
   return (
-    <div className="group bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full border border-gray-100">
-      <Link to={productUrl} className="block relative overflow-hidden">
-        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
+      <Link to={productUrl} className="block relative overflow-hidden flex-1">
+        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-50">
           <img
             src={image}
             alt={displayName}
-            className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 ease-out"
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
             onError={onImageError}
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 z-10"></div>
+          
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
+             {product.is_new_release && (
+               <span className="bg-black text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">New</span>
+             )}
+             {bundle_types?.[0] && (
+                <span className="bg-white text-black text-[10px] font-bold px-2 py-1 uppercase tracking-wider border border-black">
+                  {bundle_types[0]}
+                </span>
+             )}
+          </div>
+
+          {/* Sold Out Overlay */}
           {isSoldOut && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] z-20">
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-600 text-white shadow-md">
-                <Ban className="h-4 w-4 mr-1" />
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
+              <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">
                 Sold Out
               </span>
             </div>
           )}
-          {bundle_types?.[0] && (
-            <span className="absolute top-3 right-3 bg-Primarycolor text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm z-30">
-              {bundle_types[0]}
-            </span>
-          )}
         </div>
-        <div className="p-3 sm:p-4">
-          <h3 className="text-sm sm:text-base font-semibold text-Primarycolor mb-2 line-clamp-2 leading-tight group-hover:text-Primarycolor transition-colors duration-200">
+        
+        {/* Product Info */}
+        <div className="p-4 flex flex-col gap-1">
+          <h3 className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-gray-600 transition-colors">
             {displayName}
           </h3>
-          <p className="text-lg sm:text-xl font-semibold font-Jost text-Accent">
+          <p className="text-sm font-semibold text-gray-900">
             {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
               style: 'currency', 
               currency: displayCurrency,
@@ -492,15 +469,6 @@ const ProductCard = ({ product, onImageError }) => {
           </p>
         </div>
       </Link>
-      <div className="p-3 sm:p-4 pt-1 mt-auto">
-        <Link to={productUrl}>
-          <button
-            className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform group-hover:translate-y-0"
-          >
-            Shop Now
-          </button>
-        </Link>
-      </div>
     </div>
   );
 };

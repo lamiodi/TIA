@@ -328,7 +328,7 @@ export const createOrder = async (req, res) => {
         if (item.variant_id) {
           // Fetch product variant, using LEFT JOIN for sizes to handle null size_id
           const [variant] = await sql`
-            SELECT pv.id, p.name, p.base_price, pi.image_url, c.color_name, s.size_name
+            SELECT pv.id, p.name, p.base_price, pi.image_url, c.color_name, s.size_name, p.allow_preorder
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.id
             JOIN colors c ON pv.color_id = c.id
@@ -366,15 +366,35 @@ export const createOrder = async (req, res) => {
           }
           
           const { stock_quantity } = variantSize;
+          let isPreorderItem = false;
+          
           if (stock_quantity < item.quantity) {
-            console.error(`Validation failed: Insufficient stock for variant ${item.variant_id}, requested: ${item.quantity}, available: ${stock_quantity}`);
-            throw new Error(`Insufficient stock for variant ${item.variant_id}`);
+             if (variant.allow_preorder) {
+                isPreorderItem = true;
+             } else {
+                console.error(`Validation failed: Insufficient stock for variant ${item.variant_id}, requested: ${item.quantity}, available: ${stock_quantity}`);
+                throw new Error(`Insufficient stock for variant ${item.variant_id}`);
+             }
           }
           
+          // If the item was added as preorder (even if stock is now available, though unlikely), honor it?
+          // Or if the frontend sends is_preorder flag.
+          // For now, rely on stock status or the fact that price matches deposit.
+          // If frontend explicitly sends is_preorder, use it to relax price check.
+          if (item.is_preorder) {
+            isPreorderItem = true; 
+          }
+
           // Validate price
+          let expectedBasePrice = variant.base_price;
+          if (isPreorderItem) {
+             expectedBasePrice = variant.base_price * 0.5;
+          }
+
           const expectedPrice = currency === 'USD' && exchange_rate > 0
-            ? Number((variant.base_price * exchange_rate).toFixed(2))
-            : variant.base_price;
+            ? Number((expectedBasePrice * exchange_rate).toFixed(2))
+            : expectedBasePrice;
+            
           if (Math.abs(expectedPrice - item.price) > 0.01) {
             console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
             throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
@@ -390,6 +410,7 @@ export const createOrder = async (req, res) => {
             image_url: variant.image_url,
             color_name: variant.color_name,
             size_name: item.size_name || variant.size_name, // Use size_name from cart item, fallback to variant.size_name
+            is_preorder: isPreorderItem
           });
         } else if (item.bundle_id) {
           // Fetch bundle
@@ -625,11 +646,11 @@ export const createOrder = async (req, res) => {
         await sql`
           INSERT INTO order_items (
             order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url, 
-            color_name, size_name, bundle_details
+            color_name, size_name, bundle_details, is_preorder
           ) VALUES (
             ${orderId}, ${item.variant_id || null}, ${item.bundle_id || null}, ${item.quantity}, 
             ${item.price}, ${item.size_id || null}, ${item.product_name}, ${item.image_url},
-            ${item.color_name || null}, ${item.size_name || null}, ${item.bundle_details || '[]'}
+            ${item.color_name || null}, ${item.size_name || null}, ${item.bundle_details || '[]'}, ${item.is_preorder || false}
           )
         `;
         

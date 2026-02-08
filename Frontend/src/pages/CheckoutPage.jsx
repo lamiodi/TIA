@@ -869,6 +869,7 @@ const CheckoutPage = () => {
             product_name: item.item?.name || 'Unknown Item',
             color_name: item.item?.color || null,
             size_name: item.size_name || null,
+            is_preorder: item.is_preorder || false,
           };
           
           // Add bundle_items array for bundle orders

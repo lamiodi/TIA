@@ -769,7 +769,8 @@ const Cart = () => {
           currency: currency,
           minimumFractionDigits: 0,
         });
-        const isOutOfStock = item.item.stock_quantity === 0;
+        const isPreorder = item.item.is_preorder;
+        const isOutOfStock = item.item.stock_quantity === 0 && !isPreorder;
         
         return (
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
@@ -792,6 +793,11 @@ const Cart = () => {
                   <div className="absolute -top-2 -right-2 bg-gray-900 text-white text-sm font-bold rounded-full h-7 w-7 flex items-center justify-center sm:text-xs sm:h-6 sm:w-6">
                     {item.quantity}
                   </div>
+                  {isPreorder && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-90 rounded-lg">
+                      <span className="text-white text-sm sm:text-xs font-bold">Pre-order</span>
+                    </div>
+                  )}
                   {isOutOfStock && (
                     <div className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-90 rounded-lg">
                       <span className="text-white text-sm sm:text-xs font-bold">Out of Stock</span>
@@ -835,7 +841,12 @@ const Cart = () => {
                         
                         {/* Stock Status */}
                         <div className="mt-2 flex items-center gap-2">
-                          {isOutOfStock ? (
+                          {isPreorder ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              <Package className="h-3 w-3 mr-1" />
+                              Pre-order (50% Deposit)
+                            </span>
+                          ) : isOutOfStock ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
                               <AlertCircle className="h-3 w-3 mr-1" />
                               Out of Stock
@@ -914,6 +925,9 @@ const Cart = () => {
                     <div className="space-y-1">
                       <p className="text-sm text-gray-500 font-Jost">{formattedPrice} each</p>
                       <p className="text-lg md:text-xl font-bold text-gray-900 font-Jost">{formattedTotalPrice}</p>
+                      {isPreorder && (
+                        <p className="text-xs text-blue-600 font-Jost font-medium">50% Deposit Paid</p>
+                      )}
                     </div>
                   </div>
                 </div>

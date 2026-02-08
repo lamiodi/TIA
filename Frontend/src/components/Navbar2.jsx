@@ -318,39 +318,60 @@ export default function Navbar2() {
                 >
                   SHOP
                 </Link>
+
+                {/* HIS Section with Subsections */}
+                <div className="space-y-1">
+                  <div className="text-white/60 text-xs font-bold px-4 pt-2 uppercase tracking-wider">
+                    HIS
+                  </div>
+                  <Link 
+                    to="/shop?category=briefs" 
+                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
+                  >
+                    Briefs
+                  </Link>
+                  <Link 
+                    to="/shop?category=3in1" 
+                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
+                  >
+                    3 in 1
+                  </Link>
+                  <Link 
+                    to="/shop?category=5in1" 
+                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
+                  >
+                    5 in 1
+                  </Link>
+                </div>
+
+                {/* HERS Section with Subsections */}
+                <div className="space-y-1">
+                  <div className="text-white/60 text-xs font-bold px-4 pt-2 uppercase tracking-wider">
+                    HERS
+                  </div>
+                  <Link 
+                    to="/shop?category=lounge%20sets" 
+                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
+                  >
+                    Lounge Sets
+                  </Link>
+                </div>
+
+                <div className="border-t border-white/10 my-2"></div>
+
                 <Link 
-                  to="/shop?category=briefs" 
+                  to="/help" 
                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
                 >
-                  BRIEFS
+                  CONTACT US
                 </Link>
-                 
-                 {/* Additional Navigation Links */}
-                 <Link 
-                   to="/shop?category=bundles" 
-                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
-                 >
-                   3 in 1 BUNDLES
-                 </Link>
-                 <Link 
-                   to="/shop?category=gymwear" 
-                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
-                 >
-                   GYMWEARS
-                 </Link>
-                 <Link 
-                   to="/help" 
-                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
-                 >
-                   CONTACT
-                 </Link>
-                 <Link 
-                   to="/more" 
-                   className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
-                 >
-                   MORE
-                 </Link>
-               </nav>
+                <Link 
+                  to="/more" 
+                  className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
+                >
+                  MORE
+                </Link>
+              </nav>
               
               {/* Enhanced Profile and Orders links (mobile only) */}
               {user && (

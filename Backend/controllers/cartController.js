@@ -4,7 +4,7 @@ import sql from '../db/index.js';
 // Helper function to validate single product
 const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
   const [variant] = await sql`
-    SELECT pv.id, p.base_price, vs.stock_quantity
+    SELECT pv.id, p.base_price, vs.stock_quantity, p.allow_preorder
     FROM product_variants pv
     JOIN products p ON pv.product_id = p.id
     JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ${size_id}
@@ -15,9 +15,15 @@ const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
     throw new Error('Invalid variant or size.');
   }
   
-  const { base_price, stock_quantity } = variant;
+  const { base_price, stock_quantity, allow_preorder } = variant;
+  let is_preorder = false;
+
   if (stock_quantity < quantity) {
-    throw new Error(`Only ${stock_quantity} items available in stock.`);
+    if (allow_preorder) {
+      is_preorder = true;
+    } else {
+      throw new Error(`Only ${stock_quantity} items available in stock.`);
+    }
   }
   
   // Fetch color and size names
@@ -34,7 +40,7 @@ const validateSingleProduct = async (sql, variant_id, size_id, quantity) => {
     throw new Error('Could not retrieve color or size information.');
   }
   
-  return { base_price, color_name, size_name };
+  return { base_price, color_name, size_name, is_preorder };
 };
 
 // Helper function to validate bundle
@@ -120,6 +126,7 @@ const fetchCartItems = async (sql, cartId) => {
     SELECT
       ci.id,
       ci.quantity::INTEGER,
+      ci.is_preorder,
       json_build_object(
         'id', ci.variant_id,
         'name', p.name,
@@ -129,7 +136,8 @@ const fetchCartItems = async (sql, cartId) => {
         'size_id', ci.size_id,
         'color', COALESCE(ci.color_name, c.color_name),
         'is_product', true,
-        'stock_quantity', vs.stock_quantity
+        'stock_quantity', vs.stock_quantity,
+        'is_preorder', ci.is_preorder
       ) AS item
     FROM cart_items ci
     JOIN product_variants pv ON ci.variant_id = pv.id
@@ -143,12 +151,14 @@ const fetchCartItems = async (sql, cartId) => {
     SELECT
       ci.id,
       ci.quantity::INTEGER,
+      ci.is_preorder,
       json_build_object(
         'id', ci.bundle_id,
         'name', b.name,
         'price', ci.price,
         'image', bi_image.image_url,
         'is_product', false,
+        'is_preorder', ci.is_preorder,
         'items', (
           SELECT json_agg(
             json_build_object(
@@ -186,6 +196,7 @@ const fetchCartItems = async (sql, cartId) => {
   return cartItems.map(row => ({
     id: row.id,
     quantity: row.quantity,
+    is_preorder: row.is_preorder,
     item: row.item
   }));
 };
@@ -389,7 +400,7 @@ export const addToCart = async (req, res) => {
       
       // Handle single product
       if (product_type === 'single') {
-        const { base_price, color_name, size_name } = await validateSingleProduct(sql, variant_id, size_id, quantity);
+        const { base_price, color_name, size_name, is_preorder } = await validateSingleProduct(sql, variant_id, size_id, quantity);
         
         // Check if this is a brief product
         const [productInfo] = await sql`
@@ -422,9 +433,10 @@ export const addToCart = async (req, res) => {
         }
         
         // First, let's check if there are any existing items for this variant and size
+        // We also check is_preorder status to keep preorder and regular items separate
         const existingItems = await sql`
           SELECT id, quantity FROM cart_items 
-          WHERE cart_id = ${cart_id} AND variant_id = ${variant_id} AND size_id = ${size_id} AND bundle_id IS NULL
+          WHERE cart_id = ${cart_id} AND variant_id = ${variant_id} AND size_id = ${size_id} AND bundle_id IS NULL AND is_preorder = ${is_preorder}
         `;
         
         console.log('Existing items for this variant and size:', existingItems);
@@ -465,11 +477,12 @@ export const addToCart = async (req, res) => {
           }
         } else {
           // No existing items, add a new one
+          const finalPrice = is_preorder ? base_price * 0.5 : base_price;
           await sql`
-            INSERT INTO cart_items (cart_id, variant_id, size_id, quantity, is_bundle, price, color_name, size_name)
-            VALUES (${cart_id}, ${variant_id}, ${size_id}, ${quantity}, ${false}, ${base_price}, ${color_name}, ${size_name})
+            INSERT INTO cart_items (cart_id, variant_id, size_id, quantity, is_bundle, price, color_name, size_name, is_preorder)
+            VALUES (${cart_id}, ${variant_id}, ${size_id}, ${quantity}, ${false}, ${finalPrice}, ${color_name}, ${size_name}, ${is_preorder})
           `;
-          console.log(`Added new single product: variant_id=${variant_id}, quantity=${quantity}`);
+          console.log(`Added new single product: variant_id=${variant_id}, quantity=${quantity}, is_preorder=${is_preorder}`);
         }
       } 
       // Handle bundle
