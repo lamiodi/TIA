@@ -217,6 +217,12 @@ const ShopAllPage = () => {
         }
         break;
     }
+
+    // Restriction: "His and Hers" products should ONLY appear in 'ALL' filter
+    if (currentFilter !== 'ALL') {
+      filtered = filtered.filter(p => !p.name.toLowerCase().includes('his and hers'));
+    }
+
     return filtered;
   }, [products, sortBy, currentFilter, isBrief]);
 

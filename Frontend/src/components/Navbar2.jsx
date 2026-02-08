@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { LogOut, Search, User, Package } from 'lucide-react';
+import { LogOut, Search, User, Package, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toastSuccess } from '../utils/toastConfig';
 import LogoWhite from '../assets/icons/LogoWhite.svg';
@@ -319,43 +319,65 @@ export default function Navbar2() {
                   SHOP
                 </Link>
 
-                {/* HIS Section with Subsections */}
-                <div className="space-y-1">
-                  <div className="text-white/60 text-xs font-bold px-4 pt-2 uppercase tracking-wider">
-                    HIS
-                  </div>
-                  <Link 
-                    to="/shop?category=briefs" 
-                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
-                  >
-                    Briefs
-                  </Link>
-                  <Link 
-                    to="/shop?category=3in1" 
-                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
-                  >
-                    3 in 1
-                  </Link>
-                  <Link 
-                    to="/shop?category=5in1" 
-                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
-                  >
-                    5 in 1
-                  </Link>
-                </div>
+                {/* HIS Section with Subsections (Collapsible) */}
+                <Disclosure as="div" className="space-y-1">
+                  {({ open }) => (
+                    <>
+                      <DisclosureButton className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-200">
+                        <span>HIS</span>
+                        <ChevronDown
+                          className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 text-white/70`}
+                        />
+                      </DisclosureButton>
+                      <DisclosurePanel className="pl-4 space-y-1">
+                        <Link 
+                          to="/shop?category=briefs" 
+                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Briefs
+                        </Link>
+                        <Link 
+                          to="/shop?category=3in1" 
+                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          3 in 1
+                        </Link>
+                        <Link 
+                          to="/shop?category=5in1" 
+                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          5 in 1
+                        </Link>
+                      </DisclosurePanel>
+                    </>
+                  )}
+                </Disclosure>
 
-                {/* HERS Section with Subsections */}
-                <div className="space-y-1">
-                  <div className="text-white/60 text-xs font-bold px-4 pt-2 uppercase tracking-wider">
-                    HERS
-                  </div>
-                  <Link 
-                    to="/shop?category=lounge%20sets" 
-                    className="block text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm backdrop-blur-sm ml-2 border-l border-white/10"
-                  >
-                    Lounge Sets
-                  </Link>
-                </div>
+                {/* HERS Section with Subsections (Collapsible) */}
+                <Disclosure as="div" className="space-y-1">
+                  {({ open }) => (
+                    <>
+                      <DisclosureButton className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-200">
+                        <span>HERS</span>
+                        <ChevronDown
+                          className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 text-white/70`}
+                        />
+                      </DisclosureButton>
+                      <DisclosurePanel className="pl-4 space-y-1">
+                        <Link 
+                          to="/shop?category=lounge%20sets" 
+                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Lounge Sets
+                        </Link>
+                      </DisclosurePanel>
+                    </>
+                  )}
+                </Disclosure>
 
                 <div className="border-t border-white/10 my-2"></div>
 

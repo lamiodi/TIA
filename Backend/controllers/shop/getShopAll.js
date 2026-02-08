@@ -90,7 +90,7 @@ export const getShopAll = async (req, res) => {
       const keyword4 = '%underwear%';
       
       productQuery = sql`${productQuery} AND (
-        LOWER(p.category) = 'briefs' OR 
+        LOWER(p.category) LIKE '%brief%' OR 
         p.name ILIKE ${keyword} OR 
         p.name ILIKE ${keyword2} OR 
         p.name ILIKE ${keyword3} OR 
@@ -98,20 +98,23 @@ export const getShopAll = async (req, res) => {
       )`;
       
       bundleQuery = sql`${bundleQuery} AND (
-        LOWER(p.category) = 'briefs' OR 
+        LOWER(p.category) LIKE '%brief%' OR 
         EXISTS (SELECT 1 FROM unnest(b.bundle_type) t WHERE t ILIKE ${keyword} OR t ILIKE ${keyword2})
       )`;
     } else if (catLower === 'lounge sets' || catLower === 'lounge set') {
       const keyword = '%lounge%';
+      // Ensure Lounge Sets are strictly Female wears (excluding His and Hers/Unisex)
       productQuery = sql`${productQuery} AND (
-        LOWER(p.category) = 'lounge set' OR 
-        LOWER(p.category) = 'lounge sets' OR 
-        p.name ILIKE ${keyword}
+        (LOWER(p.category) = 'lounge set' OR 
+         LOWER(p.category) = 'lounge sets' OR 
+         p.name ILIKE ${keyword})
+        AND LOWER(p.gender) = 'female'
       )`;
       bundleQuery = sql`${bundleQuery} AND (
-        LOWER(p.category) = 'lounge set' OR 
-        LOWER(p.category) = 'lounge sets' OR 
-        p.name ILIKE ${keyword}
+        (LOWER(p.category) = 'lounge set' OR 
+         LOWER(p.category) = 'lounge sets' OR 
+         p.name ILIKE ${keyword})
+        AND LOWER(p.gender) = 'female'
       )`;
     } else if (catLower !== 'all') {
         // Fallback for specific categories like 'briefs' if still used directly

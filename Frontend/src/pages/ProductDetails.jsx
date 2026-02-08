@@ -596,10 +596,19 @@ const ProductDetails = () => {
       })
     : false;
 
-  const isAllSoldOut = isProduct ? isProductSoldOut : false; // Focus on product for now
+  const isAllSoldOut = isProduct ? isProductSoldOut : false; 
   
-  // If sold out AND preorder enabled, use deposit price
-  const isPreorderActive = isAllSoldOut && isPreorderEnabled;
+  // Determine if the CURRENT selection is a preorder
+  // Get current size object
+  const currentSizes = isProduct ? (Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : []) : [];
+  const selectedSizeObj = currentSizes.find(s => s.size_name === selectedSize);
+  const isSelectedSizeOutOfStock = selectedSizeObj ? (Number(selectedSizeObj.stock_quantity) || 0) <= 0 : false;
+
+  // Preorder is active if:
+  // 1. Preorder is globally enabled AND
+  // 2. (The entire variant is sold out OR the specific selected size is sold out)
+  const isPreorderActive = isPreorderEnabled && (isAllSoldOut || isSelectedSizeOutOfStock);
+
   const depositPrice = isPreorderActive ? parsedPrice * 0.5 : parsedPrice;
   const displayPrice = country === "Nigeria" ? depositPrice : (depositPrice * exchangeRate).toFixed(2)
   const displayCurrency = country === "Nigeria" ? "NGN" : "USD"
