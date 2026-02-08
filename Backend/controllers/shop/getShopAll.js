@@ -99,7 +99,8 @@ export const getShopAll = async (req, res) => {
       
       bundleQuery = sql`${bundleQuery} AND (
         LOWER(p.category) LIKE '%brief%' OR 
-        EXISTS (SELECT 1 FROM unnest(b.bundle_type) t WHERE t ILIKE ${keyword} OR t ILIKE ${keyword2})
+        b.bundle_type ILIKE ${keyword} OR 
+        b.bundle_type ILIKE ${keyword2}
       )`;
     } else if (catLower === 'lounge sets' || catLower === 'lounge set') {
       const keyword = '%lounge%';

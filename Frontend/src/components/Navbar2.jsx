@@ -372,7 +372,7 @@ export default function Navbar2() {
                           className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
                           onClick={() => setIsMenuOpen(false)}
                         >
-                          Lounge Sets
+                          LOUNGE SETS
                         </Link>
                       </DisclosurePanel>
                     </>
