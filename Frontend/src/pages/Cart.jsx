@@ -777,7 +777,7 @@ const Cart = () => {
           currency: currency,
           minimumFractionDigits: 0,
         });
-        const isPreorder = item.item.is_preorder;
+        const isPreorder = item.is_preorder || item.item.is_preorder;
         const isOutOfStock = item.item.stock_quantity === 0 && !isPreorder;
         
         return (
