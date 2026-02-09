@@ -1183,7 +1183,10 @@ const Cart = () => {
                   </div>
                   
                   {/* Checkout Button */}
-                  {cart.warning || cart.items.some((item) => item.item.stock_quantity === 0) ? (
+                  {cart.warning || cart.items.some((item) => {
+                    const isPreorder = item.is_preorder || item.item.is_preorder;
+                    return item.item.stock_quantity === 0 && !isPreorder;
+                  }) ? (
                     <div className="relative">
                       <button
                         className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Inter cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
@@ -1239,7 +1242,10 @@ const Cart = () => {
                   )}
                   
                   {/* Warning for out of stock items */}
-                  {cart.items.some((item) => item.item.stock_quantity === 0) && (
+                  {cart.items.some((item) => {
+                    const isPreorder = item.is_preorder || item.item.is_preorder;
+                    return item.item.stock_quantity === 0 && !isPreorder;
+                  }) && (
                     <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
