@@ -961,7 +961,7 @@ const Cart = () => {
                       </div>
                       <button
                         onClick={() => debouncedUpdateQuantity(item.id, item.quantity + 1)}
-                        disabled={isOutOfStock || isUpdating === item.id || item.quantity >= item.item.stock_quantity}
+                        disabled={isOutOfStock || isUpdating === item.id || (!isPreorder && item.quantity >= item.item.stock_quantity)}
                         className="p-1 sm:p-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
