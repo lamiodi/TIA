@@ -793,11 +793,11 @@ const Cart = () => {
                   <div className="absolute -top-2 -right-2 bg-gray-900 text-white text-sm font-bold rounded-full h-7 w-7 flex items-center justify-center sm:text-xs sm:h-6 sm:w-6">
                     {item.quantity}
                   </div>
-                  {isPreorder && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-90 rounded-lg">
-                      <span className="text-white text-sm sm:text-xs font-bold">Pre-order</span>
-                    </div>
-                  )}
+                    {isPreorder && (
+                      <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs px-2 py-1 rounded-bl-lg">
+                        Pre-order (50% Deposit)
+                      </div>
+                    )}
                   {isOutOfStock && (
                     <div className="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-90 rounded-lg">
                       <span className="text-white text-sm sm:text-xs font-bold">Out of Stock</span>

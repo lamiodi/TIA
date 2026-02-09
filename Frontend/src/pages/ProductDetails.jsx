@@ -183,6 +183,14 @@ const ProductDetails = () => {
         })
       }
     })
+    
+    // Check if item is preorder
+    const isPreorder = item.item?.allow_preorder && item.item?.stock_quantity <= 0;
+    const cartItemData = {
+      ...item,
+      is_preorder: isPreorder,
+    };
+
     if (existingItemIndex >= 0) {
       // Update quantity if item exists
       guestCart.items[existingItemIndex].quantity += item.quantity
@@ -190,7 +198,7 @@ const ProductDetails = () => {
       // Add new item with unique ID
       guestCart.items.push({
         id: Date.now(), // Temporary ID
-        ...item,
+        ...cartItemData,
       })
     }
     // Recalculate totals
@@ -412,7 +420,8 @@ const ProductDetails = () => {
               original_price: productPrice, // Store original price
               stock_quantity: selectedSizeObj.stock_quantity,
               is_product: true,
-              is_preorder: isPreorderActive
+              is_preorder: isPreorderActive,
+              allow_preorder: isPreorderEnabled
             },
           })
           toastSuccess(isPreorderActive ? "Pre-order added to guest cart" : "Product added to guest cart")
@@ -872,21 +881,26 @@ const ProductDetails = () => {
                           <button
                             key={s.size_name}
                             onClick={() => handleSizeChange(s.size_name)}
-                            disabled={s.stock_quantity === 0}
-                            title={s.stock_quantity === 0 ? "Sold Out" : "Select size"}
+                            disabled={s.stock_quantity === 0 && !isPreorderEnabled}
+                            title={s.stock_quantity === 0 ? (isPreorderEnabled ? "Pre-order" : "Sold Out") : "Select size"}
                             className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${
                               selectedSize === s.size_name
                                 ? "border-Primarycolor bg-gray-900 text-white shadow-lg"
-                                : s.stock_quantity > 0
+                                : (s.stock_quantity > 0 || isPreorderEnabled)
                                   ? "border-gray-200 text-gray-900 hover:border-gray-300 hover:shadow-md"
                                   : "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
                             }`}
                           >
                             {s.size_name}
-                            {s.stock_quantity === 0 && (
+                            {s.stock_quantity === 0 && !isPreorderEnabled && (
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <Ban className="w-4 h-4 text-red-500" aria-label="Sold Out" />
                               </div>
+                            )}
+                            {s.stock_quantity === 0 && isPreorderEnabled && (
+                                <span className="absolute -top-2 -right-2 text-[10px] bg-blue-100 text-blue-800 px-1 rounded-full">
+                                  Pre
+                                </span>
                             )}
                           </button>
                         ))}
@@ -1089,7 +1103,7 @@ const ProductDetails = () => {
                       className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ShoppingCart className="h-5 w-5 " />
-                      <span className="font-Inter">{isAddingToCart ? "Adding..." : "Add to Cart"}</span>
+                      <span className="font-Inter">{isAddingToCart ? "Adding..." : isPreorderActive ? "Pre-order Now" : "Add to Cart"}</span>
                     </button>
                     <button className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                       <Share2 className="h-5 w-5" />

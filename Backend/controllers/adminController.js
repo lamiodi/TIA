@@ -28,7 +28,8 @@ export const getAllOrdersForAdmin = async (req, res) => {
         u.first_name,
         u.last_name,
         u.is_temporary,
-        COALESCE(a.country, o.shipping_country) AS shipping_country
+        COALESCE(a.country, o.shipping_country) AS shipping_country,
+        (SELECT EXISTS(SELECT 1 FROM order_items oi WHERE oi.order_id = o.id AND oi.is_preorder = true)) AS has_preorder
       FROM orders o
       JOIN users u ON o.user_id = u.id
       LEFT JOIN addresses a ON o.address_id = a.id
@@ -157,7 +158,7 @@ export const getCompleteOrderDetails = async (req, res) => {
       const items = await sql`
         SELECT 
           oi.id, oi.variant_id, oi.quantity, oi.price, oi.size_id, 
-          oi.product_name, oi.color_name, oi.size_name, oi.image_url
+          oi.product_name, oi.color_name, oi.size_name, oi.image_url, oi.is_preorder
         FROM order_items oi
         WHERE oi.order_id = ${orderId} AND oi.bundle_id IS NULL
       `;
@@ -165,7 +166,7 @@ export const getCompleteOrderDetails = async (req, res) => {
       const bundleItems = await sql`
         SELECT 
           oi.id, oi.quantity, oi.price, oi.bundle_id, oi.product_name, 
-          oi.image_url, oi.bundle_details, oi.color_name, oi.size_name,
+          oi.image_url, oi.bundle_details, oi.color_name, oi.size_name, oi.is_preorder,
           b.bundle_type
         FROM order_items oi
         LEFT JOIN bundles b ON oi.bundle_id = b.id

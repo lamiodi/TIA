@@ -145,7 +145,8 @@ export const getUserOrders = async (req, res) => {
               'image_url', oi.image_url,
               'color_name', oi.color_name,
               'size_name', oi.size_name,
-              'bundle_details', oi.bundle_details
+              'bundle_details', oi.bundle_details,
+              'is_preorder', oi.is_preorder
             )
           ), '[]'::json
         ) AS items

@@ -27,7 +27,7 @@ export const createOrder = async (req, res) => {
     currency,
     reference,
     items,
-    note,
+    note = null,
     exchange_rate,
     base_currency_total,
     converted_total,
@@ -439,7 +439,7 @@ export const createOrder = async (req, res) => {
             for (const bi of item.bundle_items) {
               const [variant] = await sql`
                 SELECT pv.id AS variant_id, pv.product_id, p.name AS product_name, 
-                       c.color_name, s.size_name, pi.image_url
+                       c.color_name, s.size_name, pi.image_url, p.allow_preorder
                 FROM product_variants pv
                 JOIN products p ON pv.product_id = p.id
                 JOIN colors c ON pv.color_id = c.id
@@ -474,7 +474,7 @@ export const createOrder = async (req, res) => {
                 }
               }
               
-              if (variantSize.stock_quantity < item.quantity) {
+              if (variantSize.stock_quantity < item.quantity && !variant.allow_preorder && !item.is_preorder) {
                 console.error(`Validation failed: Insufficient stock for bundle item variant ${bi.variant_id}, requested: ${item.quantity}, available: ${variantSize.stock_quantity}`);
                 throw new Error(`Insufficient stock for bundle item variant ${bi.variant_id}`);
               }
@@ -509,6 +509,7 @@ export const createOrder = async (req, res) => {
             product_name: bundle.name,
             image_url: bundle.image_url,
             bundle_details: JSON.stringify(bundleItemsDetails),
+            is_preorder: item.is_preorder || false
           });
         }
       }
@@ -544,6 +545,14 @@ export const createOrder = async (req, res) => {
       // Try to insert order with idempotency key
       let order;
       try {
+        console.log('DEBUG INSERT:', {
+            user_id, finalAddressId, finalBillingAddressId, finalCartId, total, discount, 
+            calculatedTax, shipping_method_id, shipping_cost,
+            country: address?.country, payment_method, currency, reference, note, 
+            exchange_rate, base_currency_total, converted_total, 
+            delivery_fee_paid: address?.country.toLowerCase() === 'nigeria', idempotencyKey
+        });
+
         [order] = await sql`
           INSERT INTO orders (
             user_id, address_id, billing_address_id, cart_id, total, discount, tax, shipping_method_id, shipping_cost,

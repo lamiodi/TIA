@@ -104,18 +104,18 @@ export const getShopAll = async (req, res) => {
       )`;
     } else if (catLower === 'lounge sets' || catLower === 'lounge set') {
       const keyword = '%lounge%';
-      // Ensure Lounge Sets are strictly Female wears (excluding His and Hers/Unisex)
+      // Ensure Lounge Sets show all female wears (including Unisex which are suitable for females)
       productQuery = sql`${productQuery} AND (
         (LOWER(p.category) = 'lounge set' OR 
          LOWER(p.category) = 'lounge sets' OR 
          p.name ILIKE ${keyword})
-        AND LOWER(p.gender) = 'female'
+        AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')
       )`;
       bundleQuery = sql`${bundleQuery} AND (
         (LOWER(p.category) = 'lounge set' OR 
          LOWER(p.category) = 'lounge sets' OR 
          p.name ILIKE ${keyword})
-        AND LOWER(p.gender) = 'female'
+        AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')
       )`;
     } else if (catLower !== 'all') {
         // Fallback for specific categories like 'briefs' if still used directly
@@ -142,7 +142,8 @@ export const getShopAll = async (req, res) => {
       is_product: true,
       sizes: row.sizes,
       created_at: row.created_at,
-      is_new_release: row.is_new_release
+      is_new_release: row.is_new_release,
+      allow_preorder: row.allow_preorder
     }));
 
     // Format Bundles

@@ -358,6 +358,13 @@ const OrderDetailsModal = ({
                                     )}
                                     {item.size_name && <p><span className="font-medium">Size:</span> {item.size_name}</p>}
                                     <p><span className="font-medium">Price:</span> {formatCurrency(item.price, orderData.currency)}</p>
+                                    {item.is_preorder && (
+                                      <p className="mt-1">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                          Pre-order
+                                        </span>
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>
@@ -382,6 +389,13 @@ const OrderDetailsModal = ({
                                       <p><span className="font-medium">Quantity:</span> {bundle.quantity}</p>
                                       <p><span className="font-medium">Price:</span> {formatCurrency(bundle.price, orderData.currency)}</p>
                                       {bundle.bundle_type && <p><span className="font-medium">Bundle Type:</span> {bundle.bundle_type}</p>}
+                                      {bundle.is_preorder && (
+                                        <p className="mt-1">
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                            Pre-order
+                                          </span>
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="ml-4"><input type="checkbox" className="h-5 w-5 text-green-600" /></div>

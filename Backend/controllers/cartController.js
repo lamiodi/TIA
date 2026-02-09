@@ -628,7 +628,7 @@ export const updateCartItem = async (req, res) => {
   try {
     await sql.begin(async (sql) => {
       const [cartItem] = await sql`
-        SELECT ci.cart_id, ci.bundle_id, ci.variant_id, ci.size_id
+        SELECT ci.cart_id, ci.bundle_id, ci.variant_id, ci.size_id, ci.is_preorder
         FROM cart_items ci
         WHERE ci.id = ${id}
       `;
@@ -638,17 +638,20 @@ export const updateCartItem = async (req, res) => {
         return res.status(404).json({ error: 'Cart item not found' });
       }
 
-      const { cart_id, bundle_id, variant_id, size_id } = cartItem;
+      const { cart_id, bundle_id, variant_id, size_id, is_preorder } = cartItem;
 
       // Validate stock for single product
       if (!bundle_id) {
         const [stockResult] = await sql`
-          SELECT vs.stock_quantity
+          SELECT vs.stock_quantity, p.allow_preorder
           FROM variant_sizes vs
+          JOIN product_variants pv ON vs.variant_id = pv.id
+          JOIN products p ON pv.product_id = p.id
           WHERE vs.variant_id = ${variant_id} AND vs.size_id = ${size_id}
         `;
 
-        if (!stockResult || stockResult.stock_quantity < quantity) {
+        // If it's not a preorder item and (stock is insufficient AND preorder is not allowed)
+        if (!is_preorder && (!stockResult || (stockResult.stock_quantity < quantity && !stockResult.allow_preorder))) {
           console.error('Backend: Insufficient stock', {
             variant_id,
             size_id,
@@ -659,6 +662,9 @@ export const updateCartItem = async (req, res) => {
             error: `Only ${stockResult?.stock_quantity || 0} items available in stock.`,
           });
         }
+        
+        // If it is a preorder item, or if we are converting to preorder (which we don't do here usually, but if allow_preorder is true we might allow it)
+        // Ideally, if it's preorder, we ignore stock check.
       } else {
         // Validate stock for bundle items
         const bundleItems = await sql`

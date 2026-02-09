@@ -302,6 +302,12 @@ const Orders = () => {
     completed: <CheckCircle className="w-4 h-4" />,
     failed: <XCircle className="w-4 h-4" />,
   }[status] || <Clock className="w-4 h-4" />);
+
+  const PreorderBadge = () => (
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 ml-2">
+      Pre-order
+    </span>
+  );
   
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -469,7 +475,10 @@ const Orders = () => {
                     <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4 text-sm">
                         <div className="font-medium text-gray-900 font-Manrope">#{order.id}</div>
-                        <div className="text-gray-600 font-Jost">{order.reference}</div>
+                        <div className="text-gray-600 font-Jost flex items-center">
+                          {order.reference}
+                          {order.has_preorder && <PreorderBadge />}
+                        </div>
                         {order.shipping_country !== 'Nigeria' && (
                           <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 font-Jost">
                             <Globe className="w-3 h-3 mr-1" /> International

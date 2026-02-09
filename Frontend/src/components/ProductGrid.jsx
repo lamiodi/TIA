@@ -283,7 +283,7 @@ const ProductGrid = () => {
 };
 
 const ProductCard = ({ product, onImageError }) => {
-  const { id, name, price, image, color, is_product, variantId, bundle_types } = product;
+  const { id, name, price, image, color, is_product, variantId, bundle_types, sizes, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   
   // Clean product name (remove trailing "– Color")
@@ -291,6 +291,13 @@ const ProductCard = ({ product, onImageError }) => {
   if (displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
   }
+  
+  // Calculate stock status
+  const isOutOfStock = is_product && sizes && Array.isArray(sizes) 
+    ? sizes.every(s => (Number(s.stock_quantity) || 0) <= 0)
+    : false;
+    
+  const isPreorder = is_product && isOutOfStock && allow_preorder;
   
   const productUrl = is_product
     ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
@@ -313,6 +320,20 @@ const ProductCard = ({ product, onImageError }) => {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
+          
+          {/* Status Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {isPreorder ? (
+              <span className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                Pre-order
+              </span>
+            ) : isOutOfStock ? (
+              <span className="bg-red-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                Sold Out
+              </span>
+            ) : null}
+          </div>
+
           {/* Updated to show all bundle types */}
           {bundle_types && bundle_types.length > 0 && (
             <div className="absolute top-3 right-3 flex flex-col gap-1">

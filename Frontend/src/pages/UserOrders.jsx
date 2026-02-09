@@ -312,6 +312,13 @@ const UserOrders = () => {
                             <p>Total: {formatCurrency(item.price * item.quantity, selectedOrder.currency)}</p>
                             {item.color_name && <p>Color: {item.color_name}</p>}
                             {item.size_name && <p>Size: {item.size_name}</p>}
+                            {item.is_preorder && (
+                              <p className="mt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 font-Jost">
+                                  Pre-order
+                                </span>
+                              </p>
+                            )}
                             {item.bundle_id && item.bundle_details && (
                               <div className="mt-2">
                                 <p className="text-xs font-medium text-gray-700 font-Jost">Bundle Contents:</p>
