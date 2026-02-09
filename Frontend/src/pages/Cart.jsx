@@ -396,7 +396,11 @@ const Cart = () => {
         if (maxStock === undefined || maxStock === null) {
           throw new Error('Stock quantity information is missing');
         }
-        if (newQuantity > maxStock) {
+        
+        // Skip stock check for preorder items
+        const isPreorder = item.is_preorder || item.item.is_preorder;
+        
+        if (!isPreorder && newQuantity > maxStock) {
           setError(`Cannot add more. Only ${maxStock} in stock.`);
           toast.error(`Cannot add more. Only ${maxStock} in stock.`);
           return;
@@ -454,7 +458,11 @@ const Cart = () => {
         if (maxStock === undefined || maxStock === null) {
           throw new Error('Stock quantity information is missing');
         }
-        if (newQuantity > maxStock) {
+        
+        // Skip stock check for preorder items
+        const isPreorder = item.is_preorder || item.item.is_preorder;
+        
+        if (!isPreorder && newQuantity > maxStock) {
           setError(`Cannot add more. Only ${maxStock} in stock.`);
           toast.error(`Cannot add more. Only ${maxStock} in stock.`);
           return;
