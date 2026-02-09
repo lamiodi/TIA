@@ -103,20 +103,9 @@ export const getShopAll = async (req, res) => {
         b.bundle_type ILIKE ${keyword2}
       )`;
     } else if (catLower === 'lounge sets' || catLower === 'lounge set') {
-      const keyword = '%lounge%';
-      // Ensure Lounge Sets show all female wears (including Unisex which are suitable for females)
-      productQuery = sql`${productQuery} AND (
-        (LOWER(p.category) = 'lounge set' OR 
-         LOWER(p.category) = 'lounge sets' OR 
-         p.name ILIKE ${keyword})
-        AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')
-      )`;
-      bundleQuery = sql`${bundleQuery} AND (
-        (LOWER(p.category) = 'lounge set' OR 
-         LOWER(p.category) = 'lounge sets' OR 
-         p.name ILIKE ${keyword})
-        AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')
-      )`;
+      // User requested "Lounge Sets" to show ALL female products
+      productQuery = sql`${productQuery} AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')`;
+      bundleQuery = sql`${bundleQuery} AND (LOWER(p.gender) = 'female' OR LOWER(p.gender) = 'unisex')`;
     } else if (catLower !== 'all') {
         // Fallback for specific categories like 'briefs' if still used directly
         productQuery = sql`${productQuery} AND LOWER(p.category) = ${catLower}`;
