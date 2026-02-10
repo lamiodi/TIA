@@ -59,6 +59,7 @@ const SearchResults = () => {
           price: item.price,
           image: item.image,
           created_at: item.created_at,
+          allow_preorder: item.allow_preorder
         };
   
         if (!item.is_product) {
@@ -308,7 +309,7 @@ const SearchResults = () => {
 };
 
 const ProductCard = ({ product, onAddToCart, onImageError }) => {
-  const { id, name, price, image, is_product, variantId, bundle_types } = product;
+  const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   
   // Clean product name (remove trailing "– Something")
@@ -327,6 +328,10 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
   const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
   const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
   
+  const sizes = product.sizes || [];
+  const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
+  const isPreorder = isSoldOut && allow_preorder;
+
   return (
     <div className="group bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full border border-gray-100">
       <Link to={productUrl} className="block relative overflow-hidden">
@@ -339,6 +344,22 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
+          
+          {/* Status Overlay */}
+          {isPreorder ? (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
+              <span className="bg-blue-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">
+                Pre-order
+              </span>
+            </div>
+          ) : isSoldOut && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
+              <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">
+                Sold Out
+              </span>
+            </div>
+          )}
+
           {/* Updated to show all bundle types */}
           {bundle_types && bundle_types.length > 0 && (
             <div className="absolute top-3 right-3 flex flex-col gap-1">
@@ -368,7 +389,7 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
           <button
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform group-hover:translate-y-0"
           >
-            Shop Now
+            {isPreorder ? 'Pre-order Now' : 'Shop Now'}
           </button>
         </Link>
       </div>

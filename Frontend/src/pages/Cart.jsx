@@ -1244,7 +1244,8 @@ const Cart = () => {
                   {/* Warning for out of stock items */}
                   {cart.items.some((item) => {
                     const isPreorder = item.is_preorder || item.item.is_preorder;
-                    return item.item.stock_quantity === 0 && !isPreorder;
+                    const allowPreorder = item.item.allow_preorder;
+                    return item.item.stock_quantity === 0 && !isPreorder && !allowPreorder;
                   }) && (
                     <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                       <div className="flex items-center gap-2">

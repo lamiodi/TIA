@@ -202,7 +202,7 @@ const NewReleaseGrid = () => {
 };
 
 const ProductCard = ({ product, onImageError, priority }) => {
-  const { name, price, image, productId, variantId } = product;
+  const { name, price, image, productId, variantId, sizes, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const [imageLoaded, setImageLoaded] = useState(false);
   
@@ -214,6 +214,13 @@ const ProductCard = ({ product, onImageError, priority }) => {
   if (displayName.match(/\((.*?)\)$/)) {
     displayName = displayName.replace(/\((.*?)\)$/, '').trim();
   }
+
+  // Calculate stock status
+  const isOutOfStock = sizes && Array.isArray(sizes) 
+    ? sizes.every(s => (Number(s.stock_quantity) || 0) <= 0)
+    : false;
+    
+  const isPreorder = isOutOfStock && allow_preorder;
   
   // Price in NGN for Nigeria, USD for others
   const parsedPrice = parseFloat(price) || 0;
@@ -238,6 +245,19 @@ const ProductCard = ({ product, onImageError, priority }) => {
             width={240}
             height={300}
           />
+          
+          {/* Status Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+            {isPreorder ? (
+              <span className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                Pre-order
+              </span>
+            ) : isOutOfStock ? (
+              <span className="bg-red-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-md backdrop-blur-sm">
+                Sold Out
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="p-3 sm:p-4 flex-1 flex flex-col">
           <h3 className="text-sm sm:text-base font-semibold text-Primarycolor mb-2 line-clamp-2 leading-tight group-hover:text-Primarycolor transition-colors duration-200 font-Manrope">
@@ -256,9 +276,9 @@ const ProductCard = ({ product, onImageError, priority }) => {
         <Link to={`/product/${productId}?variant=${variantId}`}>
           <button
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl font-Jost"
-            aria-label={`Shop ${displayName} now`}
+            aria-label={`${isPreorder ? 'Pre-order' : 'Shop'} ${displayName} now`}
           >
-            Shop Now
+            {isPreorder ? 'Pre-order Now' : 'Shop Now'}
           </button>
         </Link>
       </div>

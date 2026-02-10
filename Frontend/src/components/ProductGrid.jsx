@@ -364,7 +364,7 @@ const ProductCard = ({ product, onImageError }) => {
           <button
             className="w-full bg-gradient-to-r from-black to-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:from-gray-800 hover:to-black active:scale-95 text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform group-hover:translate-y-0"
           >
-            Shop Now
+            {isPreorder ? 'Pre-order Now' : 'Shop Now'}
           </button>
         </Link>
       </div>

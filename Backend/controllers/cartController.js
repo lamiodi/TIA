@@ -61,11 +61,13 @@ const validateBundle = async (sql, bundle_id, items, quantity) => {
     throw new Error(`Bundle requires exactly ${expectedItems} items.`);
   }
   
+  let is_preorder = false;
+  
   // Validate bundle items belong to the bundle's product and have sufficient stock
   for (const item of items) {
     const { variant_id, size_id } = item;
     const [itemResult] = await sql`
-      SELECT vs.stock_quantity
+      SELECT vs.stock_quantity, p.allow_preorder
       FROM product_variants pv
       JOIN products p ON pv.product_id = p.id
       JOIN variant_sizes vs ON vs.variant_id = pv.id AND vs.size_id = ${size_id}
@@ -77,11 +79,15 @@ const validateBundle = async (sql, bundle_id, items, quantity) => {
     }
     
     if (itemResult.stock_quantity < quantity) {
-      throw new Error(`Only ${itemResult.stock_quantity} items available for variant ${variant_id}.`);
+      if (itemResult.allow_preorder) {
+        is_preorder = true;
+      } else {
+        throw new Error(`Only ${itemResult.stock_quantity} items available for variant ${variant_id}.`);
+      }
     }
   }
   
-  return { bundle_price, bundle_type, product_id };
+  return { bundle_price, bundle_type, product_id, is_preorder };
 };
 
 // Helper function to check for existing bundle
@@ -137,7 +143,8 @@ const fetchCartItems = async (sql, cartId) => {
         'color', COALESCE(ci.color_name, c.color_name),
         'is_product', true,
         'stock_quantity', vs.stock_quantity,
-        'is_preorder', ci.is_preorder
+        'is_preorder', ci.is_preorder,
+        'allow_preorder', p.allow_preorder
       ) AS item
     FROM cart_items ci
     JOIN product_variants pv ON ci.variant_id = pv.id
@@ -487,7 +494,7 @@ export const addToCart = async (req, res) => {
       } 
       // Handle bundle
       else if (product_type === 'bundle') {
-        const { bundle_price, bundle_type } = await validateBundle(sql, bundle_id, items, quantity);
+        const { bundle_price, bundle_type, is_preorder } = await validateBundle(sql, bundle_id, items, quantity);
         
         // Check if this is a brief bundle
         const bundleTypeLower = bundle_type.toLowerCase();
@@ -531,9 +538,12 @@ export const addToCart = async (req, res) => {
           console.log(`Incremented bundle quantity: cart_item_id=${existingCartItemId}, new_quantity=${newQuantity}`);
         } else {
           // Add new bundle
+          const baseBundlePrice = bundle_type === '5-in-1' ? bundle_price * 1.5 : bundle_price;
+          const finalPrice = is_preorder ? baseBundlePrice * 0.5 : baseBundlePrice;
+          
           const [insertCartItem] = await sql`
-            INSERT INTO cart_items (cart_id, bundle_id, quantity, is_bundle, price)
-            VALUES (${cart_id}, ${bundle_id}, ${quantity}, ${true}, ${bundle_type === '5-in-1' ? bundle_price * 1.5 : bundle_price})
+            INSERT INTO cart_items (cart_id, bundle_id, quantity, is_bundle, price, is_preorder)
+            VALUES (${cart_id}, ${bundle_id}, ${quantity}, ${true}, ${finalPrice}, ${is_preorder})
             RETURNING id
           `;
           
@@ -545,7 +555,7 @@ export const addToCart = async (req, res) => {
               VALUES (${cart_item_id}, ${item.variant_id}, ${item.size_id})
             `;
           }
-          console.log(`Added new bundle: cart_item_id=${cart_item_id}, bundle_id=${bundle_id}`);
+          console.log(`Added new bundle: cart_item_id=${cart_item_id}, bundle_id=${bundle_id}, is_preorder=${is_preorder}`);
         }
       } else {
         console.error('Invalid product type:', product_type);

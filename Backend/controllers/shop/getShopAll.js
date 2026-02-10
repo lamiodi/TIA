@@ -23,6 +23,7 @@ export const getShopAll = async (req, res) => {
         p.gender,
         p.created_at,
         p.is_new_release,
+        p.allow_preorder,
         (
           SELECT COALESCE(json_agg(
             json_build_object(
@@ -48,6 +49,7 @@ export const getShopAll = async (req, res) => {
         p.gender,
         p.created_at,
         p.is_new_release,
+        p.allow_preorder,
         ARRAY_AGG(b.bundle_type) AS bundle_types,
         COALESCE(
           (SELECT bi.image_url
@@ -113,7 +115,7 @@ export const getShopAll = async (req, res) => {
     }
 
     // Finish Bundle Query Group By
-    bundleQuery = sql`${bundleQuery} GROUP BY b.id, p.id, b.name, b.bundle_price, p.category, p.gender, p.created_at, p.is_new_release`;
+    bundleQuery = sql`${bundleQuery} GROUP BY b.id, p.id, b.name, b.bundle_price, p.category, p.gender, p.created_at, p.is_new_release, p.allow_preorder`;
 
     // Execute in parallel
     const [products, bundles] = await Promise.all([productQuery, bundleQuery]);
@@ -146,7 +148,8 @@ export const getShopAll = async (req, res) => {
       category: row.category,
       gender: row.gender,
       created_at: row.created_at,
-      is_new_release: row.is_new_release
+      is_new_release: row.is_new_release,
+      allow_preorder: row.allow_preorder
     }));
 
     // Combine

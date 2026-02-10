@@ -185,7 +185,10 @@ const ProductDetails = () => {
     })
     
     // Check if item is preorder
-    const isPreorder = item.item?.allow_preorder && item.item?.stock_quantity <= 0;
+    const isPreorder = item.is_preorder !== undefined 
+      ? item.is_preorder 
+      : (item.item?.allow_preorder && (Number(item.item?.stock_quantity) || 0) <= 0);
+      
     const cartItemData = {
       ...item,
       is_preorder: isPreorder,
@@ -488,6 +491,7 @@ const ProductDetails = () => {
             bundle_id: productData.data.id,
             quantity,
             price: bundlePrice,
+            is_preorder: isPreorderActive,
             items: selectedItems.map((item) => ({
               variant_id: item.variantId,
               size_id: item.sizeId,
@@ -596,16 +600,58 @@ const ProductDetails = () => {
     ? selectedVariant.sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0)
     : false;
     
-  const isBundleSoldOut = !isProduct && bundleType && selectedBundleVariants[bundleType]
-    ? Object.values(selectedBundleVariants[bundleType]).some(item => {
-        // Find if this item size is out of stock
-        // Logic for bundles is complex, simplifying for now: check if any item is out of stock
-        // For accurate bundle stock check, we need to know the selected size's stock
-        return false; // Simplified
-      })
-    : false;
+  // Helper to check bundle stock status
+  const getBundleStockStatus = () => {
+    if (isProduct) return { isSoldOut: false, isPreorder: false };
+    
+    // Iterate over selected items
+    const selectedItems = Object.values(selectedBundleVariants);
+    if (selectedItems.length === 0) return { isSoldOut: false, isPreorder: false };
+    
+    let hasOutOfStockItem = false;
+    let canPreorderOutOfStockItems = true;
 
-  const isAllSoldOut = isProduct ? isProductSoldOut : false; 
+    const allVariants = data?.items?.[0]?.all_variants || [];
+
+    for (const item of selectedItems) {
+        if (!item.variantId || !item.sizeId) continue;
+        
+        const variant = allVariants.find(v => v.variant_id === item.variantId);
+        if (!variant) continue;
+        
+        // Find size in variant sizes
+        // Note: variant.sizes might handle size names or IDs depending on API
+        // Here we try to match by size_id or size_name if id fails
+        let sizeObj = variant.sizes?.find(s => s.size_id === item.sizeId);
+        if (!sizeObj && item.sizeName) {
+            sizeObj = variant.sizes?.find(s => s.size_name === item.sizeName);
+        }
+        
+        if (!sizeObj) continue;
+        
+        if ((Number(sizeObj.stock_quantity) || 0) <= 0) {
+            hasOutOfStockItem = true;
+            // Check if this variant allows preorder
+            // Use variant specific flag if available, otherwise fallback to global setting
+            // Note: API needs to return allow_preorder for variants for granular control
+            const variantAllowPreorder = variant.allow_preorder !== undefined ? variant.allow_preorder : isPreorderEnabled;
+            
+            if (!variantAllowPreorder) {
+                canPreorderOutOfStockItems = false;
+            }
+        }
+    }
+    
+    if (hasOutOfStockItem) {
+        return { isSoldOut: !canPreorderOutOfStockItems, isPreorder: canPreorderOutOfStockItems };
+    }
+    
+    return { isSoldOut: false, isPreorder: false };
+  };
+
+  const bundleStatus = !isProduct ? getBundleStockStatus() : { isSoldOut: false, isPreorder: false };
+
+  const isAllSoldOut = isProduct ? isProductSoldOut : bundleStatus.isSoldOut; 
   
   // Determine if the CURRENT selection is a preorder
   // Get current size object
@@ -616,7 +662,10 @@ const ProductDetails = () => {
   // Preorder is active if:
   // 1. Preorder is globally enabled AND
   // 2. (The entire variant is sold out OR the specific selected size is sold out)
-  const isPreorderActive = isPreorderEnabled && (isAllSoldOut || isSelectedSizeOutOfStock);
+  // OR for bundles: calculated bundle preorder status
+  const isPreorderActive = isProduct 
+    ? (isPreorderEnabled && (isAllSoldOut || isSelectedSizeOutOfStock))
+    : bundleStatus.isPreorder;
 
   const depositPrice = isPreorderActive ? parsedPrice * 0.5 : parsedPrice;
   const displayPrice = country === "Nigeria" ? depositPrice : (depositPrice * exchangeRate).toFixed(2)

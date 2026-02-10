@@ -31,13 +31,23 @@ export const searchProducts = async (req, res) => {
         p.name AS product_name,
         p.created_at,
         p.category,
+        p.allow_preorder,
         (
           SELECT pi.image_url 
           FROM product_images pi 
           WHERE pi.variant_id = pv.id AND pi.is_primary = TRUE
           LIMIT 1
         ) AS primary_image,
-        c.color_name
+        c.color_name,
+        (
+          SELECT COALESCE(json_agg(
+            json_build_object(
+              'stock_quantity', vs.stock_quantity
+            )
+          ), '[]'::json)
+          FROM variant_sizes vs
+          WHERE vs.variant_id = pv.id
+        ) AS sizes
       FROM products p
       JOIN product_variants pv ON p.id = pv.product_id
       JOIN colors c ON pv.color_id = c.id
@@ -110,7 +120,8 @@ export const searchProducts = async (req, res) => {
            LIMIT 1)
         ) AS image,
         FALSE AS is_product,
-        p.created_at
+        p.created_at,
+        p.allow_preorder
       FROM bundles b
       JOIN products p ON b.product_id = p.id
       WHERE b.is_active = TRUE
@@ -159,7 +170,7 @@ export const searchProducts = async (req, res) => {
     
     bundleQuery = sql`
       ${bundleQuery}
-      GROUP BY p.id, p.name, p.created_at, p.category
+      GROUP BY p.id, p.name, p.created_at, p.category, p.allow_preorder
     `;
     
     const bundleRes = await bundleQuery;
@@ -175,7 +186,9 @@ export const searchProducts = async (req, res) => {
       variantId: row.variant_id,
       is_product: true,
       created_at: row.created_at,
-      category: row.category
+      category: row.category,
+      sizes: row.sizes,
+      allow_preorder: row.allow_preorder
     }));
     
     // Format bundles
@@ -187,7 +200,8 @@ export const searchProducts = async (req, res) => {
       is_product: false,
       bundle_types: row.bundle_types,
       created_at: row.created_at,
-      category: row.category
+      category: row.category,
+      allow_preorder: row.allow_preorder
     }));
     
     // Combine results

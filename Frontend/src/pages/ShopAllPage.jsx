@@ -409,11 +409,13 @@ const ShopAllPage = () => {
 };
 
 const ProductCard = ({ product, onImageError }) => {
-  const { id, name, price, image, is_product, variantId, bundle_types } = product;
+  const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   
+  const isPreorder = isSoldOut && allow_preorder;
+
   let displayName = name || 'Unnamed Product';
   if (displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
@@ -451,8 +453,14 @@ const ProductCard = ({ product, onImageError }) => {
              )}
           </div>
 
-          {/* Sold Out Overlay */}
-          {isSoldOut && (
+          {/* Status Overlay */}
+          {isPreorder ? (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
+              <span className="bg-blue-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">
+                Pre-order
+              </span>
+            </div>
+          ) : isSoldOut && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
               <span className="bg-red-600 text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">
                 Sold Out
