@@ -352,20 +352,36 @@ const ShopAllPage = () => {
         {/* Filter Section */}
         <div className="mb-8 space-y-6">
           {/* Primary Filters */}
-          <div className="flex flex-wrap gap-3 justify-center sm:justify-start border-b border-gray-200 pb-4">
-            {primaryFilters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => handlePrimaryFilterChange(filter)}
-                className={`px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-300 ${
-                  currentFilter === filter
-                    ? 'bg-black text-white shadow-md transform scale-105'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-4 border-b border-gray-200 pb-4">
+             {/* Mobile Filter Dropdown */}
+             <div className="sm:hidden w-full">
+               <select 
+                 value={currentFilter} 
+                 onChange={(e) => handlePrimaryFilterChange(e.target.value)}
+                 className="w-full p-3 border border-gray-300 rounded-lg text-base font-medium focus:ring-2 focus:ring-black focus:border-transparent bg-white shadow-sm"
+               >
+                 {primaryFilters.map((filter) => (
+                   <option key={filter} value={filter}>{filter}</option>
+                 ))}
+               </select>
+             </div>
+
+             {/* Desktop Filter Buttons */}
+             <div className="hidden sm:flex flex-wrap gap-3 justify-start">
+                {primaryFilters.map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => handlePrimaryFilterChange(filter)}
+                    className={`px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-300 ${
+                      currentFilter === filter
+                        ? 'bg-black text-white shadow-md transform scale-105'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+             </div>
           </div>
 
           {/* Sub Filters & Sort - Sub Filters removed */}
