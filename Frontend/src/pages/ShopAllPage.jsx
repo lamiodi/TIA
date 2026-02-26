@@ -6,8 +6,8 @@ import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
-import { Ban } from 'lucide-react';
-import giftCardImage from '../assets/images/GiftCardImage.png';
+import { Ban, ChevronDown } from 'lucide-react';
+import giftCardImage from '../assets/images/GiftCardImage.jpg';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
@@ -354,16 +354,19 @@ const ShopAllPage = () => {
           {/* Primary Filters */}
           <div className="flex flex-col sm:flex-row gap-4 border-b border-gray-200 pb-4">
              {/* Mobile Filter Dropdown */}
-             <div className="sm:hidden w-full">
+             <div className="sm:hidden w-full relative">
                <select 
                  value={currentFilter} 
                  onChange={(e) => handlePrimaryFilterChange(e.target.value)}
-                 className="w-full p-3 border border-gray-300 rounded-lg text-base font-medium focus:ring-2 focus:ring-black focus:border-transparent bg-white shadow-sm"
+                 className="w-full p-3 pr-10 border border-gray-200 rounded-lg text-base font-medium focus:ring-1 focus:ring-black focus:border-black bg-white appearance-none text-gray-800"
                >
                  {primaryFilters.map((filter) => (
                    <option key={filter} value={filter}>{filter}</option>
                  ))}
                </select>
+               <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                 <ChevronDown className="w-5 h-5" />
+               </div>
              </div>
 
              {/* Desktop Filter Buttons */}
@@ -388,7 +391,7 @@ const ShopAllPage = () => {
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
             
             {/* Layout & Sort */}
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div className="flex items-center justify-between w-full sm:w-auto sm:gap-3">
                <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setMobileLayout('one')}
@@ -482,11 +485,11 @@ const ProductCard = ({ product, onImageError }) => {
   return (
     <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
       <Link to={productUrl} className="block relative overflow-hidden flex-1">
-        <div className={`relative w-full overflow-hidden bg-gray-50 ${product.is_gift_card ? 'aspect-[1.41] flex items-center justify-center bg-gray-100' : 'aspect-[3/4]'}`}>
+        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-50">
           <img
             src={image}
             alt={displayName}
-            className={`${product.is_gift_card ? 'w-full h-auto object-contain p-2' : 'w-full h-full object-cover object-center'} group-hover:scale-105 transition-transform duration-700 ease-out`}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
             onError={onImageError}
             loading="lazy"
           />
