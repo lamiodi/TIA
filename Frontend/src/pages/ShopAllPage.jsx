@@ -218,6 +218,13 @@ const ShopAllPage = () => {
     setPage(1);
   }, [currentFilter]);
 
+  // Helper to check for sold out
+  const isProductSoldOut = useCallback((product) => {
+    if (!product.is_product) return false; // Bundles handling could be added if needed
+    const sizes = product.sizes || [];
+    return Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
+  }, []);
+
   // Filter products based on sub-filter (Logic simplified since sub-filters removed)
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -237,16 +244,39 @@ const ShopAllPage = () => {
         filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         break;
       default:
-        // Default sort: Briefs first if 'ALL'
-        if (currentFilter === 'ALL') {
-           filtered.sort((a, b) => {
-             const aBrief = isBrief(a);
-             const bBrief = isBrief(b);
-             if (aBrief && !bBrief) return -1;
-             if (!aBrief && bBrief) return 1;
+        // Default sort: 
+        // 1. Gift Cards (if any)
+        // 2. New Arrivals (top priority)
+        // 3. Available Products (standard)
+        // 4. Sold Out Products (last)
+        
+        filtered.sort((a, b) => {
+             // Gift Cards always first
+             if (a.is_gift_card && !b.is_gift_card) return -1;
+             if (!a.is_gift_card && b.is_gift_card) return 1;
+
+             // Check Sold Out status
+             const aSoldOut = isProductSoldOut(a);
+             const bSoldOut = isProductSoldOut(b);
+
+             // If one is sold out and the other isn't, available comes first
+             if (aSoldOut && !bSoldOut) return 1;
+             if (!aSoldOut && bSoldOut) return -1;
+
+             // If both available (or both sold out), prioritize New Arrivals
+             if (a.is_new_release && !b.is_new_release) return -1;
+             if (!a.is_new_release && b.is_new_release) return 1;
+
+             // Fallback to Briefs logic if 'ALL' filter (optional, keeping existing preference if needed, or remove)
+             if (currentFilter === 'ALL') {
+                const aBrief = isBrief(a);
+                const bBrief = isBrief(b);
+                if (aBrief && !bBrief) return -1;
+                if (!aBrief && bBrief) return 1;
+             }
+             
              return 0;
-           });
-        }
+        });
         break;
     }
 
