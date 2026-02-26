@@ -46,6 +46,11 @@ const Footer = () => {
             <li>Support</li>
           </ul>
           </Link>
+          <ul className="space-y-2 text-white text-base opacity-75 adjust mt-2">
+            <Link to="/gift-cards">
+              <li>Gift Cards</li>
+            </Link>
+          </ul>
         </div>
         
         <div className="bg-Secondarycolor p-3 relative w-full sm:col-span-2 md:col-span-2 aspect-[2/1] md:aspect-[2/1.1] lg:aspect-[2/1.2] flex items-center justify-center">

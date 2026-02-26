@@ -103,8 +103,36 @@ export const createOrder = async (req, res) => {
         status: existingOrder.status
       });
     }
+
+    // Verify Gift Card Balance if a gift card was used
+    let giftCardCode = null;
+    const appliedCoupon = req.body.applied_coupon;
+    const couponCodeFromRequest = req.body.coupon_code || (appliedCoupon ? appliedCoupon.code : null);
+    
+    if (couponCodeFromRequest) {
+        const [giftCard] = await sql`
+            SELECT * FROM gift_cards WHERE code = ${couponCodeFromRequest} AND status = 'active'
+        `;
+        if (giftCard) {
+            giftCardCode = giftCard.code;
+            if (parseFloat(giftCard.remaining_balance) < parseFloat(discount)) {
+                 console.error('Insufficient gift card balance');
+                 return res.status(400).json({ error: 'Insufficient gift card balance' });
+            }
+        }
+    }
     
     await sql.begin(async (sql) => {
+      // Deduct Gift Card Balance
+      if (giftCardCode) {
+          await sql`
+              UPDATE gift_cards
+              SET remaining_balance = remaining_balance - ${discount}, updated_at = NOW()
+              WHERE code = ${giftCardCode}
+          `;
+          console.log(`Deduced ${discount} from Gift Card ${giftCardCode}`);
+      }
+
       // Validate user - handle both cases (with and without deleted_at)
       let [user] = await sql`
         SELECT id, first_name, last_name, is_temporary, first_order, email 

@@ -80,7 +80,7 @@ export const validateCoupon = async (req, res) => {
   }
   
   try {
-    // Find active discount with matching code
+    // 1. Check if it's a standard discount coupon
     const [discount] = await sql`
       SELECT * FROM discounts 
       WHERE code = ${code} 
@@ -89,21 +89,43 @@ export const validateCoupon = async (req, res) => {
       AND (end_date >= NOW() OR end_date IS NULL)
     `;
     
-    if (!discount) {
-      return res.status(404).json({ valid: false, message: 'Invalid or expired coupon code' });
+    if (discount) {
+      return res.json({
+        valid: true,
+        source: 'discount',
+        discount: {
+          code: discount.code,
+          type: discount.discount_type,
+          value: discount.discount_value
+        }
+      });
+    }
+
+    // 2. Check if it's a Gift Card
+    const [giftCard] = await sql`
+      SELECT * FROM gift_cards
+      WHERE code = ${code}
+      AND status = 'active'
+      AND remaining_balance > 0
+      AND (expires_at > NOW() OR expires_at IS NULL)
+    `;
+
+    if (giftCard) {
+      return res.json({
+        valid: true,
+        source: 'gift_card',
+        discount: {
+          code: giftCard.code,
+          type: 'fixed',
+          value: parseFloat(giftCard.remaining_balance)
+        }
+      });
     }
     
-    // Return discount details
-    res.json({
-      valid: true,
-      discount: {
-        code: discount.code,
-        type: discount.discount_type,
-        value: discount.discount_value
-      }
-    });
+    return res.status(404).json({ valid: false, message: 'Invalid or expired code' });
+    
   } catch (error) {
     console.error('Error validating coupon:', error);
-    res.status(500).json({ valid: false, message: 'Error validating coupon' });
+    res.status(500).json({ valid: false, message: 'Error validating code' });
   }
 };

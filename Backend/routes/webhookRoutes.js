@@ -9,6 +9,7 @@ import {
   sendAdminPaymentConfirmationNotification,
   sendAdminDeliveryFeeNotification
 } from '../utils/emailService.js';
+import { activateGiftCard } from '../controllers/giftCardController.js';
 
 dotenv.config();
 
@@ -72,7 +73,23 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
-// Helper function to handle delivery fee payments
+// Helper to handle gift card payments
+async function handleGiftCardPayment(event, reference, res) {
+  if (event === 'charge.success') {
+    console.log(`Processing gift card payment success for reference=${reference}`);
+    try {
+      await activateGiftCard(reference);
+      return res.status(200).json({ message: 'Gift Card activated successfully' });
+    } catch (err) {
+      console.error(`Error activating gift card via webhook: ${err.message}`);
+      // Even if activation fails (e.g. already active), we acknowledge the webhook
+      return res.status(200).json({ message: 'Processed', error: err.message });
+    }
+  }
+  return res.status(200).json({ message: 'Event ignored for gift card' });
+}
+
+// Helper to handle delivery fee payments
 async function handleDeliveryFeePayment(event, reference, res) {
   const referenceParts = reference.split('-');
   if (referenceParts.length < 2) {

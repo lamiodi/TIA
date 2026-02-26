@@ -546,22 +546,22 @@ export default function AdminUploader() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    Images (Max 5)
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                        Upload high-quality images showing this specific variant
-                      </div>
-                    </div>
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleVariantImageChange(i, e)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Upload clear, high-resolution images (JPG, PNG) showing this color variant</p>
+            Images (Max 5)
+            <div className="group relative">
+              <Info className="w-3 h-3 text-gray-400 cursor-help" />
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                Upload high-quality images showing this specific variant
+              </div>
+            </div>
+          </label>
+          <input
+            type="file"
+            accept="image/*,.heic,.heif"
+            multiple
+            onChange={(e) => handleVariantImageChange(i, e)}
+            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+          <p className="text-xs text-gray-500 mt-1">Upload clear, high-resolution images (JPG, PNG, HEIC) showing this color variant</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                     {variant.previews.map((src, idx) => (
                       <div key={idx} className="relative group">

@@ -24,6 +24,7 @@ import billingAddressRoutes from "./routes/billingAddressRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import emailRoutes from "./routes/email.js";
+import giftCardRoutes from "./routes/giftCardRoutes.js";
 
 import { cleanupOldOrders } from "./utils/cleanupOrders.js";
 

@@ -20,6 +20,8 @@ import MorePage from './pages/Moresection';
 import HelpPage from './pages/Helpsection';
 import ThankYou from './pages/ThankYou';
 import DeliveryFeeThankYou from './pages/DeliveryFeeThankYou';
+import GiftCardPage from './pages/GiftCardPage';
+import GiftCardThankYou from './pages/GiftCardThankYou';
 
 import AdminLogin from './pages/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -54,6 +56,7 @@ function App() {
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/thank-you" element={<ThankYou />} /> {/* Removed ProtectedRoute for guest access */}
             <Route path="/delivery-fee-thank-you" element={<DeliveryFeeThankYou />} /> {/* Removed ProtectedRoute for guest access */}
+            <Route path="/gift-cards" element={<GiftCardPage />} />
 
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

@@ -69,7 +69,7 @@ const ShopAllPage = () => {
   
   const category = searchParams.get('category');
 
-  const primaryFilters = ['ALL', 'BRIEFS', 'LOUNGE SETS', '3 IN 1', '5 IN 1', 'NEW ARRIVALS'];
+  const primaryFilters = ['ALL', 'BRIEFS', 'LOUNGE SETS', '3 IN 1', '5 IN 1', 'NEW ARRIVALS', 'GIFT CARDS'];
 
   // Removed subFiltersMap as per new requirement for flat filter list
 
@@ -79,7 +79,8 @@ const ShopAllPage = () => {
     'LOUNGE SETS': 'lounge sets',
     '3 IN 1': '3in1',
     '5 IN 1': '5in1',
-    'NEW ARRIVALS': 'new'
+    'NEW ARRIVALS': 'new',
+    'GIFT CARDS': 'gift-cards'
   };
 
   const reverseCategoryMap = {
@@ -89,7 +90,8 @@ const ShopAllPage = () => {
     'lounge sets': 'LOUNGE SETS',
     '3in1': '3 IN 1',
     '5in1': '5 IN 1',
-    'new': 'NEW ARRIVALS'
+    'new': 'NEW ARRIVALS',
+    'gift-cards': 'GIFT CARDS'
   };
 
   // Meta tags configuration
@@ -117,6 +119,10 @@ const ShopAllPage = () => {
     'NEW ARRIVALS': {
       title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
       description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest designs.'
+    },
+    'GIFT CARDS': {
+      title: 'Gift Cards | The Tia Brand',
+      description: 'Give the perfect gift with Tia Brand Gift Cards. Available in various denominations.'
     }
   };
 
@@ -139,29 +145,54 @@ const ShopAllPage = () => {
     return name.includes('brief') || name.includes('boxer') || name.includes('underwear') || name.includes('trunk') || cat === 'briefs';
   }, []);
 
+  const GIFT_CARD_PRODUCT = useMemo(() => ({
+    id: 'gift-card',
+    name: 'Tia Brand Gift Card',
+    price: 100000,
+    image: giftCardImage,
+    is_product: true,
+    is_gift_card: true,
+    category: 'Gift Cards',
+    sizes: [],
+    variants: [],
+    allow_preorder: false,
+    is_new_release: false
+  }), []);
+
   // Fetch products based on primary filter
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const catParam = category ? category.toLowerCase() : 'all';
-      // Map URL param to primary filter if possible, else default to ALL logic
-      const endpoint = `/shopall?category=${catParam}`;
-      const res = await api.get(endpoint);
+      
+      let processedData = [];
 
-      if (!Array.isArray(res.data)) {
-        throw new Error('Unexpected response format');
+      // If category is specifically 'gift-cards', we don't need to fetch from backend (unless we store them there later)
+      // For now, we only fetch real products if it's NOT just gift-cards
+      if (catParam !== 'gift-cards') {
+        const endpoint = `/shopall?category=${catParam}`;
+        const res = await api.get(endpoint);
+
+        if (!Array.isArray(res.data)) {
+          throw new Error('Unexpected response format');
+        }
+
+        processedData = res.data.map(item => ({
+          ...item,
+          // Ensure numeric price
+          price: Number(item.price) || 0,
+          // Ensure array for bundle_types
+          bundle_types: item.bundle_types || [],
+          // Ensure array for sizes
+          sizes: item.sizes || []
+        }));
       }
 
-      const processedData = res.data.map(item => ({
-        ...item,
-        // Ensure numeric price
-        price: Number(item.price) || 0,
-        // Ensure array for bundle_types
-        bundle_types: item.bundle_types || [],
-        // Ensure array for sizes
-        sizes: item.sizes || []
-      }));
+      // Inject Gift Card if appropriate
+      if (catParam === 'all' || catParam === 'gift-cards') {
+        processedData.unshift(GIFT_CARD_PRODUCT);
+      }
 
       setProducts(processedData);
       
@@ -175,7 +206,7 @@ const ShopAllPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [category]);
+  }, [category, GIFT_CARD_PRODUCT]);
 
   useEffect(() => {
     fetchProducts();
@@ -421,9 +452,11 @@ const ProductCard = ({ product, onImageError }) => {
     displayName = displayName.split('–')[0].trim();
   }
   
-  const productUrl = is_product
-    ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
-    : `/bundle/${id}`;
+  const productUrl = product.is_gift_card
+    ? '/gift-cards'
+    : is_product
+      ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
+      : `/bundle/${id}`;
     
   const parsedPrice = parseFloat(price) || 0;
   const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
@@ -450,6 +483,9 @@ const ProductCard = ({ product, onImageError }) => {
                 <span className="bg-white text-black text-[10px] font-bold px-2 py-1 uppercase tracking-wider border border-black">
                   {bundle_types[0]}
                 </span>
+             )}
+             {product.is_gift_card && (
+                <span className="bg-black text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">Gift Card</span>
              )}
           </div>
 

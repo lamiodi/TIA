@@ -511,13 +511,14 @@ const CheckoutPage = () => {
       
       if (response.data.valid) {
         const discount = response.data.discount;
+        const source = response.data.source; // 'discount' or 'gift_card'
         
         // Calculate discount amount
         let discountAmount = 0;
         if (discount.type === 'percentage') {
           discountAmount = (cart.subtotal * discount.value) / 100;
         } else if (discount.type === 'fixed') {
-          discountAmount = discount.value;
+          discountAmount = Number(discount.value);
         }
         
         // Ensure discount doesn't exceed subtotal
@@ -527,11 +528,18 @@ const CheckoutPage = () => {
           code: discount.code,
           type: discount.type,
           value: discount.value,
-          amount: discountAmount
+          amount: discountAmount,
+          source: source
         });
         
         setCouponDiscount(discountAmount);
-        setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
+        
+        if (source === 'gift_card') {
+           setCouponSuccess(`Gift Card applied! Balance used: ₦${discountAmount.toLocaleString()}`);
+        } else {
+           setCouponSuccess(`Coupon applied! You saved ${discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}`);
+        }
+
       } else {
         setCouponError(response.data.message || 'Invalid coupon code');
       }
@@ -2579,7 +2587,7 @@ const CheckoutPage = () => {
                           type="text"
                           value={couponCode}
                           onChange={handleCouponCodeChange}
-                          placeholder="Enter coupon code"
+                          placeholder="Enter coupon or gift card code"
                           className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 font-Jost"
                           disabled={couponLoading}
                         />

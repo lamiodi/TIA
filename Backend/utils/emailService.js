@@ -56,6 +56,74 @@ export const sendResetEmail = async (to, token) => {
   }
 };
 
+export const sendGiftCardEmail = async (to, giftCard) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const giftCardImageUrl = `${frontendUrl}/gift-card.png`; // Accessing the public image
+
+  const formattedAmount = giftCard.currency === 'NGN'
+    ? `₦${parseFloat(giftCard.initial_amount).toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+    : `${parseFloat(giftCard.initial_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${giftCard.currency}`;
+
+  const html = `
+    <div style="font-family: 'Jost', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; padding: 0;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; overflow-hidden;">
+        
+        <!-- Hero Image -->
+        <div style="width: 100%; height: auto;">
+          <img src="${giftCardImageUrl}" alt="The Tia Brand Gift Card" style="width: 100%; height: auto; display: block;" />
+        </div>
+
+        <div style="padding: 40px 32px; text-align: center;">
+          <h1 style="font-size: 32px; color: #000000; margin: 0 0 16px 0; font-weight: 700; letter-spacing: -0.5px; text-transform: uppercase;">You've Received a Gift</h1>
+          
+          <p style="font-size: 16px; color: #444444; margin-bottom: 32px; line-height: 1.6;">
+            ${giftCard.sender_name ? `<strong>${giftCard.sender_name}</strong> has sent you a Tia Brand Gift Card.` : 'You have received a Tia Brand Gift Card.'}
+          </p>
+
+          ${giftCard.message ? `
+          <div style="margin-bottom: 32px; padding: 20px; border: 1px solid #e5e5e5; background-color: #fafafa;">
+            <p style="font-style: italic; color: #333333; margin: 0; font-size: 16px; line-height: 1.6;">"${giftCard.message}"</p>
+          </div>
+          ` : ''}
+
+          <div style="background-color: #000000; color: #ffffff; padding: 32px 24px; margin-bottom: 32px;">
+            <p style="font-size: 12px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 2px; color: #cccccc;">Gift Card Amount</p>
+            <h2 style="font-size: 42px; margin: 0 0 20px 0; font-weight: 400;">${formattedAmount}</h2>
+            
+            <div style="background-color: #ffffff; color: #000000; padding: 16px 24px; font-family: monospace; font-size: 20px; letter-spacing: 3px; font-weight: 700; display: inline-block; border: 1px dashed #000000;">
+              ${giftCard.code}
+            </div>
+            <p style="font-size: 12px; margin: 12px 0 0 0; color: #cccccc;">Use this code at checkout</p>
+          </div>
+
+          <a href="${frontendUrl}/shop" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 18px 36px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; display: inline-block; border: 1px solid #000000;">
+            Shop Now
+          </a>
+        </div>
+        
+        <div style="padding: 24px; border-top: 1px solid #f0f0f0; text-align: center;">
+          <p style="font-size: 12px; color: #888888; margin: 0;">
+            &copy; ${new Date().getFullYear()} The Tia Brand. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: 'The Tia Brand <support@thetiabrand.org>',
+      to,
+      subject: `You've received a ${formattedAmount} Gift Card!`,
+      html,
+    });
+    console.log(`✅ Sent gift card email to ${to}`);
+  } catch (error) {
+    console.error(`❌ Error sending gift card email to ${to}:`, error.message);
+    console.error('Email error details:', error.response?.data || error);
+  }
+};
+
 export const sendAdminDeliveryFeePaymentConfirmation = async (orderId, customerName, deliveryFee, currency) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const formattedFee = currency === 'NGN'

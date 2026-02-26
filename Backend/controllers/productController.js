@@ -13,7 +13,7 @@ cloudinary.config({
 });
 
 export const uploadProduct = async (req, res) => {
-  const { name, description, base_price, sku_prefix, category, gender, variants } = JSON.parse(req.body.data);
+  const { name, description, base_price, sku_prefix, category, gender, variants, is_new_release } = JSON.parse(req.body.data);
   const files = req.files;
   
   if (!name || !base_price || !sku_prefix || !variants || !Object.keys(files).length) {
@@ -23,8 +23,8 @@ export const uploadProduct = async (req, res) => {
   try {
     await sql.begin(async (sql) => {
       const [product] = await sql`
-        INSERT INTO products (name, description, base_price, sku_prefix, category, gender)
-        VALUES (${name}, ${description || ''}, ${base_price}, ${sku_prefix}, ${category || null}, ${gender || null})
+        INSERT INTO products (name, description, base_price, sku_prefix, category, gender, is_new_release)
+        VALUES (${name}, ${description || ''}, ${base_price}, ${sku_prefix}, ${category || null}, ${gender || null}, ${is_new_release || false})
         RETURNING id
       `;
       const productId = product.id;
@@ -46,7 +46,19 @@ export const uploadProduct = async (req, res) => {
 
         const images = files[`images_${index}`] || [];
         for (const file of images) {
-          const uploaded = await cloudinary.uploader.upload(file.path);
+          // Cloudinary automatically handles HEIC to JPG conversion if format is not specified, 
+          // or we can force it. For web compatibility, fetching 'jpg' or 'webp' is best.
+          // By default, Cloudinary stores the original. 
+          // However, we can use a transformation or rely on Cloudinary's auto-format delivery URL.
+          // Ideally, we upload as-is and rely on frontend to request f_auto (which we usually do).
+          // But to be safe for HEIC specifically, we might want to ensure it's viewable.
+          // Cloudinary supports HEIC uploads.
+          
+          const uploaded = await cloudinary.uploader.upload(file.path, {
+             resource_type: "image",
+             format: "jpg" // Force conversion to JPG for compatibility
+          });
+          
           await sql`
             INSERT INTO product_images (variant_id, image_url, is_primary)
             VALUES (${variantId}, ${uploaded.secure_url}, ${images.indexOf(file) === 0})
