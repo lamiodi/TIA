@@ -166,6 +166,24 @@ const InventoryManager = () => {
     }
   };
 
+  const handleSetPrimaryImage = (variantId, imageId) => {
+    setEditingItem((prev) => {
+      if (!prev || !prev.variants) return prev;
+      
+      const updatedVariants = prev.variants.map((v) => {
+        if (v.id === variantId) {
+          const updatedImages = (v.images || []).map((img) => ({
+            ...img,
+            is_primary: img.id === imageId,
+          }));
+          return { ...v, images: updatedImages };
+        }
+        return v;
+      });
+      return { ...prev, variants: updatedVariants };
+    });
+  };
+
   const toggleExpand = (id, type) => {
     setExpandedItems((prev) => ({
       ...prev,
@@ -662,6 +680,36 @@ const InventoryManager = () => {
                             </div>
                           ))}
                         </div>
+
+                        {/* Image Management */}
+                        {variant.images && variant.images.length > 0 && (
+                          <div className="mt-4 border-t pt-3">
+                            <h6 className="text-sm font-medium text-gray-700 mb-2">Images (Select Primary)</h6>
+                            <div className="flex flex-wrap gap-2">
+                              {variant.images.map((img) => (
+                                <div 
+                                  key={`img-${img.id}`} 
+                                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
+                                    img.is_primary ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                  onClick={() => handleSetPrimaryImage(variant.id, img.id)}
+                                >
+                                  <img 
+                                    src={img.image_url} 
+                                    alt="Variant" 
+                                    className="w-16 h-16 object-cover"
+                                  />
+                                  {img.is_primary && (
+                                    <div className="absolute top-0 right-0 bg-blue-500 text-white p-0.5 rounded-bl-md">
+                                      <CheckCircle size={12} />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Click an image to set it as the primary display image.</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

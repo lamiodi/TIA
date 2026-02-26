@@ -35,6 +35,17 @@ export const getProducts = async (req, res) => {
             'color_id', pv.color_id,
             'color_name', c.color_name,
             'sku', pv.sku,
+            'images', (
+              SELECT jsonb_agg(
+                jsonb_build_object(
+                  'id', pi.id,
+                  'image_url', pi.image_url,
+                  'is_primary', pi.is_primary
+                ) ORDER BY pi.is_primary DESC, pi.id ASC
+              )
+              FROM product_images pi
+              WHERE pi.variant_id = pv.id
+            ),
             'sizes', (
               SELECT jsonb_agg(
                 jsonb_build_object(
@@ -177,12 +188,28 @@ export const updateProduct = async (req, res) => {
 
       if (variants?.length) {
         for (const variant of variants) {
-          for (const size of variant.sizes || []) {
-            await sql`
-              UPDATE variant_sizes
-              SET stock_quantity = ${size.stock_quantity}
-              WHERE variant_id = ${variant.id} AND size_id = ${size.size_id}
-            `;
+          // Update stock quantities
+          if (variant.sizes) {
+            for (const size of variant.sizes) {
+              await sql`
+                UPDATE variant_sizes
+                SET stock_quantity = ${size.stock_quantity}
+                WHERE variant_id = ${variant.id} AND size_id = ${size.size_id}
+              `;
+            }
+          }
+          
+          // Update image primary status
+          if (variant.images && variant.images.length > 0) {
+            for (const image of variant.images) {
+              if (image.id) { // Only update existing images
+                await sql`
+                  UPDATE product_images
+                  SET is_primary = ${image.is_primary}
+                  WHERE id = ${image.id}
+                `;
+              }
+            }
           }
         }
       }
