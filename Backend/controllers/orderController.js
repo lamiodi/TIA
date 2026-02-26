@@ -123,13 +123,19 @@ export const createOrder = async (req, res) => {
     }
     
     await sql.begin(async (sql) => {
-      // Deduct Gift Card Balance
+      // Deduct Gift Card Balance with Atomic Check
       if (giftCardCode) {
-          await sql`
+          const [updatedCard] = await sql`
               UPDATE gift_cards
               SET remaining_balance = remaining_balance - ${discount}, updated_at = NOW()
-              WHERE code = ${giftCardCode}
+              WHERE code = ${giftCardCode} AND remaining_balance >= ${discount}
+              RETURNING id
           `;
+          
+          if (!updatedCard) {
+             console.error('Insufficient gift card balance during deduction (race condition prevented)');
+             throw new Error('Insufficient gift card balance. It may have been used in another transaction.');
+          }
           console.log(`Deduced ${discount} from Gift Card ${giftCardCode}`);
       }
 
