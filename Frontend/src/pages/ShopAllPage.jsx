@@ -7,6 +7,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 import { Ban } from 'lucide-react';
+import giftCardImage from '../assets/images/GiftCardImage.png';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
