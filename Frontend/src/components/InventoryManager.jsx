@@ -60,6 +60,38 @@ const InventoryManager = () => {
     fetchData();
   }, []);
 
+  const handleToggleNewRelease = async (product) => {
+    const originalStatus = product.is_new_release;
+    const newStatus = !originalStatus;
+
+    try {
+      // Optimistic update
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id ? { ...p, is_new_release: newStatus } : p
+        )
+      );
+
+      await api.put(`/products/${product.id}`, {
+        is_new_release: newStatus,
+      });
+
+      setSuccess(
+        `${product.name} marked as ${newStatus ? 'New Release' : 'Standard'}`
+      );
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      // Revert on error
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id ? { ...p, is_new_release: originalStatus } : p
+        )
+      );
+      console.error('Update error:', err);
+      setError('Failed to update status. Please try again.');
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirmDelete) return;
 
@@ -279,6 +311,9 @@ const InventoryManager = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  New Release
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -321,6 +356,23 @@ const InventoryManager = () => {
                           {product.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <label className="inline-flex items-center cursor-pointer select-none">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={!!product.is_new_release}
+                              onChange={() => handleToggleNewRelease(product)}
+                              disabled={loading}
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                          </div>
+                          <span className="ml-2 text-xs font-medium text-gray-700">
+                            {product.is_new_release ? 'Yes' : 'No'}
+                          </span>
+                        </label>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
                         <button
                           onClick={() => handleEdit(product, 'product')}
@@ -346,7 +398,7 @@ const InventoryManager = () => {
                     </tr>
                     {expandedItems[`product-${product.id}`] && (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                        <td colSpan="7" className="px-6 py-4 bg-gray-50">
                           <div className="space-y-4">
                             <h4 className="font-medium text-gray-900">Variants</h4>
                             {product.variants?.length > 0 ? (
@@ -390,7 +442,7 @@ const InventoryManager = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
                     No products found
                   </td>
                 </tr>

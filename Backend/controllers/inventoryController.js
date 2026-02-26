@@ -11,6 +11,7 @@ export const getProducts = async (req, res) => {
         p.base_price AS price,
         p.sku_prefix AS design_code,
         p.is_active,
+        p.is_new_release,
         (SELECT array_agg(DISTINCT pi.image_url)
          FROM product_images pi
          JOIN product_variants pv ON pi.variant_id = pv.id
@@ -163,12 +164,15 @@ export const deleteBundle = async (req, res) => {
 // Update product price and stock
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { base_price, variants } = req.body;
+  const { base_price, variants, is_new_release } = req.body;
 
   try {
     await sql.begin(async (sql) => {
-      if (base_price) {
+      if (base_price !== undefined) {
         await sql`UPDATE products SET base_price = ${base_price} WHERE id = ${id}`;
+      }
+      if (is_new_release !== undefined) {
+        await sql`UPDATE products SET is_new_release = ${is_new_release} WHERE id = ${id}`;
       }
 
       if (variants?.length) {

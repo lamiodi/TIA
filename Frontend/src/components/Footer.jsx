@@ -108,7 +108,7 @@ const Footer = () => {
           </div>
         </div>
       </div>
-      <p className="text-xs font-Manrope text-white text-right max-md:text-center mt-4">&copy; {new Date().getFullYear()} The Tia Brand. All rights reserved.</p>
+      <p className="text-xs font-Manrope text-white text-right max-md:text-center mt-4">&copy; {new Date().getFullYear()} The TiaBrand. All rights reserved.</p>
     </div>
   );
 };

@@ -73,7 +73,7 @@ const GiftCardPage = () => {
              <img src={giftCardImage} alt="Gift Card" className="w-full h-full object-cover object-center" />
              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center backdrop-blur-[2px]">
                 <h1 className="text-4xl font-bold font-Manrope mb-3 shadow-sm tracking-tight">Give the Perfect Gift</h1>
-                <p className="text-lg text-gray-100 font-medium shadow-sm max-w-md">Send a Tia Brand Gift Card instantly via email. The ultimate gift of choice.</p>
+                <p className="text-lg text-gray-100 font-medium shadow-sm max-w-md">Send a TiaBrand Gift Card instantly via email. The ultimate gift of choice.</p>
              </div>
           </div>
 

@@ -37,7 +37,7 @@ const ProductSchema = ({ productData, selectedVariant, selectedSize, isProduct, 
     "description": description,
     "brand": {
       "@type": "Brand",
-      "name": "The Tia Brand"
+      "name": "The TiaBrand"
     },
     "sku": sku,
     "offers": {

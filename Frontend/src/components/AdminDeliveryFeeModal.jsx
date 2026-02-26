@@ -108,7 +108,7 @@ const AdminDeliveryFeeModal = ({
     if (paymentLink && selectedOrder) {
       const subject = encodeURIComponent(`Delivery Fee Payment for Order #${selectedOrder.id}`);
       const body = encodeURIComponent(
-        `Dear ${selectedOrder.first_name},\n\nPlease pay the delivery fee for your order to ${selectedOrder.shipping_country} using this link:\n${paymentLink}\n\nContact Thetiabrand1@gmail.com for assistance.\n\n— The Tia Brand Team`
+        `Dear ${selectedOrder.first_name},\n\nPlease pay the delivery fee for your order to ${selectedOrder.shipping_country} using this link:\n${paymentLink}\n\nContact Thetiabrand1@gmail.com for assistance.\n\n— The TiaBrand Team`
       );
       window.location.href = `mailto:${selectedOrder.email}?subject=${subject}&body=${body}`;
       toast.info('Opening email client to send payment link manually.');

@@ -21,7 +21,7 @@ const useMetaTags = (title, description) => {
     }
     metaDescription.content = description;
     return () => {
-      document.title = 'The Tia Brand - Premium Comfort Wear';
+      document.title = 'The TiaBrand - Premium Comfort Wear';
     };
   }, [title, description]);
 };
@@ -98,32 +98,32 @@ const ShopAllPage = () => {
   // Meta tags configuration
   const metaConfig = {
     'ALL': {
-      title: 'Shop All - Premium Boxers, Gymwears & Bundles | The Tia Brand',
+      title: 'Shop All - Premium Boxers, Gymwears & Bundles | The TiaBrand',
       description: 'Explore our complete collection of premium underwear, activewear, and exclusive bundles.'
     },
     'BRIEFS': {
-      title: 'Premium Boxers & Briefs Collection | The Tia Brand',
+      title: 'Premium Boxers & Briefs Collection | The TiaBrand',
       description: 'Discover our luxury boxers and briefs collection. Premium comfort underwear with superior fit, breathable fabrics, and modern designs.'
     },
     'LOUNGE SETS': {
-      title: 'Lounge Sets Collection | The Tia Brand',
+      title: 'Lounge Sets Collection | The TiaBrand',
       description: 'Shop our coordinated lounge sets. Perfect matching combinations for style and comfort.'
     },
     '3 IN 1': {
-      title: '3-in-1 Premium Bundles Collection | The Tia Brand',
+      title: '3-in-1 Premium Bundles Collection | The TiaBrand',
       description: 'Explore our exclusive 3-in-1 bundles featuring coordinated boxers, gymwears, and accessories.'
     },
     '5 IN 1': {
-      title: '5-in-1 Luxury Bundles Collection | The Tia Brand',
+      title: '5-in-1 Luxury Bundles Collection | The TiaBrand',
       description: 'Discover our premium 5-in-1 bundles with complete outfit coordination.'
     },
     'NEW ARRIVALS': {
-      title: 'New Arrivals - Latest Comfort Wear Collection | The Tia Brand',
+      title: 'New Arrivals - Latest Comfort Wear Collection | The TiaBrand',
       description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest designs.'
     },
     'GIFT CARDS': {
-      title: 'Gift Cards | The Tia Brand',
-      description: 'Give the perfect gift with Tia Brand Gift Cards. Available in various denominations.'
+      title: 'Gift Cards | The TiaBrand',
+      description: 'Give the perfect gift with TiaBrand Gift Cards. Available in various denominations.'
     }
   };
 
@@ -148,7 +148,7 @@ const ShopAllPage = () => {
 
   const GIFT_CARD_PRODUCT = useMemo(() => ({
     id: 'gift-card',
-    name: 'Tia Brand Gift Card',
+    name: 'TiaBrand Gift Card',
     price: 100000,
     image: giftCardImage,
     is_product: true,
