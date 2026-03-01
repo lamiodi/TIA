@@ -1071,6 +1071,62 @@ const CheckoutPage = () => {
     // Prevent multiple submissions
     if (isProcessing) return;
     
+    // VALIDATION STEP: Check all required fields before starting processing
+    
+    // 1. Check Guest Form
+    if (isGuest && !guestFormSubmitted) {
+      if (!validateGuestForm()) {
+        setRequiredForm('guest');
+        toast.error('Please complete your guest details');
+        // Scroll to guest form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+    
+    // 2. Check Shipping Address
+    const hasShippingAddress = isAuthenticated() 
+      ? (shippingAddressId && shippingAddresses.length > 0) || shippingForm.address_line_1
+      : shippingForm.address_line_1;
+      
+    if (!hasShippingAddress) {
+      setError('Please add a shipping address');
+      setRequiredForm('shipping');
+      toast.error('Please add a shipping address');
+      // Scroll to shipping section (approximate position)
+      const shippingElement = document.getElementById('shipping-section');
+      if (shippingElement) shippingElement.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    
+    // 3. Check Billing Address
+    const hasBillingAddress = isAuthenticated() 
+      ? (billingAddressOption === 'same' && hasShippingAddress) || (billingAddressId && billingAddresses.length > 0)
+      : billingForm.address_line_1;
+      
+    if (!hasBillingAddress) {
+      setError('Please add a billing address');
+      setRequiredForm('billing');
+      toast.error('Please add a billing address');
+      // Scroll to billing section
+      const billingElement = document.getElementById('billing-section');
+      if (billingElement) billingElement.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    
+    // 4. Check Shipping Method (Nigeria only)
+    const addressCountry = shippingForm.country || country;
+    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+    
+    if (isNigeria && !shippingMethod) {
+      setError('Please select a shipping method');
+      toast.error('Please select a shipping method');
+      // Scroll to shipping method section
+      const methodElement = document.getElementById('shipping-method-section');
+      if (methodElement) methodElement.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    
     setIsProcessing(true);
     setLoading(true);
     setError('');
@@ -1093,6 +1149,8 @@ const CheckoutPage = () => {
         await processOrder();
       }
     } catch (err) {
+      console.error("Order processing error:", err);
+      toast.error("Failed to place order. Please try again.");
     } finally {
       setLoading(false);
       setIsProcessing(false);
@@ -1901,7 +1959,7 @@ const CheckoutPage = () => {
                   // Guest Address Forms
                   <>
                     {/* Shipping Address Form for Guests */}
-                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                    <div id="shipping-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">Shipping Address</h3>
                       
                       {requiredForm === 'shipping' && (
@@ -1970,7 +2028,7 @@ const CheckoutPage = () => {
                     </div>
                     
                     {/* Billing Address Form for Guests */}
-                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                    <div id="billing-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">Billing Address</h3>
                       
                       {/* Billing Address Option Selector */}
@@ -2063,7 +2121,7 @@ const CheckoutPage = () => {
                   // Logged-in User Address Management
                   <>
                     {/* Shipping Address Section */}
-                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                    <div id="shipping-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">Shipping Address</h3>
                       
                       {shippingAddresses.length > 0 ? (
@@ -2171,7 +2229,7 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Billing Address Section */}
-                    <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                    <div id="billing-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                       <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Inter">Billing Address</h3>
                       
                       {/* Billing Address Option Selector for Logged-in Users */}
@@ -2354,7 +2412,7 @@ const CheckoutPage = () => {
                 </div>
                 
                 {/* Shipping Method */}
-                <div className="p-5 md:p-6 bg-white rounded-lg shadow-md">
+                <div id="shipping-method-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
                   <h3 className="text-xl font-semibold text-Primarycolor mb-6 font-Inter">
                     <Truck className="h-5 w-5 inline mr-2" />
                     Choose Delivery Method
@@ -2810,12 +2868,7 @@ const CheckoutPage = () => {
                     <button
                       onClick={handlePlaceOrder}
                       className="mt-6 w-full bg-Primarycolor text-Secondarycolor text-sm py-4 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-Inter font-semibold"
-                      disabled={isProcessing || loading || 
-                        (!shippingForm.address_line_1 && !shippingAddressId) || 
-                        (!billingForm.address_line_1 && !billingAddressId) || 
-                        (isNigeria && !shippingMethod) || 
-                        (isGuest && !createdUserId && !guestFormSubmitted)
-                      }
+                      disabled={isProcessing || loading}
                     >
                       {isProcessing || loading ? (
                         <div className="flex items-center justify-center">
