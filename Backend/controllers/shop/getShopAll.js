@@ -155,6 +155,16 @@ export const getShopAll = async (req, res) => {
     // Combine
     const allItems = [...formattedProducts, ...formattedBundles];
 
+    // Sort: New Releases first, then by creation date (newest first)
+    allItems.sort((a, b) => {
+      // 1. New Release Priority
+      if (a.is_new_release && !b.is_new_release) return -1;
+      if (!a.is_new_release && b.is_new_release) return 1;
+
+      // 2. Creation Date (Newest first)
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
     return res.status(200).json(allItems);
 
   } catch (err) {

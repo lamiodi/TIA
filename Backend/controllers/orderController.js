@@ -392,33 +392,50 @@ export const createOrder = async (req, res) => {
           if (stock_quantity < item.quantity) {
              if (variant.allow_preorder) {
                 isPreorderItem = true;
+                // Allow purchase even if stock is 0 or less for preorder items
              } else {
                 console.error(`Validation failed: Insufficient stock for variant ${item.variant_id}, requested: ${item.quantity}, available: ${stock_quantity}`);
                 throw new Error(`Insufficient stock for variant ${item.variant_id}`);
              }
+          } else {
+             // Even if stock is available, if frontend explicitly says preorder (e.g. forced preorder mode), respect it?
+             // Or if variant is marked allow_preorder and user chose preorder option.
+             // For simplicity, if stock exists, we fulfill from stock unless item.is_preorder is explicitly true from cart.
           }
           
-          // If the item was added as preorder (even if stock is now available, though unlikely), honor it?
-          // Or if the frontend sends is_preorder flag.
-          // For now, rely on stock status or the fact that price matches deposit.
-          // If frontend explicitly sends is_preorder, use it to relax price check.
           if (item.is_preorder) {
             isPreorderItem = true; 
           }
 
           // Validate price
           let expectedBasePrice = variant.base_price;
+          // If it's a preorder item, we might expect a deposit price (e.g. 50%) or full price depending on business logic.
+          // The current logic seems to expect 50% for preorder.
           if (isPreorderItem) {
-             expectedBasePrice = variant.base_price * 0.5;
-          }
-
-          const expectedPrice = currency === 'USD' && exchange_rate > 0
-            ? Number((expectedBasePrice * exchange_rate).toFixed(2))
-            : expectedBasePrice;
-            
-          if (Math.abs(expectedPrice - item.price) > 0.01) {
-            console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
-            throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+             // Check if price matches full price OR 50% deposit
+             const fullPrice = variant.base_price;
+             const depositPrice = variant.base_price * 0.5;
+             
+             // Convert both to expected currency for comparison
+             const expectedFull = currency === 'USD' && exchange_rate > 0 ? Number((fullPrice * exchange_rate).toFixed(2)) : fullPrice;
+             const expectedDeposit = currency === 'USD' && exchange_rate > 0 ? Number((depositPrice * exchange_rate).toFixed(2)) : depositPrice;
+             
+             // Allow either full payment or deposit for preorder
+             if (Math.abs(expectedFull - item.price) > 0.01 && Math.abs(expectedDeposit - item.price) > 0.01) {
+                console.error(`Validation failed: Price mismatch for preorder variant ${item.variant_id}: expected ${expectedFull} or ${expectedDeposit} ${currency}, got ${item.price} ${currency}`);
+                // Relax validation for now or throw? Let's throw to be safe but update logic.
+                // If the cart item price matches what we expect for preorder, it's valid.
+                throw new Error(`Price mismatch for preorder variant ${item.variant_id}`);
+             }
+          } else {
+              const expectedPrice = currency === 'USD' && exchange_rate > 0
+                ? Number((expectedBasePrice * exchange_rate).toFixed(2))
+                : expectedBasePrice;
+                
+              if (Math.abs(expectedPrice - item.price) > 0.01) {
+                console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+                throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+              }
           }
           
           calculatedSubtotal += item.price * item.quantity;
