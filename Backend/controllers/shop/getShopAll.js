@@ -23,7 +23,7 @@ export const getShopAll = async (req, res) => {
         p.gender,
         p.created_at,
         p.is_new_release,
-        p.allow_preorder,
+        CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END AS allow_preorder,
         (
           SELECT COALESCE(json_agg(
             json_build_object(
@@ -49,7 +49,7 @@ export const getShopAll = async (req, res) => {
         p.gender,
         p.created_at,
         p.is_new_release,
-        p.allow_preorder,
+        CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END AS allow_preorder,
         ARRAY_AGG(b.bundle_type) AS bundle_types,
         COALESCE(
           (SELECT bi.image_url

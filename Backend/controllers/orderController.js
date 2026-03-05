@@ -349,7 +349,7 @@ export const createOrder = async (req, res) => {
         if (item.variant_id) {
           // Fetch product variant, using LEFT JOIN for sizes to handle null size_id
           const [variant] = await sql`
-            SELECT pv.id, p.name, p.base_price, pi.image_url, c.color_name, s.size_name, p.allow_preorder
+            SELECT pv.id, p.name, p.base_price, pi.image_url, c.color_name, s.size_name, CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END as allow_preorder
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.id
             JOIN colors c ON pv.color_id = c.id
@@ -477,7 +477,7 @@ export const createOrder = async (req, res) => {
             for (const bi of item.bundle_items) {
               const [variant] = await sql`
                 SELECT pv.id AS variant_id, pv.product_id, p.name AS product_name, 
-                       c.color_name, s.size_name, pi.image_url, p.allow_preorder
+                       c.color_name, s.size_name, pi.image_url, CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END as allow_preorder
                 FROM product_variants pv
                 JOIN products p ON pv.product_id = p.id
                 JOIN colors c ON pv.color_id = c.id

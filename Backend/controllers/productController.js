@@ -158,7 +158,7 @@ export const getProductById = async (req, res) => {
             ELSE p.name
           END as name, 
           p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
-          p.is_new_release, p.category, p.gender, p.allow_preorder, TRUE AS is_product, p.created_at,
+          p.is_new_release, p.category, p.gender, CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END as allow_preorder, TRUE AS is_product, p.created_at,
           COALESCE(
             json_agg(
               json_build_object(
@@ -276,7 +276,7 @@ export const getProductById = async (req, res) => {
           ELSE p.name
         END as name, 
         p.description, p.base_price AS price, p.sku_prefix AS type, p.is_active,
-        p.is_new_release, p.category, p.gender, p.allow_preorder, TRUE AS is_product, p.created_at,
+          p.is_new_release, p.category, p.gender, CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END as allow_preorder, TRUE AS is_product, p.created_at,
         COALESCE(
           json_agg(
             json_build_object(
