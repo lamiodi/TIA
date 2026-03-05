@@ -140,15 +140,17 @@ const InventoryManager = () => {
       setError('');
 
       if (editingItem.type === 'product') {
-        const { id, price, variants } = editingItem;
+        const { id, price, variants, description } = editingItem;
         await api.put(`/products/${id}`, {
           base_price: price,
           variants: variants,
+          description: description,
         });
       } else {
-        const { id, price } = editingItem;
+        const { id, price, description } = editingItem;
         await api.put(`/bundles/${id}`, {
           bundle_price: price,
+          description: description,
         });
       }
 
@@ -616,6 +618,23 @@ const InventoryManager = () => {
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={editingItem.description || ''}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={4}
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {editingItem.type === 'product' ? 'Base Price' : 'Bundle Price'} (NGN)

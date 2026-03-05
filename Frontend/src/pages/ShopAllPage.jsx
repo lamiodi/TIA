@@ -255,11 +255,11 @@ const ShopAllPage = () => {
              if (a.is_gift_card && !b.is_gift_card) return -1;
              if (!a.is_gift_card && b.is_gift_card) return 1;
 
-             // Check Sold Out status
-             const aSoldOut = isProductSoldOut(a);
-             const bSoldOut = isProductSoldOut(b);
+             // Check Sold Out status (Treat Pre-order as Available)
+             const aSoldOut = isProductSoldOut(a) && !a.allow_preorder;
+             const bSoldOut = isProductSoldOut(b) && !b.allow_preorder;
 
-             // If one is sold out and the other isn't, available comes first
+             // If one is sold out and the other isn't, available (or pre-order) comes first
              if (aSoldOut && !bSoldOut) return 1;
              if (!aSoldOut && bSoldOut) return -1;
 
@@ -281,9 +281,9 @@ const ShopAllPage = () => {
     }
 
     // Restriction: "His and Hers" products should ONLY appear in 'ALL' filter
-    if (currentFilter !== 'ALL') {
-      filtered = filtered.filter(p => !p.name.toLowerCase().includes('his and hers'));
-    }
+    // if (currentFilter !== 'ALL') {
+    //   filtered = filtered.filter(p => !p.name.toLowerCase().includes('his and hers'));
+    // }
 
     return filtered;
   }, [products, sortBy, currentFilter, isBrief]);

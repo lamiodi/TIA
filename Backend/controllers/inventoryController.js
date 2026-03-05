@@ -175,7 +175,7 @@ export const deleteBundle = async (req, res) => {
 // Update product price and stock
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { base_price, variants, is_new_release } = req.body;
+  const { base_price, variants, is_new_release, description } = req.body;
 
   try {
     await sql.begin(async (sql) => {
@@ -184,6 +184,9 @@ export const updateProduct = async (req, res) => {
       }
       if (is_new_release !== undefined) {
         await sql`UPDATE products SET is_new_release = ${is_new_release} WHERE id = ${id}`;
+      }
+      if (description !== undefined) {
+        await sql`UPDATE products SET description = ${description} WHERE id = ${id}`;
       }
 
       if (variants?.length) {
@@ -225,10 +228,17 @@ export const updateProduct = async (req, res) => {
 // Update bundle price
 export const updateBundle = async (req, res) => {
   const { id } = req.params;
-  const { bundle_price } = req.body;
+  const { bundle_price, description } = req.body;
 
   try {
-    await sql`UPDATE bundles SET bundle_price = ${bundle_price} WHERE id = ${id}`;
+    await sql.begin(async (sql) => {
+        if (bundle_price !== undefined) {
+            await sql`UPDATE bundles SET bundle_price = ${bundle_price} WHERE id = ${id}`;
+        }
+        if (description !== undefined) {
+            await sql`UPDATE bundles SET description = ${description} WHERE id = ${id}`;
+        }
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('Error updating bundle:', err);
