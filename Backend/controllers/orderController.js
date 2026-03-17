@@ -33,7 +33,7 @@ export const createOrder = async (req, res) => {
     converted_total,
     tax,
   } = req.body;
-  
+
   console.log('📥 Create order request:', {
     user_id,
     cart_id,
@@ -46,10 +46,10 @@ export const createOrder = async (req, res) => {
     discount,
   });
   console.log('📋 Items:', items);
-  
+
   // Get idempotency key from headers if available
   const idempotencyKey = req.headers['x-idempotency-key'];
-  
+
   try {
     // Check for idempotency key first
     if (idempotencyKey) {
@@ -57,20 +57,20 @@ export const createOrder = async (req, res) => {
         SELECT id, payment_status, status, reference FROM orders 
         WHERE idempotency_key = ${idempotencyKey} AND deleted_at IS NULL
       `;
-      
+
       if (existingOrder) {
         console.log(`⚠️ Order with idempotency key already exists:`, existingOrder);
-        
+
         // If order exists and payment is pending, return the existing order
         if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
-          return res.status(200).json({ 
+          return res.status(200).json({
             order: { id: existingOrder.id, reference: existingOrder.reference, discount },
             message: 'Order already exists with pending payment'
           });
         }
-        
+
         // If order exists with different status, return error
-        return res.status(409).json({ 
+        return res.status(409).json({
           error: 'Order with this idempotency key already exists',
           order_id: existingOrder.id,
           payment_status: existingOrder.payment_status,
@@ -78,25 +78,25 @@ export const createOrder = async (req, res) => {
         });
       }
     }
-    
+
     // First check if an order with this reference already exists
     let [existingOrder] = await sql`
       SELECT id, payment_status, status FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
     `;
-    
+
     if (existingOrder) {
       console.log('⚠️ Order with reference already exists:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order: existingOrder });
-      
+
       // If order exists and payment is pending, return the existing order
       if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
-        return res.status(200).json({ 
+        return res.status(200).json({
           order: { id: existingOrder.id, reference, discount },
           message: 'Order already exists with pending payment'
         });
       }
-      
+
       // If order exists with different status, return error
-      return res.status(409).json({ 
+      return res.status(409).json({
         error: 'Order with this reference already exists',
         order_id: existingOrder.id,
         payment_status: existingOrder.payment_status,
@@ -108,35 +108,35 @@ export const createOrder = async (req, res) => {
     let giftCardCode = null;
     const appliedCoupon = req.body.applied_coupon;
     const couponCodeFromRequest = req.body.coupon_code || (appliedCoupon ? appliedCoupon.code : null);
-    
+
     if (couponCodeFromRequest) {
-        const [giftCard] = await sql`
+      const [giftCard] = await sql`
             SELECT * FROM gift_cards WHERE code = ${couponCodeFromRequest} AND status = 'active'
         `;
-        if (giftCard) {
-            giftCardCode = giftCard.code;
-            if (parseFloat(giftCard.remaining_balance) < parseFloat(discount)) {
-                 console.error('Insufficient gift card balance');
-                 return res.status(400).json({ error: 'Insufficient gift card balance' });
-            }
+      if (giftCard) {
+        giftCardCode = giftCard.code;
+        if (parseFloat(giftCard.remaining_balance) < parseFloat(discount)) {
+          console.error('Insufficient gift card balance');
+          return res.status(400).json({ error: 'Insufficient gift card balance' });
         }
+      }
     }
-    
+
     await sql.begin(async (sql) => {
       // Deduct Gift Card Balance with Atomic Check
       if (giftCardCode) {
-          const [updatedCard] = await sql`
+        const [updatedCard] = await sql`
               UPDATE gift_cards
               SET remaining_balance = remaining_balance - ${discount}, updated_at = NOW()
               WHERE code = ${giftCardCode} AND remaining_balance >= ${discount}
               RETURNING id
           `;
-          
-          if (!updatedCard) {
-             console.error('Insufficient gift card balance during deduction (race condition prevented)');
-             throw new Error('Insufficient gift card balance. It may have been used in another transaction.');
-          }
-          console.log(`Deduced ${discount} from Gift Card ${giftCardCode}`);
+
+        if (!updatedCard) {
+          console.error('Insufficient gift card balance during deduction (race condition prevented)');
+          throw new Error('Insufficient gift card balance. It may have been used in another transaction.');
+        }
+        console.log(`Deduced ${discount} from Gift Card ${giftCardCode}`);
       }
 
       // Validate user - handle both cases (with and without deleted_at)
@@ -145,7 +145,7 @@ export const createOrder = async (req, res) => {
         FROM users 
         WHERE id = ${user_id}
       `;
-      
+
       // If user has deleted_at column, check it's null
       if (user && 'deleted_at' in user) {
         [user] = await sql`
@@ -154,12 +154,12 @@ export const createOrder = async (req, res) => {
           WHERE id = ${user_id} AND deleted_at IS NULL
         `;
       }
-      
+
       if (!user) {
         console.error('Validation failed: User not found');
         throw new Error('User not found');
       }
-      
+
       // Handle cart for guest users
       let finalCartId = cart_id;
       if (user.is_temporary && !cart_id) {
@@ -172,12 +172,12 @@ export const createOrder = async (req, res) => {
         finalCartId = newCart.id;
         console.log(`✅ Created new cart for guest user ${user_id}, cart_id: ${finalCartId}`);
       }
-      
+
       let finalAddressId = address_id;
       let finalBillingAddressId = billing_address_id;
       let address;
       let billingAddress;
-      
+
       if (shipping_data && billing_data) { // Guest mode: create addresses
         // Create shipping address without address_line_2
         const [newAddress] = await sql`
@@ -198,7 +198,7 @@ export const createOrder = async (req, res) => {
         `;
         finalAddressId = newAddress.id;
         address = newAddress;
-        
+
         // Create billing address without address_line_2
         const [newBillingAddress] = await sql`
           INSERT INTO billing_addresses (
@@ -226,7 +226,7 @@ export const createOrder = async (req, res) => {
           SELECT id, country, address_line_1, city, state, zip_code FROM addresses 
           WHERE id = ${address_id} AND user_id = ${user_id}
         `;
-        
+
         // If address has deleted_at column, check it's null
         if (address && 'deleted_at' in address) {
           [address] = await sql`
@@ -234,19 +234,19 @@ export const createOrder = async (req, res) => {
             WHERE id = ${address_id} AND user_id = ${user_id} AND deleted_at IS NULL
           `;
         }
-        
+
         if (!address) {
           console.error('Validation failed: Shipping address not found');
           throw new Error('Shipping address not found');
         }
-        
+
         // Handle billing address - check if same as shipping or validate existing
         if (billing_address_id === address_id) {
           // Same as shipping: create billing address from shipping address and user data
           const [userInfo] = await sql`
             SELECT first_name, last_name, email FROM users WHERE id = ${user_id}
           `;
-          
+
           const [newBillingAddress] = await sql`
             INSERT INTO billing_addresses (
               user_id, full_name, email, phone_number, address_line_1, city, state, zip_code, country, created_at
@@ -272,7 +272,7 @@ export const createOrder = async (req, res) => {
             SELECT id FROM billing_addresses 
             WHERE id = ${billing_address_id} AND user_id = ${user_id}
           `;
-          
+
           // If billingAddress has deleted_at column, check it's null
           if (billingAddress && 'deleted_at' in billingAddress) {
             [billingAddress] = await sql`
@@ -280,54 +280,54 @@ export const createOrder = async (req, res) => {
               WHERE id = ${billing_address_id} AND user_id = ${user_id} AND deleted_at IS NULL
             `;
           }
-          
+
           if (!billingAddress) {
             console.error('Validation failed: Billing address not found');
             throw new Error('Billing address not found');
           }
         }
       }
-      
+
       // Validate cart if provided (for logged-in users)
       if (finalCartId) {
         let [cart] = await sql`
           SELECT id FROM cart WHERE id = ${finalCartId} AND user_id = ${user_id}
         `;
-        
+
         // If cart has deleted_at column, check it's null
         if (cart && 'deleted_at' in cart) {
           [cart] = await sql`
             SELECT id FROM cart WHERE id = ${finalCartId} AND user_id = ${user_id} AND deleted_at IS NULL
           `;
         }
-        
+
         if (!cart) {
           console.error('Validation failed: Cart not found');
           throw new Error('Cart not found');
         }
       }
-      
+
       // Validate discount
       if (discount < 0) {
         console.error('Validation failed: Discount cannot be negative');
         throw new Error('Discount cannot be negative');
       }
-      
+
       // Validate delivery option
       if (!['standard', 'international'].includes(delivery_option)) {
         console.error('Validation failed: Invalid delivery option');
         throw new Error('Invalid delivery option');
       }
-      
+
       // Validate currency
       if (currency !== 'NGN' && currency !== 'USD') {
         console.error('Validation failed: Invalid currency');
         throw new Error('Invalid currency');
       }
-      
+
       let calculatedSubtotal = 0;
       const orderItems = [];
-      
+
       // Validate and process items
 
       for (const item of items) {
@@ -335,17 +335,17 @@ export const createOrder = async (req, res) => {
           console.error('Validation failed: Item must have either variant_id or bundle_id', item);
           throw new Error('Item must have either variant_id or bundle_id');
         }
-        
+
         if (item.variant_id && item.bundle_id) {
           console.error('Validation failed: Item cannot have both variant_id and bundle_id', item);
           throw new Error('Item cannot have both variant_id and bundle_id');
         }
-        
+
         if (item.price <= 0) {
           console.error(`Validation failed: Invalid price for item: ${item.variant_id || item.bundle_id}`);
           throw new Error(`Invalid price for item: ${item.variant_id || item.bundle_id}`);
         }
-        
+
         if (item.variant_id) {
           // Fetch product variant, using LEFT JOIN for sizes to handle null size_id
           const [variant] = await sql`
@@ -357,12 +357,12 @@ export const createOrder = async (req, res) => {
             LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
             WHERE pv.id = ${item.variant_id}
           `;
-          
+
           if (!variant) {
             console.error(`Validation failed: Product variant ${item.variant_id} not found`);
             throw new Error(`Product variant ${item.variant_id} not found`);
           }
-          
+
           // Check stock, handle case where size_id is null
           let variantSize;
           if (item.size_id) {
@@ -385,26 +385,26 @@ export const createOrder = async (req, res) => {
               throw new Error(`No stock found for variant ${item.variant_id} without size`);
             }
           }
-          
+
           const { stock_quantity } = variantSize;
           let isPreorderItem = false;
-          
+
           if (stock_quantity < item.quantity) {
-             if (variant.allow_preorder) {
-                isPreorderItem = true;
-                // Allow purchase even if stock is 0 or less for preorder items
-             } else {
-                console.error(`Validation failed: Insufficient stock for variant ${item.variant_id}, requested: ${item.quantity}, available: ${stock_quantity}`);
-                throw new Error(`Insufficient stock for variant ${item.variant_id}`);
-             }
+            if (variant.allow_preorder) {
+              isPreorderItem = true;
+              // Allow purchase even if stock is 0 or less for preorder items
+            } else {
+              console.error(`Validation failed: Insufficient stock for variant ${item.variant_id}, requested: ${item.quantity}, available: ${stock_quantity}`);
+              throw new Error(`Insufficient stock for variant ${item.variant_id}`);
+            }
           } else {
-             // Even if stock is available, if frontend explicitly says preorder (e.g. forced preorder mode), respect it?
-             // Or if variant is marked allow_preorder and user chose preorder option.
-             // For simplicity, if stock exists, we fulfill from stock unless item.is_preorder is explicitly true from cart.
+            // Even if stock is available, if frontend explicitly says preorder (e.g. forced preorder mode), respect it?
+            // Or if variant is marked allow_preorder and user chose preorder option.
+            // For simplicity, if stock exists, we fulfill from stock unless item.is_preorder is explicitly true from cart.
           }
-          
+
           if (item.is_preorder) {
-            isPreorderItem = true; 
+            isPreorderItem = true;
           }
 
           // Validate price
@@ -412,32 +412,32 @@ export const createOrder = async (req, res) => {
           // If it's a preorder item, we might expect a deposit price (e.g. 50%) or full price depending on business logic.
           // The current logic seems to expect 50% for preorder.
           if (isPreorderItem) {
-             // Check if price matches full price OR 50% deposit
-             const fullPrice = variant.base_price;
-             const depositPrice = variant.base_price * 0.5;
-             
-             // Convert both to expected currency for comparison
-             const expectedFull = currency === 'USD' && exchange_rate > 0 ? Number((fullPrice * exchange_rate).toFixed(2)) : fullPrice;
-             const expectedDeposit = currency === 'USD' && exchange_rate > 0 ? Number((depositPrice * exchange_rate).toFixed(2)) : depositPrice;
-             
-             // Allow either full payment or deposit for preorder
-             if (Math.abs(expectedFull - item.price) > 0.01 && Math.abs(expectedDeposit - item.price) > 0.01) {
-                console.error(`Validation failed: Price mismatch for preorder variant ${item.variant_id}: expected ${expectedFull} or ${expectedDeposit} ${currency}, got ${item.price} ${currency}`);
-                // Relax validation for now or throw? Let's throw to be safe but update logic.
-                // If the cart item price matches what we expect for preorder, it's valid.
-                throw new Error(`Price mismatch for preorder variant ${item.variant_id}`);
-             }
+            // Check if price matches full price OR 50% deposit
+            const fullPrice = variant.base_price;
+            const depositPrice = variant.base_price * 0.5;
+
+            // Convert both to expected currency for comparison
+            const expectedFull = currency === 'USD' && exchange_rate > 0 ? Number((fullPrice * exchange_rate).toFixed(2)) : fullPrice;
+            const expectedDeposit = currency === 'USD' && exchange_rate > 0 ? Number((depositPrice * exchange_rate).toFixed(2)) : depositPrice;
+
+            // Allow either full payment or deposit for preorder
+            if (Math.abs(expectedFull - item.price) > 0.01 && Math.abs(expectedDeposit - item.price) > 0.01) {
+              console.error(`Validation failed: Price mismatch for preorder variant ${item.variant_id}: expected ${expectedFull} or ${expectedDeposit} ${currency}, got ${item.price} ${currency}`);
+              // Relax validation for now or throw? Let's throw to be safe but update logic.
+              // If the cart item price matches what we expect for preorder, it's valid.
+              throw new Error(`Price mismatch for preorder variant ${item.variant_id}`);
+            }
           } else {
-              const expectedPrice = currency === 'USD' && exchange_rate > 0
-                ? Number((expectedBasePrice * exchange_rate).toFixed(2))
-                : expectedBasePrice;
-                
-              if (Math.abs(expectedPrice - item.price) > 0.01) {
-                console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
-                throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
-              }
+            const expectedPrice = currency === 'USD' && exchange_rate > 0
+              ? Number((expectedBasePrice * exchange_rate).toFixed(2))
+              : expectedBasePrice;
+
+            if (Math.abs(expectedPrice - item.price) > 0.01) {
+              console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+              throw new Error(`Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
+            }
           }
-          
+
           calculatedSubtotal += item.price * item.quantity;
           orderItems.push({
             variant_id: item.variant_id,
@@ -458,19 +458,19 @@ export const createOrder = async (req, res) => {
             LEFT JOIN bundle_images bi ON b.id = bi.bundle_id AND bi.is_primary = true
             WHERE b.id = ${item.bundle_id}
           `;
-          
+
           if (!bundle) {
             console.error(`Validation failed: Bundle ${item.bundle_id} not found`);
             throw new Error(`Bundle ${item.bundle_id} not found`);
           }
-          
+
           // Validate bundle item count matches bundle type
           const expectedItemCount = bundle.bundle_type === '3-in-1' ? 3 : 5;
           if (item.bundle_items && item.bundle_items.length !== expectedItemCount) {
             console.error(`Validation failed: Invalid bundle configuration: ${bundle.bundle_type} bundle requires exactly ${expectedItemCount} items, but ${item.bundle_items.length} were provided`);
             throw new Error(`Invalid bundle configuration: ${bundle.bundle_type} bundle requires exactly ${expectedItemCount} items, but ${item.bundle_items.length} were provided`);
           }
-          
+
           // Validate bundle items (from frontend payload)
           const bundleItemsDetails = [];
           if (item.bundle_items && Array.isArray(item.bundle_items)) {
@@ -485,12 +485,12 @@ export const createOrder = async (req, res) => {
                 LEFT JOIN product_images pi ON pv.id = pi.variant_id AND pi.is_primary = true
                 WHERE pv.id = ${bi.variant_id}
               `;
-              
+
               if (!variant) {
                 console.error(`Validation failed: Bundle item variant ${bi.variant_id} not found`);
                 throw new Error(`Bundle item variant ${bi.variant_id} not found`);
               }
-              
+
               let variantSize;
               if (bi.size_id) {
                 [variantSize] = await sql`
@@ -511,12 +511,12 @@ export const createOrder = async (req, res) => {
                   throw new Error(`No stock found for bundle item variant ${bi.variant_id} without size`);
                 }
               }
-              
+
               if (variantSize.stock_quantity < item.quantity && !variant.allow_preorder && !item.is_preorder) {
                 console.error(`Validation failed: Insufficient stock for bundle item variant ${bi.variant_id}, requested: ${item.quantity}, available: ${variantSize.stock_quantity}`);
                 throw new Error(`Insufficient stock for bundle item variant ${bi.variant_id}`);
               }
-              
+
               bundleItemsDetails.push({
                 variant_id: bi.variant_id,
                 size_id: bi.size_id || null,
@@ -529,7 +529,7 @@ export const createOrder = async (req, res) => {
           } else {
             console.warn(`No bundle_items provided for bundle ${item.bundle_id}; assuming no stock update needed`);
           }
-          
+
           // Validate bundle price
           const expectedPrice = currency === 'USD' && exchange_rate > 0
             ? Number((bundle.bundle_price * exchange_rate).toFixed(2))
@@ -538,7 +538,7 @@ export const createOrder = async (req, res) => {
             console.error(`Validation failed: Price mismatch for bundle ${item.bundle_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
             throw new Error(`Price mismatch for bundle ${item.bundle_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
           }
-          
+
           calculatedSubtotal += item.price * item.quantity;
           orderItems.push({
             bundle_id: item.bundle_id,
@@ -551,7 +551,7 @@ export const createOrder = async (req, res) => {
           });
         }
       }
-      
+
       // Calculate shipping and tax
       if (delivery_option === 'standard' && address.country.toLowerCase() === 'nigeria') {
         if (shipping_cost < 0) {
@@ -562,15 +562,15 @@ export const createOrder = async (req, res) => {
       } else if (delivery_option === 'international') {
         calculatedSubtotal += 0; // Shipping cost TBD
       }
-      
+
       const calculatedTax = tax || (delivery_option === 'international' ? Number((calculatedSubtotal * 0.05).toFixed(2)) : 0);
       const calculatedTotal = Number((calculatedSubtotal - discount + calculatedTax).toFixed(2));
-      
+
       if (Math.abs(calculatedTotal - total) > 0.01) {
         console.error(`Validation failed: Total mismatch: calculated ${calculatedTotal} ${currency}, provided ${total} ${currency}, discount ${discount}`);
         throw new Error(`Total mismatch: calculated ${calculatedTotal} ${currency}, provided ${total} ${currency}, discount ${discount}`);
       }
-      
+
       // Validate base_currency_total
       const expectedBaseTotal = currency === 'USD' && exchange_rate > 0
         ? Math.round(total / exchange_rate)
@@ -579,7 +579,7 @@ export const createOrder = async (req, res) => {
         console.error(`Validation failed: Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);
         throw new Error(`Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);
       }
-      
+
       // Try to insert order with idempotency key
       let order;
       try {
@@ -602,52 +602,52 @@ export const createOrder = async (req, res) => {
         // Handle unique constraint violation
         if (insertErr.code === '23505') { // PostgreSQL unique violation
           console.log('Unique constraint violation, checking for existing order');
-          
+
           // Re-check for existing order by reference
           [existingOrder] = await sql`
             SELECT id, payment_status, status FROM orders WHERE reference = ${reference} AND deleted_at IS NULL
           `;
-          
+
           if (existingOrder) {
             console.log('Found existing order with reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order: existingOrder });
-            
+
             // If order exists and payment is pending, return the existing order
             if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
-              return res.status(200).json({ 
+              return res.status(200).json({
                 order: { id: existingOrder.id, reference, discount },
                 message: 'Order already exists with pending payment'
               });
             }
-            
+
             // If order exists with different status, return error
-            return res.status(409).json({ 
+            return res.status(409).json({
               error: 'Order with this reference already exists',
               order_id: existingOrder.id,
               payment_status: existingOrder.payment_status,
               status: existingOrder.status
             });
           }
-          
+
           // If idempotency key was provided, check by idempotency key
           if (idempotencyKey) {
             [existingOrder] = await sql`
               SELECT id, payment_status, status, reference FROM orders 
               WHERE idempotency_key = ${idempotencyKey} AND deleted_at IS NULL
             `;
-            
+
             if (existingOrder) {
               console.log(`Found existing order with idempotency key:`, existingOrder);
-              
+
               // If order exists and payment is pending, return the existing order
               if (existingOrder.payment_status === 'pending' && existingOrder.status === 'pending') {
-                return res.status(200).json({ 
+                return res.status(200).json({
                   order: { id: existingOrder.id, reference: existingOrder.reference, discount },
                   message: 'Order already exists with pending payment'
                 });
               }
-              
+
               // If order exists with different status, return error
-              return res.status(409).json({ 
+              return res.status(409).json({
                 error: 'Order with this idempotency key already exists',
                 order_id: existingOrder.id,
                 payment_status: existingOrder.payment_status,
@@ -655,7 +655,7 @@ export const createOrder = async (req, res) => {
               });
             }
           }
-          
+
           // If we can't find the existing order, throw the original error
           throw insertErr;
         } else {
@@ -663,9 +663,9 @@ export const createOrder = async (req, res) => {
           throw insertErr;
         }
       }
-      
+
       const orderId = order.id;
-      
+
       // Insert order items and update stock
       for (const item of orderItems) {
         // Validate that size information is not missing for items that should have sizes
@@ -673,16 +673,16 @@ export const createOrder = async (req, res) => {
           console.warn(`⚠️ Missing size_name for variant ${item.variant_id}, size ${item.size_id} in order ${orderId}`);
           // Try to get size name from sizes table as fallback
           try {
-            const [sizeInfo] = await sql`SELECT name FROM sizes WHERE id = ${item.size_id}`;
+            const [sizeInfo] = await sql`SELECT size_name FROM sizes WHERE id = ${item.size_id}`;
             if (sizeInfo) {
-              item.size_name = sizeInfo.name;
-              console.log(`✅ Retrieved size name from sizes table: ${sizeInfo.name}`);
+              item.size_name = sizeInfo.size_name;
+              console.log(`✅ Retrieved size name from sizes table: ${sizeInfo.size_name}`);
             }
           } catch (sizeError) {
             console.error(`❌ Failed to retrieve size name for size_id ${item.size_id}:`, sizeError.message);
           }
         }
-        
+
         await sql`
           INSERT INTO order_items (
             order_id, variant_id, bundle_id, quantity, price, size_id, product_name, image_url, 
@@ -693,7 +693,7 @@ export const createOrder = async (req, res) => {
             ${item.color_name || null}, ${item.size_name || null}, ${item.bundle_details || '[]'}, ${item.is_preorder || false}
           )
         `;
-        
+
         if (item.variant_id) {
           // Update stock for variant
           if (item.size_id) {
@@ -752,7 +752,7 @@ export const createOrder = async (req, res) => {
           }
         }
       }
-      
+
       // Update user's first_order status if this is their first order
       if (user.first_order === true || user.first_order === 1) {
         await sql`
@@ -762,7 +762,7 @@ export const createOrder = async (req, res) => {
         `;
         console.log(`✅ Updated first_order status for user ${user_id}`);
       }
-      
+
       // Send notification for international orders
       if (address.country.toLowerCase() !== 'nigeria') {
         try {
@@ -782,14 +782,14 @@ export const createOrder = async (req, res) => {
           // Don't fail the order creation if notification fails
         }
       }
-      
+
       console.log(`✅ Created order ${orderId} for user ${user_id} (${user.is_temporary ? 'temporary' : 'permanent'}) with reference ${reference}, discount ${discount}`);
       res.status(201).json({ order: { id: orderId, reference, discount } });
     });
   } catch (err) {
     console.error('❌ Error creating order:', err.message, err.stack);
     console.error('Request body:', req.body);
-    res.status(500).json({ 
+    res.status(500).json({
       error: err.message,
       details: err.stack,
       request: req.body
@@ -803,7 +803,7 @@ export const verifyOrderByReference = async (req, res) => {
     if (!reference) {
       return res.status(400).json({ error: 'Reference is required' });
     }
-    
+
     // First try without deleted_at
     let [order] = await sql`
       SELECT 
@@ -813,7 +813,7 @@ export const verifyOrderByReference = async (req, res) => {
       FROM orders o
       WHERE o.reference = ${reference}
     `;
-    
+
     // If order exists and has deleted_at column, check it's null
     if (order && 'deleted_at' in order) {
       [order] = await sql`
@@ -825,12 +825,12 @@ export const verifyOrderByReference = async (req, res) => {
         WHERE o.reference = ${reference} AND o.deleted_at IS NULL
       `;
     }
-    
+
     if (!order) {
       console.log('❌ Order not found for reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, '') });
       return res.status(404).json({ error: 'Order not found' });
     }
-    
+
     console.log('✅ verifyOrderByReference: Fetched order with reference:', { reference: String(reference).replace(/[^a-zA-Z0-9-_]/g, ''), order });
     res.status(200).json(order);
   } catch (err) {
@@ -842,22 +842,22 @@ export const verifyOrderByReference = async (req, res) => {
 export const cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    
+
     await sql.begin(async (sql) => {
       // First try without deleted_at
       let [order] = await sql`SELECT * FROM orders WHERE id = ${orderId}`;
-      
+
       // If order exists and has deleted_at column, check it's null
       if (order && 'deleted_at' in order) {
         [order] = await sql`SELECT * FROM orders WHERE id = ${orderId} AND deleted_at IS NULL`;
       }
-      
+
       if (!order) {
         throw new Error('Order not found');
       }
-      
+
       const items = await sql`SELECT * FROM order_items WHERE order_id = ${orderId}`;
-      
+
       for (const item of items) {
         if (item.variant_id) {
           // Restore stock for variant
@@ -917,14 +917,14 @@ export const cancelOrder = async (req, res) => {
           }
         }
       }
-      
+
       // Mark order as cancelled instead of deleting it
       await sql`
         UPDATE orders 
         SET status = 'cancelled', updated_at = NOW() 
         WHERE id = ${orderId}
       `;
-      
+
       console.log(`✅ Cancelled order ${orderId}`);
       res.json({ message: 'Order cancelled and stock restored' });
     });
@@ -940,7 +940,7 @@ export const getOrdersByUser = async (req, res) => {
     if (req.user.id !== parseInt(userId) && !req.user.isAdmin) {
       return res.status(403).json({ error: 'Unauthorized access' });
     }
-    
+
     // First try without deleted_at
     let orders = await sql`
       SELECT 
@@ -950,7 +950,7 @@ export const getOrdersByUser = async (req, res) => {
       WHERE o.user_id = ${userId}
       ORDER BY o.created_at DESC
     `;
-    
+
     // If orders exist and have deleted_at column, filter out deleted ones
     if (orders.length > 0 && 'deleted_at' in orders[0]) {
       orders = await sql`
@@ -962,12 +962,12 @@ export const getOrdersByUser = async (req, res) => {
         ORDER BY o.created_at DESC
       `;
     }
-    
+
     const formattedOrders = orders.map(order => ({
       ...order,
       shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
     }));
-    
+
     console.log('getOrdersByUser: Fetched orders for user:', { userId: String(userId).replace(/[^a-zA-Z0-9-_]/g, ''), orderCount: orders.length });
     res.status(200).json(formattedOrders);
   } catch (err) {
@@ -981,22 +981,22 @@ export const getOrdersByUser = async (req, res) => {
 export const getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if user has permission to access this order
     if (!req.user.isAdmin) {
       // First try without deleted_at
       let [orderCheck] = await sql`SELECT user_id FROM orders WHERE id = ${id}`;
-      
+
       // If order exists and has deleted_at column, check it's null
       if (orderCheck && 'deleted_at' in orderCheck) {
         [orderCheck] = await sql`SELECT user_id FROM orders WHERE id = ${id} AND deleted_at IS NULL`;
       }
-      
+
       if (!orderCheck || req.user.id !== orderCheck.user_id) {
         return res.status(403).json({ error: 'Unauthorized access' });
       }
     }
-    
+
     // First try without deleted_at
     let [order] = await sql`
       SELECT 
@@ -1012,7 +1012,7 @@ export const getOrderById = async (req, res) => {
       JOIN billing_addresses ba ON o.billing_address_id = ba.id
       WHERE o.id = ${id}
     `;
-    
+
     // If order exists and has deleted_at column, check it's null
     if (order && 'deleted_at' in order) {
       [order] = await sql`
@@ -1030,11 +1030,11 @@ export const getOrderById = async (req, res) => {
         WHERE o.id = ${id} AND o.deleted_at IS NULL
       `;
     }
-    
+
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    
+
     const items = await sql`
       SELECT oi.*, p.name as product_name
       FROM order_items oi
@@ -1042,13 +1042,13 @@ export const getOrderById = async (req, res) => {
       LEFT JOIN products p ON pv.product_id = p.id
       WHERE oi.order_id = ${id}
     `;
-    
+
     const formattedOrder = {
       ...order,
       shipping_country_name: Country.getAllCountries().find(c => c.name.toLowerCase() === order.shipping_country.toLowerCase())?.name || order.shipping_country,
       items,
     };
-    
+
     console.log('getOrderById: Fetched order:', { id: String(id).replace(/[^a-zA-Z0-9-_]/g, ''), orderId: formattedOrder.id });
     res.status(200).json(formattedOrder);
   } catch (err) {
