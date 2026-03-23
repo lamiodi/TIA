@@ -121,25 +121,25 @@ const ProductDetails = () => {
   // Helper function to check if an item is a brief product
   const isBriefItem = (item) => {
     if (!item || !item.item) return false;
-    
+
     // For bundles, check bundle_types or name
     if (!item.item.is_product) {
       const name = (item.item.name || '').toLowerCase();
-      return name.includes('brief') || 
-             name.includes('boxer') || 
-             name.includes('underwear') ||
-             name.includes('trunk');
+      return name.includes('brief') ||
+        name.includes('boxer') ||
+        name.includes('underwear') ||
+        name.includes('trunk');
     }
-    
+
     // For single products, check the name and category
     const name = (item.item.name || '').toLowerCase();
     const category = (item.item.category || '').toLowerCase();
-    
-    return name.includes('brief') || 
-           name.includes('boxer') || 
-           name.includes('underwear') ||
-           name.includes('trunk') ||
-           category.includes('brief');
+
+    return name.includes('brief') ||
+      name.includes('boxer') ||
+      name.includes('underwear') ||
+      name.includes('trunk') ||
+      category.includes('brief');
   };
 
   // Helper function to validate brief minimum quantity for guest cart
@@ -148,7 +148,7 @@ const ProductDetails = () => {
     const totalBriefQuantity = briefItems.reduce((sum, item) => sum + item.quantity, 0);
     const nonBriefItems = cartItems.filter(item => !isBriefItem(item));
     const isBriefOnlyCart = briefItems.length > 0 && nonBriefItems.length === 0;
-    
+
     return {
       briefItems,
       totalBriefQuantity,
@@ -167,12 +167,12 @@ const ProductDetails = () => {
       } else {
         // For bundles, check if bundle_id AND items are identical
         if (cartItem.bundle_id !== item.bundle_id) return false
-        
+
         // Check if items array is identical (same variant_id and size_id combinations)
         if (!cartItem.items || !item.items) return cartItem.bundle_id === item.bundle_id
-        
+
         if (cartItem.items.length !== item.items.length) return false
-        
+
         // Check each item in the bundle to see if they match
         return cartItem.items.every((cartItemDetail, index) => {
           const newItemDetail = item.items[index]
@@ -183,12 +183,12 @@ const ProductDetails = () => {
         })
       }
     })
-    
+
     // Check if item is preorder
-    const isPreorder = item.is_preorder !== undefined 
-      ? item.is_preorder 
+    const isPreorder = item.is_preorder !== undefined
+      ? item.is_preorder
       : (item.item?.allow_preorder && (Number(item.item?.stock_quantity) || 0) <= 0);
-      
+
     const cartItemData = {
       ...item,
       is_preorder: isPreorder,
@@ -208,16 +208,16 @@ const ProductDetails = () => {
     guestCart.subtotal = guestCart.items.reduce((sum, cartItem) => sum + cartItem.quantity * cartItem.price, 0)
     guestCart.tax = country === "Nigeria" ? 0 : guestCart.subtotal * 0.05
     guestCart.total = guestCart.subtotal + guestCart.tax
-    
+
     // Validate brief minimum quantity for guest cart
     const briefValidation = validateGuestBriefQuantity(guestCart.items);
     let warningMessage = null;
-    
+
     if (briefValidation.hasInsufficientBriefs) {
       const remaining = 3 - briefValidation.totalBriefQuantity;
       warningMessage = `Minimum order quantity for briefs is 3 units. Please add ${remaining} more brief${remaining > 1 ? 's' : ''} to meet the requirement.`;
     }
-    
+
     guestCart.warning = warningMessage;
     saveGuestCart(guestCart)
     window.dispatchEvent(new Event("cartUpdated"))
@@ -540,21 +540,21 @@ const ProductDetails = () => {
     if (!productData || productData.type !== "bundle") return 0
     const basePrice = Number.parseFloat(productData.data.price) || 0
     const loadedType = productData.data.bundle_type || "3-in-1"
-    
+
     // If the selected type matches the loaded bundle's type, return the actual price
     if (bundleType === loadedType) {
       return basePrice
     }
-    
+
     // Use standard bundle pricing when switching types to avoid rounding errors
     if (bundleType === "5-in-1") {
       return 98000
     }
-    
+
     if (bundleType === "3-in-1") {
       return 59999
     }
-    
+
     return basePrice
   }
   if (loading || contextLoading || authLoading) {
@@ -591,68 +591,68 @@ const ProductDetails = () => {
   const name = data?.name || "Unnamed Product"
   const rawPrice = isProduct ? data?.price : getBundlePrice()
   const parsedPrice = Number.parseFloat(rawPrice) || 0
-  
+
   // Preorder Logic
   const isPreorderEnabled = data?.allow_preorder || false;
-  
+
   // Calculate if sold out
-  const isProductSoldOut = isProduct && Array.isArray(selectedVariant?.sizes) 
+  const isProductSoldOut = isProduct && Array.isArray(selectedVariant?.sizes)
     ? selectedVariant.sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0)
     : false;
-    
+
   // Helper to check bundle stock status
   const getBundleStockStatus = () => {
     if (isProduct) return { isSoldOut: false, isPreorder: false };
-    
+
     // Iterate over selected items
     const selectedItems = Object.values(selectedBundleVariants);
     if (selectedItems.length === 0) return { isSoldOut: false, isPreorder: false };
-    
+
     let hasOutOfStockItem = false;
     let canPreorderOutOfStockItems = true;
 
     const allVariants = data?.items?.[0]?.all_variants || [];
 
     for (const item of selectedItems) {
-        if (!item.variantId || !item.sizeId) continue;
-        
-        const variant = allVariants.find(v => v.variant_id === item.variantId);
-        if (!variant) continue;
-        
-        // Find size in variant sizes
-        // Note: variant.sizes might handle size names or IDs depending on API
-        // Here we try to match by size_id or size_name if id fails
-        let sizeObj = variant.sizes?.find(s => s.size_id === item.sizeId);
-        if (!sizeObj && item.sizeName) {
-            sizeObj = variant.sizes?.find(s => s.size_name === item.sizeName);
+      if (!item.variantId || !item.sizeId) continue;
+
+      const variant = allVariants.find(v => v.variant_id === item.variantId);
+      if (!variant) continue;
+
+      // Find size in variant sizes
+      // Note: variant.sizes might handle size names or IDs depending on API
+      // Here we try to match by size_id or size_name if id fails
+      let sizeObj = variant.sizes?.find(s => s.size_id === item.sizeId);
+      if (!sizeObj && item.sizeName) {
+        sizeObj = variant.sizes?.find(s => s.size_name === item.sizeName);
+      }
+
+      if (!sizeObj) continue;
+
+      if ((Number(sizeObj.stock_quantity) || 0) <= 0) {
+        hasOutOfStockItem = true;
+        // Check if this variant allows preorder
+        // Use variant specific flag if available, otherwise fallback to global setting
+        // Note: API needs to return allow_preorder for variants for granular control
+        const variantAllowPreorder = variant.allow_preorder !== undefined ? variant.allow_preorder : isPreorderEnabled;
+
+        if (!variantAllowPreorder) {
+          canPreorderOutOfStockItems = false;
         }
-        
-        if (!sizeObj) continue;
-        
-        if ((Number(sizeObj.stock_quantity) || 0) <= 0) {
-            hasOutOfStockItem = true;
-            // Check if this variant allows preorder
-            // Use variant specific flag if available, otherwise fallback to global setting
-            // Note: API needs to return allow_preorder for variants for granular control
-            const variantAllowPreorder = variant.allow_preorder !== undefined ? variant.allow_preorder : isPreorderEnabled;
-            
-            if (!variantAllowPreorder) {
-                canPreorderOutOfStockItems = false;
-            }
-        }
+      }
     }
-    
+
     if (hasOutOfStockItem) {
-        return { isSoldOut: !canPreorderOutOfStockItems, isPreorder: canPreorderOutOfStockItems };
+      return { isSoldOut: !canPreorderOutOfStockItems, isPreorder: canPreorderOutOfStockItems };
     }
-    
+
     return { isSoldOut: false, isPreorder: false };
   };
 
   const bundleStatus = !isProduct ? getBundleStockStatus() : { isSoldOut: false, isPreorder: false };
 
-  const isAllSoldOut = isProduct ? isProductSoldOut : bundleStatus.isSoldOut; 
-  
+  const isAllSoldOut = isProduct ? isProductSoldOut : bundleStatus.isSoldOut;
+
   // Determine if the CURRENT selection is a preorder
   // Get current size object
   const currentSizes = isProduct ? (Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : []) : [];
@@ -663,7 +663,7 @@ const ProductDetails = () => {
   // 1. Preorder is globally enabled AND
   // 2. (The entire variant is sold out OR the specific selected size is sold out)
   // OR for bundles: calculated bundle preorder status
-  const isPreorderActive = isProduct 
+  const isPreorderActive = isProduct
     ? (isPreorderEnabled && (isAllSoldOut || isSelectedSizeOutOfStock))
     : bundleStatus.isPreorder;
 
@@ -687,12 +687,12 @@ const ProductDetails = () => {
       return aIndex - bIndex
     })
   }
-  
+
   const sizeOptions = isProduct
     ? sortSizes(Array.isArray(selectedVariant?.sizes) ? selectedVariant.sizes : [])
     : sortSizes(Array.isArray(data?.items?.[0]?.all_variants?.[0]?.sizes) ? data.items[0].all_variants[0].sizes : [])
   const bundleTypes = ["3-in-1", "5-in-1"]
-  
+
   // Calculate if all sizes are sold out
   // const isAllSoldOut = sizeOptions.length > 0 && sizeOptions.every(s => s.stock_quantity <= 0); // Removed duplicate declaration
 
@@ -700,7 +700,7 @@ const ProductDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Product Schema for SEO */}
-      <ProductSchema 
+      <ProductSchema
         productData={productData}
         selectedVariant={selectedVariant}
         selectedSize={selectedSize}
@@ -709,50 +709,50 @@ const ProductDetails = () => {
       />
       <Navbar2 />
       <div className="w-full border-b border-gray-800 relative mt-16" style={{
-  background: 'linear-gradient(90deg, #1E1E1E 0%, #2A2A2A 40%, #6E6E6E 80%, #F5F5DC 100%)'
-}}>
-  {/* Dark overlay for text readability */}
-  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent"></div>
-  
-  <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 relative z-10">
-    <div className="flex items-center justify-center gap-4 sm:gap-6">
-      <div className="flex items-center gap-3">
-        <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm border border-white/20">
-          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
+        background: 'linear-gradient(90deg, #1E1E1E 0%, #2A2A2A 40%, #6E6E6E 80%, #F5F5DC 100%)'
+      }}>
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent"></div>
+
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-3 relative z-10">
+          <div className="flex items-center justify-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm border border-white/20">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div className="bg-yellow-400/20 text-yellow-300 text-xs px-3 py-0.5 rounded-full font-bold border border-yellow-400/30 backdrop-blur-sm shadow-sm">
+                5% OFF
+              </div>
+            </div>
+            <div className="hidden sm:block text-white/40 mx-2">|</div>
+            <div className="text-center sm:text-left">
+              {/* Mobile version: shorter statement */}
+              <div className="sm:hidden">
+                <Link to="/login" className="text-sm text-white font-medium hover:text-yellow-300 transition-colors drop-shadow-sm">
+                  Sign In to Save 5%!
+                </Link>
+              </div>
+              {/* Desktop version: professional statement */}
+              <div className="hidden sm:block">
+                <Link to="/login" className="text-sm text-white font-medium hover:text-yellow-300 transition-colors drop-shadow-sm">
+                  Sign In to Unlock 5% Off Your First Purchase
+                </Link>
+                <span className="text-xs text-white/80 ml-3 drop-shadow-sm">Exclusive for new customers</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-yellow-400/20 text-yellow-300 text-xs px-3 py-0.5 rounded-full font-bold border border-yellow-400/30 backdrop-blur-sm shadow-sm">
-          10% OFF
-        </div>
+
+        {/* Bottom gradient border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
       </div>
-      <div className="hidden sm:block text-white/40 mx-2">|</div>
-      <div className="text-center sm:text-left">
-        {/* Mobile version: shorter statement */}
-        <div className="sm:hidden">
-          <Link to="/login" className="text-sm text-white font-medium hover:text-yellow-300 transition-colors drop-shadow-sm">
-            Sign In to Save 10%!
-          </Link>
-        </div>
-        {/* Desktop version: professional statement */}
-        <div className="hidden sm:block">
-          <Link to="/login" className="text-sm text-white font-medium hover:text-yellow-300 transition-colors drop-shadow-sm">
-            Sign In to Unlock 10% Off Your First Purchase
-          </Link>
-          <span className="text-xs text-white/80 ml-3 drop-shadow-sm">Exclusive for new customers</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  {/* Bottom gradient border */}
-  <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
-</div>
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pt-24 py-4">
         {/* Breadcrumb */}
         <nav className="flex mb-8 text-sm font-Jost">
@@ -824,9 +824,8 @@ const ProductDetails = () => {
                     {images.map((img, idx) => (
                       <button
                         key={idx}
-                        className={`relative aspect-square rounded-lg overflow-hidden transition-all duration-200 ${
-                          selectedImage === idx ? "ring-2 ring-gray-900 shadow-lg" : "hover:shadow-md hover:scale-105"
-                        }`}
+                        className={`relative aspect-square rounded-lg overflow-hidden transition-all duration-200 ${selectedImage === idx ? "ring-2 ring-gray-900 shadow-lg" : "hover:shadow-md hover:scale-105"
+                          }`}
                         onClick={() => setSelectedImage(idx)}
                       >
                         <img
@@ -863,13 +862,12 @@ const ProductDetails = () => {
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">
-                    <span className={`text-sm px-2 py-1 rounded-full font-Jost whitespace-nowrap ${
-                        isPreorderActive
+                      <span className={`text-sm px-2 py-1 rounded-full font-Jost whitespace-nowrap ${isPreorderActive
                           ? "text-blue-600 bg-blue-50"
-                          : isAllSoldOut 
-                            ? "text-red-600 bg-red-50" 
+                          : isAllSoldOut
+                            ? "text-red-600 bg-red-50"
                             : "text-green-600 bg-green-50"
-                      }`}>
+                        }`}>
                         {isPreorderActive ? "Pre-order Available" : (isAllSoldOut ? "Sold Out" : "In Stock")}
                       </span>
                       {isPreorderActive && (
@@ -904,11 +902,10 @@ const ProductDetails = () => {
                           <button
                             key={color}
                             onClick={() => handleColorChange(color)}
-                            className={`relative flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
-                              color === selectedColor
+                            className={`relative flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${color === selectedColor
                                 ? "border-gray-900 bg-gray-50"
                                 : "border-gray-200 hover:border-gray-300"
-                            }`}
+                              }`}
                           >
                             <div
                               className={`w-6 h-6 rounded-full shadow-sm ${color === "White" ? "border border-gray-300" : ""}`}
@@ -932,13 +929,12 @@ const ProductDetails = () => {
                             onClick={() => handleSizeChange(s.size_name)}
                             disabled={s.stock_quantity === 0 && !isPreorderEnabled}
                             title={s.stock_quantity === 0 ? (isPreorderEnabled ? "Pre-order" : "Sold Out") : "Select size"}
-                            className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${
-                              selectedSize === s.size_name
+                            className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${selectedSize === s.size_name
                                 ? "border-Primarycolor bg-gray-900 text-white shadow-lg"
                                 : (s.stock_quantity > 0 || isPreorderEnabled)
                                   ? "border-gray-200 text-gray-900 hover:border-gray-300 hover:shadow-md"
                                   : "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {s.size_name}
                             {s.stock_quantity === 0 && !isPreorderEnabled && (
@@ -947,9 +943,9 @@ const ProductDetails = () => {
                               </div>
                             )}
                             {s.stock_quantity === 0 && isPreorderEnabled && (
-                                <span className="absolute -top-2 -right-2 text-[10px] bg-blue-100 text-blue-800 px-1 rounded-full">
-                                  Pre
-                                </span>
+                              <span className="absolute -top-2 -right-2 text-[10px] bg-blue-100 text-blue-800 px-1 rounded-full">
+                                Pre
+                              </span>
                             )}
                           </button>
                         ))}
@@ -968,11 +964,10 @@ const ProductDetails = () => {
                           <button
                             key={type}
                             onClick={() => handleBundleTypeChange(type)}
-                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Jost transition-all duration-200 ${
-                              bundleType === type
+                            className={`px-6 py-3 border-2 rounded-xl text-sm font-medium font-Jost transition-all duration-200 ${bundleType === type
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : "border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-md"
-                            }`}
+                              }`}
                           >
                             {type}
                           </button>
@@ -991,13 +986,12 @@ const ProductDetails = () => {
                             onClick={() => handleSizeChange(size.size_name)}
                             disabled={size.stock_quantity === 0}
                             title={size.stock_quantity === 0 ? "Sold Out" : "Select size"}
-                            className={`relative py-3 px-2 text-sm font-medium font-Jost border-2 rounded-xl transition-all duration-200 ${
-                              selectedSize === size.size_name
+                            className={`relative py-3 px-2 text-sm font-medium font-Jost border-2 rounded-xl transition-all duration-200 ${selectedSize === size.size_name
                                 ? "border-gray-900 bg-gray-900 text-white shadow-lg"
                                 : size.stock_quantity > 0
                                   ? "border-gray-200 text-gray-900 hover:border-gray-300 hover:shadow-md"
                                   : "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {size.size_name}
                             {size.stock_quantity === 0 && (
@@ -1035,18 +1029,16 @@ const ProductDetails = () => {
                                     key={`${variant.variant_id}-${Date.now()}`}
                                     onClick={() => handleBundleColorSelection(variant)}
                                     disabled={!canSelect}
-                                    className={`relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
-                                      colorCount > 0
+                                    className={`relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${colorCount > 0
                                         ? "border-purple-500 bg-purple-100 shadow-lg"
                                         : canSelect
                                           ? "border-gray-200 bg-white hover:border-gray-300"
                                           : "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                                    }`}
+                                      }`}
                                   >
                                     <div
-                                      className={`w-8 h-8 rounded-full shadow-sm mb-2 ${
-                                        variant.color_name === "White" ? "border-2 border-gray-300" : ""
-                                      }`}
+                                      className={`w-8 h-8 rounded-full shadow-sm mb-2 ${variant.color_name === "White" ? "border-2 border-gray-300" : ""
+                                        }`}
                                       style={{ backgroundColor: colorMap[variant.color_name] || "#cccccc" }}
                                     />
                                     <span className="text-sm font-medium text-center font-Jost">
@@ -1080,9 +1072,8 @@ const ProductDetails = () => {
                                 >
                                   <div className="flex items-center space-x-2">
                                     <div
-                                      className={`w-5 h-5 rounded-full shadow-sm ${
-                                        selection.colorName === "White" ? "border border-gray-300" : ""
-                                      }`}
+                                      className={`w-5 h-5 rounded-full shadow-sm ${selection.colorName === "White" ? "border border-gray-300" : ""
+                                        }`}
                                       style={{ backgroundColor: colorMap[selection.colorName] || "#cccccc" }}
                                     />
                                     <span className="text-sm font-medium text-gray-900 font-Jost">

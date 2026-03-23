@@ -41,8 +41,8 @@ const NewsletterForm = () => {
     } catch (error) {
       setStatus('error');
       setMessage(
-        error.response?.data?.message || 
-        error.message || 
+        error.response?.data?.message ||
+        error.message ||
         'Failed to subscribe. Please try again later.'
       );
     } finally {
@@ -53,19 +53,19 @@ const NewsletterForm = () => {
   return (
     <div className="flex justify-center items-center relative w-full mx-auto mt-15">
       <div className="relative w-full z-10 bg-Primarycolor overflow-visible pt-12 sm:pt-14 md:pt-16 lg:pt-18 xl:pt-20 2xl:pt-30 pb-8 sm:pb-10 px-4 sm:px-6 md:px-12">
-        
+
         {/* Image */}
         <div className="absolute top-[-3.5em] left-6 sm:top-[-4.5em] sm:left-6 md:top-[-5.5em] md:left-8 lg:top-[-6em] lg:left-10 xl:top-[-8em] xl:left-12 2xl:top-[-9em] 2xl:left-16 w-37 sm:w-53 md:w-60 lg:w-70 xl:w-82 2xl:w-96 z-0">
           <img src={Newsletterimage} alt="Newsletter Illustration" className="w-full h-auto object-contain sm:w-[135%] md:w-full" />
         </div>
-        
+
         {/* Text + Form */}
         <div className="relative mb-1 z-10 text-Secondarycolor text-right max-w-2xl mx-auto md:ml-auto 2xl:ml-115">
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-7xl font-extrabold font-Jost tracking-tight leading-snug [text-shadow:-2px_0px_10px_#f5f5dc80] [-webkit-text-stroke:1px_#6e6e6e] sm:[-webkit-text-stroke:1.5px_#6e6e6e] md:[-webkit-text-stroke:2px_#6e6e6e] lg:text-nowrap lg:ms-10 lg:max-w-sm">
             SUBSCRIBE TO OUR NEWSLETTER
           </h2>
           <p className="mt-3 sm:mt-4 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-6xl font-Manrope font-bold lg:ms-[30vw] lg:text-nowrap">
-            Get 10% Off Your First Order
+            Get 5% Off Your First Order
           </p>
 
           {/* Status Messages */}

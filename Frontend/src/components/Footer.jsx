@@ -18,33 +18,33 @@ const Footer = () => {
   return (
     <div className="container-padding typography relative bg-Primarycolor  py-6 ">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5   mb-8">
-      <div>
+        <div>
           <h3 className="text-white font-bold text-base mb-4">HELP CENTER</h3>
           <ul className="space-y-2 text-white text-base opacity-75 adjust">
             <Link to="/help">
-            <li>Return Policy</li>
-            <li>Shipping Policy</li>
-            <li>Size Guide</li>
-            <li>Faqs</li>
-            <li>Contact Us</li>
+              <li>Return Policy</li>
+              <li>Shipping Policy</li>
+              <li>Size Guide</li>
+              <li>Faqs</li>
+              <li>Contact Us</li>
             </Link>
             <li className="pt-2 space-y-2">
               <div>Thetiabrand1@gmail.com</div>
               <div> +2348104117122 </div>
               <div className="text-xs opacity-60 mt-1">Opening hours 8:30am - 10pm</div>
             </li>
-            
+
           </ul>
         </div>
         <div>
           <h3 className="text-white font-bold text-base mb-4">MORE</h3>
           <Link to="/more">
-          <ul className="space-y-2 text-white text-base opacity-75 adjust ">
-            <li>About Us</li>
-            <li>Terms</li>
-            <li>Privacy</li>
-            <li>Support</li>
-          </ul>
+            <ul className="space-y-2 text-white text-base opacity-75 adjust ">
+              <li>About Us</li>
+              <li>Terms</li>
+              <li>Privacy</li>
+              <li>Support</li>
+            </ul>
           </Link>
           <ul className="space-y-2 text-white text-base opacity-75 adjust mt-2">
             <Link to="/gift-cards">
@@ -52,7 +52,7 @@ const Footer = () => {
             </Link>
           </ul>
         </div>
-        
+
         <div className="bg-Secondarycolor p-3 relative w-full sm:col-span-2 md:col-span-2 aspect-[2/1] md:aspect-[2/1.1] lg:aspect-[2/1.2] flex items-center justify-center">
           <img
             src={Footerimage}
@@ -71,12 +71,12 @@ const Footer = () => {
             </p>
             <div className="text-center mb-4">
               <div className="text-black text-[25px] font-bold">
-                GET<br />10% OFF
+                GET<br />5% OFF
               </div>
               <div className="text-xl font-Jost">your first order!</div>
             </div>
             <div className="text-center">
-             <Link to='/signup' > <Button className="w-full" label="SIGN UP" /></Link>
+              <Link to='/signup' > <Button className="w-full" label="SIGN UP" /></Link>
             </div>
           </div>
         </div>
@@ -90,21 +90,21 @@ const Footer = () => {
           />
         </div>
         <div className="flex items-center space-x-4">
-        <div className='bg-Primarycolor p-2 rounded-full'>
-          <Link to="https://www.instagram.com/the.tiabrand/?igsh=MTM2bWoxODI1ZzFvZA%3D%3D#">
-          <img
-            src={instagramicon}
-            alt="Instagram"
-            className="h-8  "
-          /></Link>
+          <div className='bg-Primarycolor p-2 rounded-full'>
+            <Link to="https://www.instagram.com/the.tiabrand/?igsh=MTM2bWoxODI1ZzFvZA%3D%3D#">
+              <img
+                src={instagramicon}
+                alt="Instagram"
+                className="h-8  "
+              /></Link>
           </div>
-         <div className='bg-Primarycolor  rounded-full'>
-          <Link to='https://www.threads.com/@tiastores.ng?igshid=NTc4MTIwNjQ2YQ=='>
-          <img
-            src={threadsicon}
-            alt="Threads"
-            className="h-8  rounded-full  ring-offset-Secondarycolor ring-[0.5px] ring-white ring-opacity-20 hover:ring-offset-Primarycolor transition-all duration-300"
-          /></Link>
+          <div className='bg-Primarycolor  rounded-full'>
+            <Link to='https://www.threads.com/@tiastores.ng?igshid=NTc4MTIwNjQ2YQ=='>
+              <img
+                src={threadsicon}
+                alt="Threads"
+                className="h-8  rounded-full  ring-offset-Secondarycolor ring-[0.5px] ring-white ring-opacity-20 hover:ring-offset-Primarycolor transition-all duration-300"
+              /></Link>
           </div>
         </div>
       </div>

@@ -118,18 +118,16 @@ const LocationPopup = React.memo(() => {
 
   const overlayClasses = useMemo(
     () =>
-      `fixed inset-0 z-50 flex items-end justify-center md:justify-start backdrop-blur-sm transition-all duration-300 ${
-        isVisible ? "bg-black/40 opacity-100" : "bg-black/0 opacity-0"
+      `fixed inset-0 z-50 flex items-end justify-center md:justify-start backdrop-blur-sm transition-all duration-300 ${isVisible ? "bg-black/40 opacity-100" : "bg-black/0 opacity-0"
       }`,
     [isVisible],
   )
 
   const popupClasses = useMemo(
     () =>
-      `bg-white/80 backdrop-blur-md shadow-2xl rounded-xl overflow-hidden transition-all duration-300 transform w-full max-w-xs mx-4 my-4 md:m-6 border border-white/20 ${
-        isVisible
-          ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
-          : "translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 scale-95"
+      `bg-white/80 backdrop-blur-md shadow-2xl rounded-xl overflow-hidden transition-all duration-300 transform w-full max-w-xs mx-4 my-4 md:m-6 border border-white/20 ${isVisible
+        ? "translate-y-0 md:translate-x-0 opacity-100 scale-100"
+        : "translate-y-full md:translate-y-0 md:-translate-x-full opacity-0 scale-95"
       }`,
     [isVisible],
   )
@@ -244,11 +242,11 @@ const LocationPopup = React.memo(() => {
                   <span className="text-sm font-semibold text-white">Special Offer</span>
                   <div className="flex-1 flex justify-end">
                     <div className="bg-yellow-400/20 text-yellow-300 text-xs px-2 py-0.5 rounded-full font-bold border border-yellow-400/30">
-                      10% OFF
+                      5% OFF
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-white font-medium mb-1">Login for 10% off Your Next Order</p>
+                <p className="text-sm text-white font-medium mb-1">Login for 5% off Your Next Order</p>
                 <p className="text-xs text-white/70">Valid for new customers only</p>
               </div>
 
