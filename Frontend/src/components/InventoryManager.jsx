@@ -9,7 +9,12 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   X,
+  Plus,
+  Upload,
+  GripVertical,
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -221,6 +226,161 @@ const InventoryManager = () => {
       }));
       return { ...prev, images: updatedImages };
     });
+  };
+
+  const handleDeleteBundleImage = async (imageId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this image?')) return;
+    
+    try {
+      await api.delete(`/bundles/${editingItem.id}/images/${imageId}`);
+      setEditingItem((prev) => ({
+        ...prev,
+        images: prev.images.filter((img) => img.id !== imageId),
+      }));
+    } catch (err) {
+      console.error('Error deleting image:', err);
+      setError('Failed to delete image');
+    }
+  };
+
+  const handleMoveImage = async (index, direction) => {
+    const images = [...editingItem.images];
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= images.length) return;
+    
+    // Swap
+    const temp = images[index];
+    images[index] = images[newIndex];
+    images[newIndex] = temp;
+    
+    setEditingItem((prev) => ({ ...prev, images }));
+    
+    // Persist reorder to backend
+    try {
+      const imageIds = images.map((img) => img.id);
+      await api.put(`/bundles/${editingItem.id}/images/reorder`, { imageIds });
+    } catch (err) {
+      console.error('Error reordering images:', err);
+      setError('Failed to save image order');
+    }
+  };
+
+  const handleAddBundleImages = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i]);
+    }
+    
+    try {
+      setLoading(true);
+      const response = await api.post(`/bundles/${editingItem.id}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const newImages = response.data.images || [];
+      setEditingItem((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...newImages],
+      }));
+      
+      // Reset file input
+      e.target.value = '';
+    } catch (err) {
+      console.error('Error uploading images:', err);
+      setError('Failed to upload images');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteVariantImage = async (e, variantId, imageId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this image?')) return;
+
+    try {
+      await api.delete(`/products/images/${imageId}`);
+      setEditingItem((prev) => {
+        if (!prev || !prev.variants) return prev;
+        const updatedVariants = prev.variants.map((v) => {
+          if (v.id === variantId) {
+            return { ...v, images: (v.images || []).filter((img) => img.id !== imageId) };
+          }
+          return v;
+        });
+        return { ...prev, variants: updatedVariants };
+      });
+    } catch (err) {
+      console.error('Error deleting variant image:', err);
+      setError('Failed to delete image');
+    }
+  };
+
+  const handleMoveVariantImage = async (e, variantId, index, direction) => {
+    e.stopPropagation();
+    setEditingItem((prev) => {
+      if (!prev || !prev.variants) return prev;
+      const updatedVariants = prev.variants.map((v) => {
+        if (v.id === variantId) {
+          const images = [...(v.images || [])];
+          const newIndex = direction === 'left' ? index - 1 : index + 1;
+          if (newIndex < 0 || newIndex >= images.length) return v;
+          const temp = images[index];
+          images[index] = images[newIndex];
+          images[newIndex] = temp;
+
+          // Persist reorder
+          const imageIds = images.map((img) => img.id);
+          api.put(`/products/variants/${variantId}/images/reorder`, { imageIds }).catch((err) => {
+            console.error('Error reordering variant images:', err);
+          });
+
+          return { ...v, images };
+        }
+        return v;
+      });
+      return { ...prev, variants: updatedVariants };
+    });
+  };
+
+  const handleAddVariantImages = async (e, variantId) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i]);
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post(`/products/variants/${variantId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const newImages = response.data.images || [];
+      setEditingItem((prev) => {
+        if (!prev || !prev.variants) return prev;
+        const updatedVariants = prev.variants.map((v) => {
+          if (v.id === variantId) {
+            return { ...v, images: [...(v.images || []), ...newImages] };
+          }
+          return v;
+        });
+        return { ...prev, variants: updatedVariants };
+      });
+
+      e.target.value = '';
+    } catch (err) {
+      console.error('Error uploading variant images:', err);
+      setError('Failed to upload images');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleExpand = (id, type) => {
@@ -763,34 +923,97 @@ const InventoryManager = () => {
                         </div>
 
                         {/* Image Management */}
-                        {variant.images && variant.images.length > 0 && (
-                          <div className="mt-4 border-t pt-3">
-                            <h6 className="text-sm font-medium text-gray-700 mb-2">Images (Select Primary)</h6>
-                            <div className="flex flex-wrap gap-2">
-                              {variant.images.map((img) => (
-                                <div 
-                                  key={`img-${img.id}`} 
-                                  className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
-                                    img.is_primary ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                                  onClick={() => handleSetPrimaryImage(variant.id, img.id)}
-                                >
-                                  <img 
-                                    src={img.image_url} 
-                                    alt="Variant" 
-                                    className="w-16 h-16 object-cover"
-                                  />
-                                  {img.is_primary && (
-                                    <div className="absolute top-0 right-0 bg-blue-500 text-white p-0.5 rounded-bl-md">
-                                      <CheckCircle size={12} />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                        <div className="mt-4 border-t pt-3">
+                          <h6 className="text-sm font-medium text-gray-700 mb-2">Images</h6>
+                          <div className="space-y-3">
+                            {/* Upload button for this variant */}
+                            <div>
+                              <label className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer w-fit text-xs">
+                                <Upload size={14} />
+                                <span className="font-medium">Add Images</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => handleAddVariantImages(e, variant.id)}
+                                  disabled={loading}
+                                />
+                              </label>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Click an image to set it as the primary display image.</p>
+
+                            {/* Image list */}
+                            {variant.images && variant.images.length > 0 ? (
+                              <div className="grid grid-cols-1 gap-1.5">
+                                {variant.images.map((img, imgIndex) => (
+                                  <div
+                                    key={`img-${img.id}`}
+                                    className={`relative flex items-center gap-2 p-1.5 rounded-lg border-2 transition-all ${
+                                      img.is_primary
+                                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200'
+                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <img
+                                      src={img.image_url}
+                                      alt={`Variant image ${imgIndex + 1}`}
+                                      className="w-10 h-10 object-cover rounded flex-shrink-0 cursor-pointer"
+                                      onClick={() => handleSetPrimaryImage(variant.id, img.id)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-bold text-gray-400">#{imgIndex + 1}</span>
+                                        {img.is_primary && (
+                                          <span className="text-[9px] font-bold bg-blue-500 text-white px-1 py-0.5 rounded">
+                                            PRIMARY
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-0.5 mt-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleMoveVariantImage(e, variant.id, imgIndex, 'left')}
+                                          disabled={imgIndex === 0}
+                                          className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                                          title="Move left"
+                                        >
+                                          <ChevronLeft size={12} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleMoveVariantImage(e, variant.id, imgIndex, 'right')}
+                                          disabled={imgIndex === variant.images.length - 1}
+                                          className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                                          title="Move right"
+                                        >
+                                          <ChevronRight size={12} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetPrimaryImage(variant.id, img.id)}
+                                          className="p-0.5 rounded hover:bg-blue-100 text-blue-600"
+                                          title="Set as primary"
+                                        >
+                                          <CheckCircle size={12} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleDeleteVariantImage(e, variant.id, img.id)}
+                                          className="p-0.5 rounded hover:bg-red-100 text-red-500"
+                                          title="Delete image"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 text-center py-2">No images for this variant</p>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -798,34 +1021,110 @@ const InventoryManager = () => {
               )}
 
               {/* Bundle Image Management */}
-              {editingItem.type === 'bundle' && editingItem.images && editingItem.images.length > 0 && (
+              {editingItem.type === 'bundle' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Bundle Images</label>
-                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <h6 className="text-sm font-medium text-gray-700 mb-3">Images (Select Primary)</h6>
-                    <div className="flex flex-wrap gap-3">
-                      {editingItem.images.map((img) => (
-                        <div 
-                          key={`bundle-img-${img.id}`} 
-                          className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
-                            img.is_primary ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          onClick={() => handleSetPrimaryBundleImage(img.id)}
-                        >
-                          <img 
-                            src={img.image_url} 
-                            alt="Bundle" 
-                            className="w-20 h-20 object-cover"
-                          />
-                          {img.is_primary && (
-                            <div className="absolute top-0 right-0 bg-blue-500 text-white p-0.5 rounded-bl-md">
-                              <CheckCircle size={14} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                    {/* Upload button */}
+                    <div>
+                      <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer w-fit">
+                        <Upload size={16} />
+                        <span className="text-sm font-medium">Add Images</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleAddBundleImages}
+                          disabled={loading}
+                        />
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">Upload up to 10 images at once. JPG, PNG, WebP.</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">Click an image to set it as the primary display image.</p>
+
+                    {/* Image list */}
+                    {editingItem.images && editingItem.images.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 font-medium">
+                          {editingItem.images.length} image{editingItem.images.length !== 1 ? 's' : ''} · Click to set primary · Use arrows to reorder
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {editingItem.images.map((img, index) => (
+                            <div
+                              key={`bundle-img-${img.id}`}
+                              className={`relative flex items-center gap-2 p-2 rounded-lg border-2 transition-all ${
+                                img.is_primary
+                                  ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-gray-300'
+                              }`}
+                            >
+                              {/* Thumbnail */}
+                              <img
+                                src={img.image_url}
+                                alt={`Bundle image ${index + 1}`}
+                                className="w-14 h-14 object-cover rounded flex-shrink-0 cursor-pointer"
+                                onClick={() => handleSetPrimaryBundleImage(img.id)}
+                              />
+
+                              {/* Info + Controls */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-bold text-gray-500">#{index + 1}</span>
+                                  {img.is_primary && (
+                                    <span className="text-[10px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded">
+                                      PRIMARY
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Reorder + Delete buttons */}
+                                <div className="flex items-center gap-1 mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveImage(index, 'left')}
+                                    disabled={index === 0}
+                                    className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Move left"
+                                  >
+                                    <ChevronLeft size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveImage(index, 'right')}
+                                    disabled={index === editingItem.images.length - 1}
+                                    className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Move right"
+                                  >
+                                    <ChevronRight size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetPrimaryBundleImage(img.id)}
+                                    className="p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors"
+                                    title="Set as primary"
+                                  >
+                                    <CheckCircle size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteBundleImage(img.id, e)}
+                                    className="p-1 rounded hover:bg-red-100 text-red-500 transition-colors"
+                                    title="Delete image"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-400">
+                        <Upload size={32} className="mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No images yet. Upload some above.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

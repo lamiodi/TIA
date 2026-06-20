@@ -1,4 +1,13 @@
 import sql from '../db/index.js';
+import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
+import path from 'path';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Get all products with inventory data
 export const getProducts = async (req, res) => {
@@ -40,8 +49,9 @@ export const getProducts = async (req, res) => {
                 jsonb_build_object(
                   'id', pi.id,
                   'image_url', pi.image_url,
-                  'is_primary', pi.is_primary
-                ) ORDER BY pi.is_primary DESC, pi.id ASC
+                  'is_primary', pi.is_primary,
+                  'sort_order', COALESCE(pi.sort_order, 0)
+                ) ORDER BY COALESCE(pi.sort_order, 0) ASC, pi.is_primary DESC, pi.id ASC
               )
               FROM product_images pi
               WHERE pi.variant_id = pv.id
@@ -91,8 +101,9 @@ export const getBundles = async (req, res) => {
           jsonb_build_object(
             'id', bi.id,
             'image_url', bi.image_url,
-            'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, bi.id ASC
+            'is_primary', bi.is_primary,
+            'sort_order', COALESCE(bi.sort_order, 0)
+          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
         )
          FROM bundle_images bi 
          WHERE bi.bundle_id = b.id) AS images,
@@ -141,8 +152,9 @@ export const getBundle = async (req, res) => {
           jsonb_build_object(
             'id', bi.id,
             'image_url', bi.image_url,
-            'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, bi.id ASC
+            'is_primary', bi.is_primary,
+            'sort_order', COALESCE(bi.sort_order, 0)
+          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
         )
          FROM bundle_images bi 
          WHERE bi.bundle_id = b.id) AS images,
@@ -351,5 +363,213 @@ export const updateBundle = async (req, res) => {
   } catch (err) {
     console.error('Error updating bundle:', err);
     res.status(500).json({ error: 'Failed to update bundle' });
+  }
+};
+
+// Add images to a bundle (upload to Cloudinary + insert into DB)
+export const addBundleImages = async (req, res) => {
+  const { id } = req.params;
+  const files = req.files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: 'No images provided' });
+  }
+
+  try {
+    const uploadedImages = [];
+
+    for (const file of files) {
+      try {
+        const uploaded = await cloudinary.uploader.upload(file.path);
+        const [imgRecord] = await sql`
+          INSERT INTO bundle_images (bundle_id, image_url)
+          VALUES (${id}, ${uploaded.secure_url})
+          RETURNING id, image_url, is_primary
+        `;
+        uploadedImages.push(imgRecord);
+
+        // Clean up temp file
+        const sanitizedPath = path.resolve(file.path);
+        if (sanitizedPath.startsWith(path.resolve('./')) && fs.existsSync(sanitizedPath)) {
+          fs.unlinkSync(sanitizedPath);
+        }
+      } catch (imgErr) {
+        console.error('Image upload error:', imgErr);
+      }
+    }
+
+    res.status(201).json({ 
+      message: `${uploadedImages.length} image(s) added`,
+      images: uploadedImages 
+    });
+  } catch (err) {
+    console.error('Error adding bundle images:', err);
+    res.status(500).json({ error: 'Failed to add images' });
+  }
+};
+
+// Delete a single bundle image (from DB + Cloudinary)
+export const deleteBundleImage = async (req, res) => {
+  const { id, imageId } = req.params;
+
+  try {
+    // Get the image URL first so we can delete from Cloudinary
+    const [image] = await sql`
+      SELECT image_url FROM bundle_images WHERE id = ${imageId} AND bundle_id = ${id}
+    `;
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    // Delete from Cloudinary
+    try {
+      const urlParts = image.image_url.split('/');
+      const publicIdWithExt = urlParts[urlParts.length - 1];
+      const publicId = 'bundle_images/' + publicIdWithExt.split('.')[0];
+      await cloudinary.uploader.destroy(publicId);
+    } catch (cloudErr) {
+      console.error('Cloudinary delete error (continuing):', cloudErr);
+    }
+
+    // Delete from DB
+    await sql`DELETE FROM bundle_images WHERE id = ${imageId} AND bundle_id = ${id}`;
+
+    res.json({ success: true, message: 'Image deleted' });
+  } catch (err) {
+    console.error('Error deleting bundle image:', err);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+};
+
+// Reorder bundle images (update sort_order)
+export const reorderBundleImages = async (req, res) => {
+  const { id } = req.params;
+  const { imageIds } = req.body; // ordered array of image IDs
+
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return res.status(400).json({ error: 'No image order provided' });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      // Add sort_order column if it doesn't exist (safe to run multiple times)
+      await sql`ALTER TABLE bundle_images ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0`;
+
+      // Update sort_order for each image based on array position
+      for (let i = 0; i < imageIds.length; i++) {
+        await sql`
+          UPDATE bundle_images
+          SET sort_order = ${i}
+          WHERE id = ${imageIds[i]} AND bundle_id = ${id}
+        `;
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error reordering bundle images:', err);
+    res.status(500).json({ error: 'Failed to reorder images' });
+  }
+};
+
+// Add images to a product variant (upload to Cloudinary + insert into DB)
+export const addVariantImages = async (req, res) => {
+  const { variantId } = req.params;
+  const files = req.files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: 'No images provided' });
+  }
+
+  try {
+    const uploadedImages = [];
+
+    for (const file of files) {
+      try {
+        const uploaded = await cloudinary.uploader.upload(file.path);
+        const [imgRecord] = await sql`
+          INSERT INTO product_images (variant_id, image_url)
+          VALUES (${variantId}, ${uploaded.secure_url})
+          RETURNING id, image_url, is_primary
+        `;
+        uploadedImages.push(imgRecord);
+
+        const sanitizedPath = path.resolve(file.path);
+        if (sanitizedPath.startsWith(path.resolve('./')) && fs.existsSync(sanitizedPath)) {
+          fs.unlinkSync(sanitizedPath);
+        }
+      } catch (imgErr) {
+        console.error('Image upload error:', imgErr);
+      }
+    }
+
+    res.status(201).json({
+      message: `${uploadedImages.length} image(s) added`,
+      images: uploadedImages,
+    });
+  } catch (err) {
+    console.error('Error adding variant images:', err);
+    res.status(500).json({ error: 'Failed to add images' });
+  }
+};
+
+// Delete a single product variant image (from DB + Cloudinary)
+export const deleteVariantImage = async (req, res) => {
+  const { imageId } = req.params;
+
+  try {
+    const [image] = await sql`
+      SELECT image_url FROM product_images WHERE id = ${imageId}
+    `;
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    try {
+      const urlParts = image.image_url.split('/');
+      const publicIdWithExt = urlParts[urlParts.length - 1];
+      const publicId = 'product_images/' + publicIdWithExt.split('.')[0];
+      await cloudinary.uploader.destroy(publicId);
+    } catch (cloudErr) {
+      console.error('Cloudinary delete error (continuing):', cloudErr);
+    }
+
+    await sql`DELETE FROM product_images WHERE id = ${imageId}`;
+
+    res.json({ success: true, message: 'Image deleted' });
+  } catch (err) {
+    console.error('Error deleting variant image:', err);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+};
+
+// Reorder product variant images (update sort_order)
+export const reorderVariantImages = async (req, res) => {
+  const { variantId } = req.params;
+  const { imageIds } = req.body;
+
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return res.status(400).json({ error: 'No image order provided' });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      await sql`ALTER TABLE product_images ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0`;
+
+      for (let i = 0; i < imageIds.length; i++) {
+        await sql`
+          UPDATE product_images
+          SET sort_order = ${i}
+          WHERE id = ${imageIds[i]} AND variant_id = ${variantId}
+        `;
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error reordering variant images:', err);
+    res.status(500).json({ error: 'Failed to reorder images' });
   }
 };
