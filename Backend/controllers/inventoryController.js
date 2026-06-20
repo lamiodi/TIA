@@ -49,9 +49,8 @@ export const getProducts = async (req, res) => {
                 jsonb_build_object(
                   'id', pi.id,
                   'image_url', pi.image_url,
-                  'is_primary', pi.is_primary,
-                  'sort_order', COALESCE(pi.sort_order, 0)
-                ) ORDER BY COALESCE(pi.sort_order, 0) ASC, pi.is_primary DESC, pi.id ASC
+                  'is_primary', pi.is_primary
+                ) ORDER BY pi.is_primary DESC, pi.id ASC
               )
               FROM product_images pi
               WHERE pi.variant_id = pv.id
@@ -90,7 +89,7 @@ export const getProducts = async (req, res) => {
 export const getBundles = async (req, res) => {
   try {
     const bundles = await sql`
-      SELECT 
+      SELECT
         b.id,
         b.name,
         b.description,
@@ -101,11 +100,10 @@ export const getBundles = async (req, res) => {
           jsonb_build_object(
             'id', bi.id,
             'image_url', bi.image_url,
-            'is_primary', bi.is_primary,
-            'sort_order', COALESCE(bi.sort_order, 0)
-          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
+            'is_primary', bi.is_primary
+          ) ORDER BY bi.is_primary DESC, bi.id ASC
         )
-         FROM bundle_images bi 
+         FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
         (SELECT COUNT(*) 
          FROM bundle_items 
@@ -140,7 +138,7 @@ export const getBundle = async (req, res) => {
   const { id } = req.params;
   try {
     const [bundle] = await sql`
-      SELECT 
+      SELECT
         b.id,
         b.name,
         b.description,
@@ -152,11 +150,10 @@ export const getBundle = async (req, res) => {
           jsonb_build_object(
             'id', bi.id,
             'image_url', bi.image_url,
-            'is_primary', bi.is_primary,
-            'sort_order', COALESCE(bi.sort_order, 0)
-          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
+            'is_primary', bi.is_primary
+          ) ORDER BY bi.is_primary DESC, bi.id ASC
         )
-         FROM bundle_images bi 
+         FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
         (SELECT COUNT(*) 
          FROM bundle_items 
