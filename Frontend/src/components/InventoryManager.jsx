@@ -107,6 +107,12 @@ const InventoryManager = () => {
           id: response.data.bundleId,
           name: confirmDelete.name,
         });
+      } else if (response.data.error && response.data.conflictType === 'order') {
+        setError(response.data.error);
+        setConflictInfo({
+          type: 'order',
+          name: confirmDelete.name,
+        });
       } else {
         if (confirmDelete.type === 'product') {
           setProducts((prev) => prev.filter((p) => p.id !== confirmDelete.id));
@@ -128,7 +134,24 @@ const InventoryManager = () => {
   };
 
   const handleEdit = (item, type) => {
-    setEditingItem({ ...item, type });
+    // For bundles, ensure images array is loaded
+    if (type === 'bundle' && !item.images) {
+      // Fetch bundle images if not already loaded
+      api.get(`/bundles/${item.id}`)
+        .then(response => {
+          setEditingItem({ 
+            ...item, 
+            type,
+            images: response.data.images || []
+          });
+        })
+        .catch(err => {
+          console.error('Error fetching bundle details:', err);
+          setEditingItem({ ...item, type, images: [] });
+        });
+    } else {
+      setEditingItem({ ...item, type });
+    }
   };
 
   const handleUpdate = async (e) => {
@@ -147,10 +170,12 @@ const InventoryManager = () => {
           description: description,
         });
       } else {
-        const { id, price, description } = editingItem;
+        const { id, name, price, description, images } = editingItem;
         await api.put(`/bundles/${id}`, {
+          name: name,
           bundle_price: price,
           description: description,
+          images: images || [],
         });
       }
 
@@ -183,6 +208,18 @@ const InventoryManager = () => {
         return v;
       });
       return { ...prev, variants: updatedVariants };
+    });
+  };
+
+  const handleSetPrimaryBundleImage = (imageId) => {
+    setEditingItem((prev) => {
+      if (!prev || !prev.images) return prev;
+      
+      const updatedImages = prev.images.map((img) => ({
+        ...img,
+        is_primary: img.id === imageId,
+      }));
+      return { ...prev, images: updatedImages };
     });
   };
 
@@ -263,40 +300,47 @@ const InventoryManager = () => {
             <div>
               <p className="font-medium">Resolution Required</p>
               <p>{error}</p>
-              <div className="mt-2 space-x-2">
-                <button
-                  onClick={() => {
-                    navigate(`/bundles/${conflictInfo.id}`);
-                    setConflictInfo(null);
-                    setError('');
-                  }}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                >
-                  View Bundle
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await api.delete(`/bundles/${conflictInfo.id}`);
-                      setBundles((prev) => prev.filter((b) => b.id !== conflictInfo.id));
+              {conflictInfo.type === 'bundle' && (
+                <div className="mt-2 space-x-2">
+                  <button
+                    onClick={() => {
+                      navigate(`/bundles/${conflictInfo.id}`);
                       setConflictInfo(null);
                       setError('');
-                      setSuccess('Bundle archived. You can now delete the product.');
-                      setTimeout(() => setSuccess(''), 5000);
-                    } catch (err) {
-                      setError(
-                        'Failed to archive bundle: ' + (err.response?.data?.error || err.message)
-                      );
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
-                >
-                  Archive Bundle First
-                </button>
-              </div>
+                    }}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    View Bundle
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await api.delete(`/bundles/${conflictInfo.id}`);
+                        setBundles((prev) => prev.filter((b) => b.id !== conflictInfo.id));
+                        setConflictInfo(null);
+                        setError('');
+                        setSuccess('Bundle archived. You can now delete the product.');
+                        setTimeout(() => setSuccess(''), 5000);
+                      } catch (err) {
+                        setError(
+                          'Failed to archive bundle: ' + (err.response?.data?.error || err.message)
+                        );
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
+                  >
+                    Archive Bundle First
+                  </button>
+                </div>
+              )}
+              {conflictInfo.type === 'order' && (
+                <p className="mt-2 text-sm text-blue-600">
+                  This item cannot be deleted because it has associated orders. Consider deactivating it instead.
+                </p>
+              )}
             </div>
             <button onClick={() => setConflictInfo(null)} className="text-blue-700 hover:text-blue-900">
               <X className="h-5 w-5" />
@@ -620,6 +664,24 @@ const InventoryManager = () => {
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={editingItem.name || ''}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      name: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
                 </label>
                 <textarea
@@ -731,6 +793,39 @@ const InventoryManager = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bundle Image Management */}
+              {editingItem.type === 'bundle' && editingItem.images && editingItem.images.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bundle Images</label>
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <h6 className="text-sm font-medium text-gray-700 mb-3">Images (Select Primary)</h6>
+                    <div className="flex flex-wrap gap-3">
+                      {editingItem.images.map((img) => (
+                        <div 
+                          key={`bundle-img-${img.id}`} 
+                          className={`relative cursor-pointer border-2 rounded-md overflow-hidden ${
+                            img.is_primary ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => handleSetPrimaryBundleImage(img.id)}
+                        >
+                          <img 
+                            src={img.image_url} 
+                            alt="Bundle" 
+                            className="w-20 h-20 object-cover"
+                          />
+                          {img.is_primary && (
+                            <div className="absolute top-0 right-0 bg-blue-500 text-white p-0.5 rounded-bl-md">
+                              <CheckCircle size={14} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Click an image to set it as the primary display image.</p>
                   </div>
                 </div>
               )}

@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getProducts,
   getBundles,
+  getBundle,
   deleteProduct,
   deleteBundle,
   updateProduct,
@@ -16,6 +17,9 @@ router.get('/products', getProducts);
 // ✅ Get all bundles (for admin panel)
 router.get('/bundles', getBundles);
 
+// ✅ Get a single bundle by ID (with full image details)
+router.get('/bundles/:id', getBundle);
+
 // ✅ Delete a product by ID
 router.delete('/products/:id', deleteProduct);
 
@@ -25,7 +29,7 @@ router.delete('/bundles/:id', deleteBundle);
 // ✅ Update product (price + stock)
 router.put('/products/:id', updateProduct);
 
-// ✅ Update bundle (price only for now)
+// ✅ Update bundle (price, name, description, images)
 router.put('/bundles/:id', updateBundle);
 
 export default router;

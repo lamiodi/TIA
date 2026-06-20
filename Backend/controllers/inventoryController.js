@@ -87,7 +87,13 @@ export const getBundles = async (req, res) => {
         b.bundle_price AS price,
         b.is_active,
         b.bundle_type,
-        (SELECT array_agg(DISTINCT bi.image_url)
+        (SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', bi.id,
+            'image_url', bi.image_url,
+            'is_primary', bi.is_primary
+          ) ORDER BY bi.is_primary DESC, bi.id ASC
+        )
          FROM bundle_images bi 
          WHERE bi.bundle_id = b.id) AS images,
         (SELECT COUNT(*) 
@@ -115,6 +121,58 @@ export const getBundles = async (req, res) => {
       error: 'Failed to fetch bundles',
       details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
+  }
+};
+
+// Get a single bundle by ID (with full image details)
+export const getBundle = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [bundle] = await sql`
+      SELECT 
+        b.id,
+        b.name,
+        b.description,
+        b.bundle_price AS price,
+        b.is_active,
+        b.bundle_type,
+        b.sku_prefix,
+        (SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', bi.id,
+            'image_url', bi.image_url,
+            'is_primary', bi.is_primary
+          ) ORDER BY bi.is_primary DESC, bi.id ASC
+        )
+         FROM bundle_images bi 
+         WHERE bi.bundle_id = b.id) AS images,
+        (SELECT COUNT(*) 
+         FROM bundle_items 
+         WHERE bundle_id = b.id) AS item_count,
+        (SELECT jsonb_agg(
+          jsonb_build_object(
+            'variant_id', bi.variant_id,
+            'product_name', p.name,
+            'color_name', c.color_name
+          )
+        )
+        FROM bundle_items bi
+        JOIN product_variants pv ON bi.variant_id = pv.id
+        JOIN products p ON pv.product_id = p.id
+        JOIN colors c ON pv.color_id = c.id
+        WHERE bi.bundle_id = b.id) AS items
+      FROM bundles b
+      WHERE b.id = ${id}
+    `;
+
+    if (!bundle) {
+      return res.status(404).json({ error: 'Bundle not found' });
+    }
+
+    res.json(bundle);
+  } catch (err) {
+    console.error('Error fetching bundle:', err);
+    res.status(500).json({ error: 'Failed to fetch bundle' });
   }
 };
 
@@ -161,12 +219,46 @@ export const deleteBundle = async (req, res) => {
   const { id } = req.params;
   try {
     await sql.begin(async (sql) => {
+      // Check if bundle is used in any orders
+      const orderCheck = await sql`
+        SELECT oi.id 
+        FROM order_items oi 
+        WHERE oi.bundle_id = ${id} 
+        LIMIT 1
+      `;
+      
+      if (orderCheck.length > 0) {
+        throw { type: 'order_conflict' };
+      }
+      
+      // Delete from wishlist first
+      await sql`DELETE FROM wishlist WHERE bundle_id = ${id}`;
+      
+      // Delete from cart items
+      await sql`DELETE FROM cart_items WHERE bundle_id = ${id}`;
+      
+      // Delete bundle images and items
       await sql`DELETE FROM bundle_images WHERE bundle_id = ${id}`;
       await sql`DELETE FROM bundle_items WHERE bundle_id = ${id}`;
-      await sql`DELETE FROM bundles WHERE id = ${id}`;
+      
+      // Finally delete the bundle
+      const result = await sql`DELETE FROM bundles WHERE id = ${id}`;
+      
+      if (result.count === 0) {
+        throw { type: 'not_found' };
+      }
     });
     res.json({ success: true });
   } catch (err) {
+    if (err.type === 'order_conflict') {
+      return res.status(400).json({ 
+        error: 'Cannot delete bundle. It has been ordered by customers.',
+        conflictType: 'order'
+      });
+    }
+    if (err.type === 'not_found') {
+      return res.status(404).json({ error: 'Bundle not found' });
+    }
     console.error('Error deleting bundle:', err);
     res.status(500).json({ error: 'Failed to delete bundle' });
   }
@@ -225,18 +317,34 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Update bundle price
+// Update bundle price, name, description and images
 export const updateBundle = async (req, res) => {
   const { id } = req.params;
-  const { bundle_price, description } = req.body;
+  const { bundle_price, name, description, images } = req.body;
 
   try {
     await sql.begin(async (sql) => {
         if (bundle_price !== undefined) {
             await sql`UPDATE bundles SET bundle_price = ${bundle_price} WHERE id = ${id}`;
         }
+        if (name !== undefined) {
+            await sql`UPDATE bundles SET name = ${name} WHERE id = ${id}`;
+        }
         if (description !== undefined) {
             await sql`UPDATE bundles SET description = ${description} WHERE id = ${id}`;
+        }
+        
+        // Update image primary status if images array is provided
+        if (images && images.length > 0) {
+            for (const image of images) {
+                if (image.id) {
+                    await sql`
+                        UPDATE bundle_images
+                        SET is_primary = ${image.is_primary}
+                        WHERE id = ${image.id} AND bundle_id = ${id}
+                    `;
+                }
+            }
         }
     });
     res.json({ success: true });
