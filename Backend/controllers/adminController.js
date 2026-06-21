@@ -367,106 +367,103 @@ export const getCompleteOrderDetails = async (req, res) => {
 export const getAnalyticsData = async (req, res) => {
   try {
     await sql.begin(async (sql) => {
-      // Total Revenue
+      // Total Revenue — include all completed orders even if soft-deleted
       const [revenueResult] = await sql`
         SELECT COALESCE(SUM(total), 0) AS total_revenue
         FROM orders
-        WHERE deleted_at IS NULL AND payment_status = 'completed'
+        WHERE payment_status = 'completed'
       `;
       const totalRevenue = parseFloat(revenueResult.total_revenue) || 0;
-      
-      // Total Orders
+
+      // Total Orders — include all orders even if soft-deleted
       const [ordersResult] = await sql`
         SELECT COUNT(*) AS total_orders
         FROM orders
-        WHERE deleted_at IS NULL
       `;
       const totalOrders = parseInt(ordersResult.total_orders) || 0;
-      
-      // Total Customers
+
+      // Total Customers — include all orders even if soft-deleted
       const [customersResult] = await sql`
         SELECT COUNT(DISTINCT user_id) AS total_customers
         FROM orders
-        WHERE deleted_at IS NULL
       `;
       const totalCustomers = parseInt(customersResult.total_customers) || 0;
-      
-      // Average Order Value
+
+      // Average Order Value — include all completed orders even if soft-deleted
       const [avgOrderResult] = await sql`
         SELECT COALESCE(AVG(total), 0) AS avg_order_value
         FROM orders
-        WHERE deleted_at IS NULL AND payment_status = 'completed'
+        WHERE payment_status = 'completed'
       `;
       const avgOrderValue = parseFloat(avgOrderResult.avg_order_value) || 0;
-      
-      // Revenue Growth (vs previous 30 days)
+
+      // Revenue Growth (vs previous 30 days) — include soft-deleted
       const [revenueGrowthResult] = await sql`
-        SELECT 
-          COALESCE(SUM(total), 0) AS current_revenue
+        SELECT COALESCE(SUM(total), 0) AS current_revenue
         FROM orders
-        WHERE deleted_at IS NULL 
-          AND payment_status = 'completed'
+        WHERE payment_status = 'completed'
           AND created_at >= NOW() - INTERVAL '30 days'
       `;
       const currentRevenue = parseFloat(revenueGrowthResult.current_revenue) || 0;
-      
+
       const [prevRevenueResult] = await sql`
         SELECT COALESCE(SUM(total), 0) AS prev_revenue
         FROM orders
-        WHERE deleted_at IS NULL 
-          AND payment_status = 'completed'
+        WHERE payment_status = 'completed'
           AND created_at >= NOW() - INTERVAL '60 days'
           AND created_at < NOW() - INTERVAL '30 days'
       `;
       const prevRevenue = parseFloat(prevRevenueResult.prev_revenue) || 0;
-      const revenueGrowth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue * 100).toFixed(1) : 0;
-      
-      // Order Growth (vs previous 30 days)
+      const revenueGrowth = prevRevenue > 0
+        ? parseFloat(((currentRevenue - prevRevenue) / prevRevenue * 100).toFixed(1))
+        : currentRevenue > 0 ? 100 : 0;
+
+      // Order Growth (vs previous 30 days) — include soft-deleted
       const [orderGrowthResult] = await sql`
         SELECT COUNT(*) AS current_orders
         FROM orders
-        WHERE deleted_at IS NULL
-          AND created_at >= NOW() - INTERVAL '30 days'
+        WHERE created_at >= NOW() - INTERVAL '30 days'
       `;
       const currentOrders = parseInt(orderGrowthResult.current_orders) || 0;
-      
+
       const [prevOrderResult] = await sql`
         SELECT COUNT(*) AS prev_orders
         FROM orders
-        WHERE deleted_at IS NULL
-          AND created_at >= NOW() - INTERVAL '60 days'
+        WHERE created_at >= NOW() - INTERVAL '60 days'
           AND created_at < NOW() - INTERVAL '30 days'
       `;
       const prevOrders = parseInt(prevOrderResult.prev_orders) || 0;
-      const orderGrowth = prevOrders > 0 ? ((currentOrders - prevOrders) / prevOrders * 100).toFixed(1) : 0;
-      
-      // Customer Growth (vs previous 30 days)
+      const orderGrowth = prevOrders > 0
+        ? parseFloat(((currentOrders - prevOrders) / prevOrders * 100).toFixed(1))
+        : currentOrders > 0 ? 100 : 0;
+
+      // Customer Growth (vs previous 30 days) — include soft-deleted
       const [customerGrowthResult] = await sql`
         SELECT COUNT(DISTINCT user_id) AS current_customers
         FROM orders
-        WHERE deleted_at IS NULL
-          AND created_at >= NOW() - INTERVAL '30 days'
+        WHERE created_at >= NOW() - INTERVAL '30 days'
       `;
       const currentCustomers = parseInt(customerGrowthResult.current_customers) || 0;
-      
+
       const [prevCustomerResult] = await sql`
         SELECT COUNT(DISTINCT user_id) AS prev_customers
         FROM orders
-        WHERE deleted_at IS NULL
-          AND created_at >= NOW() - INTERVAL '60 days'
+        WHERE created_at >= NOW() - INTERVAL '60 days'
           AND created_at < NOW() - INTERVAL '30 days'
       `;
       const prevCustomers = parseInt(prevCustomerResult.prev_customers) || 0;
-      const customerGrowth = prevCustomers > 0 ? ((currentCustomers - prevCustomers) / prevCustomers * 100).toFixed(1) : 0;
-      
+      const customerGrowth = prevCustomers > 0
+        ? parseFloat(((currentCustomers - prevCustomers) / prevCustomers * 100).toFixed(1))
+        : currentCustomers > 0 ? 100 : 0;
+
       res.json({
         totalRevenue,
         totalOrders,
         totalCustomers,
         avgOrderValue,
-        revenueGrowth: parseFloat(revenueGrowth),
-        orderGrowth: parseFloat(orderGrowth),
-        customerGrowth: parseFloat(customerGrowth),
+        revenueGrowth,
+        orderGrowth,
+        customerGrowth,
       });
     });
   } catch (err) {

@@ -7,6 +7,8 @@ import {
   Users,
   DollarSign,
   TrendingUp,
+  TrendingDown,
+  Minus,
   Mail,
   LogOut,
   Tag,
@@ -111,6 +113,16 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
+  const getGrowthDisplay = (value) => {
+    const num = parseFloat(value) || 0;
+    if (num > 0) {
+      return { icon: TrendingUp, color: 'text-green-600', label: `+${num}% vs last month` };
+    } else if (num < 0) {
+      return { icon: TrendingDown, color: 'text-red-500', label: `${num}% vs last month` };
+    }
+    return { icon: Minus, color: 'text-gray-400', label: 'No change vs last month' };
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-NG', {
       year: 'numeric',
@@ -141,10 +153,12 @@ const AdminDashboard = () => {
               <p className="text-2xl font-bold text-gray-900 font-Manrope">
                 {formatCurrency(analytics.totalRevenue)}
               </p>
-              <p className="text-xs text-green-600 flex items-center gap-1 mt-1 font-Jost">
-                <TrendingUp className="w-4 h-4" />
-                {analytics.revenueGrowth}% vs last month
-              </p>
+              {(() => { const g = getGrowthDisplay(analytics.revenueGrowth); return (
+                <p className={`text-xs ${g.color} flex items-center gap-1 mt-1 font-Jost`}>
+                  <g.icon className="w-4 h-4" />
+                  {g.label}
+                </p>
+              ); })()}
             </div>
             <DollarSign className="w-8 h-8 text-blue-500" />
           </div>
@@ -155,10 +169,12 @@ const AdminDashboard = () => {
               <p className="text-2xl font-bold text-gray-900 font-Manrope">
                 {analytics.totalOrders}
               </p>
-              <p className="text-xs text-green-600 flex items-center gap-1 mt-1 font-Jost">
-                <TrendingUp className="w-4 h-4" />
-                {analytics.orderGrowth}% vs last month
-              </p>
+              {(() => { const g = getGrowthDisplay(analytics.orderGrowth); return (
+                <p className={`text-xs ${g.color} flex items-center gap-1 mt-1 font-Jost`}>
+                  <g.icon className="w-4 h-4" />
+                  {g.label}
+                </p>
+              ); })()}
             </div>
             <ShoppingCart className="w-8 h-8 text-blue-500" />
           </div>
@@ -169,10 +185,12 @@ const AdminDashboard = () => {
               <p className="text-2xl font-bold text-gray-900 font-Manrope">
                 {analytics.totalCustomers}
               </p>
-              <p className="text-xs text-green-600 flex items-center gap-1 mt-1 font-Jost">
-                <TrendingUp className="w-4 h-4" />
-                {analytics.customerGrowth}% vs last month
-              </p>
+              {(() => { const g = getGrowthDisplay(analytics.customerGrowth); return (
+                <p className={`text-xs ${g.color} flex items-center gap-1 mt-1 font-Jost`}>
+                  <g.icon className="w-4 h-4" />
+                  {g.label}
+                </p>
+              ); })()}
             </div>
             <Users className="w-8 h-8 text-blue-500" />
           </div>
@@ -183,6 +201,7 @@ const AdminDashboard = () => {
               <p className="text-2xl font-bold text-gray-900 font-Manrope">
                 {formatCurrency(analytics.avgOrderValue)}
               </p>
+              <p className="text-xs text-gray-400 mt-1 font-Jost">Per completed order</p>
             </div>
             <DollarSign className="w-8 h-8 text-blue-500" />
           </div>
