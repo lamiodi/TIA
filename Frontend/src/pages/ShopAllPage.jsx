@@ -8,6 +8,9 @@ import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 import { Ban, ChevronDown } from 'lucide-react';
 import giftCardImage from '../assets/images/GiftCardImage.jpg';
+import imgWhite from '../assets/im/IMG_6222.PNG';
+import imgBlack from '../assets/im/IMG_6254.PNG';
+import imgGrey from '../assets/im/IMG_6255.PNG';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
@@ -289,8 +292,53 @@ const ShopAllPage = () => {
   }, [products, sortBy, currentFilter, isBrief]);
 
   const displayedProducts = useMemo(() => {
-    return filteredProducts.slice(0, page * itemsPerPage);
-  }, [filteredProducts, page]);
+    let baseProducts = filteredProducts.slice(0, page * itemsPerPage);
+    
+    // Find the first valid bundle ID to use for our promo cards
+    const bundleProduct = products.find(p => !p.is_product && p.bundle_types);
+    const bundleId = bundleProduct ? bundleProduct.id : '';
+    
+    // Create the 3 promo cards
+    const promoCards = bundleId ? [
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'White',
+        name: '5-in-1 Premium Boxers – All White',
+        price: '98000',
+        image: imgWhite,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      },
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'Black',
+        name: '5-in-1 Premium Boxers – All Black',
+        price: '98000',
+        image: imgBlack,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      },
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'Grey',
+        name: '5-in-1 Premium Boxers – All Grey',
+        price: '98000',
+        image: imgGrey,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      }
+    ] : [];
+
+    // Only inject on page 1, and only if filter is ALL or 5 IN 1
+    if (page === 1 && promoCards.length > 0 && (currentFilter === 'ALL' || currentFilter === '5 IN 1')) {
+      return [...promoCards, ...baseProducts];
+    }
+    
+    return baseProducts;
+  }, [filteredProducts, page, products, currentFilter]);
 
   const hasMoreProducts = displayedProducts.length < filteredProducts.length;
 
@@ -464,7 +512,7 @@ const ShopAllPage = () => {
         }`}>
           {displayedProducts.map((product, index) => (
             <ProductCard
-              key={`${product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
+              key={`${product.is_promo ? 'promo-' + product.preloadColor : product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
               product={product}
               onAddToCart={handleAddToCart}
               onImageError={handleImageError}
@@ -490,7 +538,7 @@ const ShopAllPage = () => {
 };
 
 const ProductCard = ({ product, onImageError }) => {
-  const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder } = product;
+  const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder, is_promo, preloadColor } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
@@ -498,15 +546,17 @@ const ProductCard = ({ product, onImageError }) => {
   const isPreorder = isSoldOut && allow_preorder;
 
   let displayName = name || 'Unnamed Product';
-  if (displayName.includes('–')) {
+  if (!is_promo && displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
   }
   
   const productUrl = product.is_gift_card
     ? '/gift-cards'
-    : is_product
-      ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
-      : `/bundle/${id}`;
+    : is_promo
+      ? `/bundle/${id}?preloadBundle=5-in-1&preloadColor=${preloadColor}`
+      : is_product
+        ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
+        : `/bundle/${id}`;
     
   const parsedPrice = parseFloat(price) || 0;
   const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);

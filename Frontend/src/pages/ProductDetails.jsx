@@ -252,12 +252,40 @@ const ProductDetails = () => {
             setSelectedSize(variant?.sizes?.[0]?.size_name || null)
           }
         } else {
-          setBundleType(
-            res.data.data.bundle_type && ["3-in-1", "5-in-1"].includes(res.data.data.bundle_type)
-              ? res.data.data.bundle_type
-              : "3-in-1",
-          )
-          setSelectedBundleVariants({})
+          // Check for preloading URL parameters
+          const preloadColor = searchParams.get("preloadColor")
+          const preloadBundle = searchParams.get("preloadBundle")
+          
+          const defaultBundleType = res.data.data.bundle_type && ["3-in-1", "5-in-1"].includes(res.data.data.bundle_type)
+            ? res.data.data.bundle_type
+            : "3-in-1"
+            
+          const initialBundleType = preloadBundle && ["3-in-1", "5-in-1"].includes(preloadBundle) 
+            ? preloadBundle 
+            : defaultBundleType
+            
+          setBundleType(initialBundleType)
+          
+          let preloadedVariants = {}
+          
+          if (preloadColor) {
+            const allVariants = res.data.data.items?.[0]?.all_variants || []
+            const variant = allVariants.find(v => v.color_name === preloadColor) || allVariants.find(v => v.color_name.toLowerCase() === preloadColor.toLowerCase())
+            
+            if (variant) {
+              const numItems = initialBundleType === "5-in-1" ? 5 : 3
+              for (let i = 0; i < numItems; i++) {
+                preloadedVariants[i] = {
+                  variantId: variant.variant_id,
+                  colorName: variant.color_name,
+                  sizeName: null,
+                  sizeId: null
+                }
+              }
+            }
+          }
+          
+          setSelectedBundleVariants(preloadedVariants)
           const sizes = res.data.data.items?.[0]?.all_variants?.[0]?.sizes || []
           setSelectedSize(sizes[0]?.size_name || null)
         }
@@ -285,10 +313,32 @@ const ProductDetails = () => {
     setSelectedSize(sizeName)
     if (productData && productData.type === "bundle") {
       const updatedVariants = {}
+      const allVariants = productData.data.items?.[0]?.all_variants || []
+      
       Object.entries(selectedBundleVariants).forEach(([key, selection]) => {
+        // Find the variant for this selection to get the correct size_id
+        const variant = allVariants.find(v => v.variant_id === selection.variantId)
+        let newSizeId = selection.sizeId
+        
+        if (variant && variant.sizes) {
+          const sizeMap = { XS: "XS", S: "S", M: "M", L: "L", XL: "XL" }
+          const reverseSizeMap = Object.fromEntries(Object.entries(sizeMap).map(([k, v]) => [v, k]))
+          
+          const sizeObj =
+            variant.sizes.find((s) => s.size_name === sizeName) ||
+            variant.sizes.find((s) => s.size_name === sizeMap[sizeName]) ||
+            variant.sizes.find((s) => s.size_name === reverseSizeMap[sizeName]) ||
+            variant.sizes.find((s) => s.size_name?.toLowerCase() === sizeName?.toLowerCase())
+            
+          if (sizeObj) {
+            newSizeId = sizeObj.size_id
+          }
+        }
+        
         updatedVariants[key] = {
           ...selection,
           sizeName: sizeName,
+          sizeId: newSizeId
         }
       })
       setSelectedBundleVariants(updatedVariants)

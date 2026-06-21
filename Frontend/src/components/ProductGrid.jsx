@@ -4,6 +4,9 @@ import Button from './Button';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+import imgWhite from '../assets/im/IMG_6222.PNG';
+import imgBlack from '../assets/im/IMG_6254.PNG';
+import imgGrey from '../assets/im/IMG_6255.PNG';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -94,8 +97,53 @@ const ProductGrid = () => {
   }, [fetchProducts]);
 
   const displayedProducts = useMemo(() => {
-    return products.slice(0, page * itemsPerPage);
-  }, [products, page]);
+    let baseProducts = products.slice(0, page * itemsPerPage);
+    
+    // Find the first valid bundle ID to use for our promo cards
+    const bundleProduct = products.find(p => !p.is_product && p.bundle_types);
+    const bundleId = bundleProduct ? bundleProduct.id : '';
+    
+    // Create the 3 promo cards
+    const promoCards = bundleId ? [
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'White',
+        name: '5-in-1 Premium Boxers – All White',
+        price: '98000',
+        image: imgWhite,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      },
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'Black',
+        name: '5-in-1 Premium Boxers – All Black',
+        price: '98000',
+        image: imgBlack,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      },
+      {
+        id: bundleId,
+        is_promo: true,
+        preloadColor: 'Grey',
+        name: '5-in-1 Premium Boxers – All Grey',
+        price: '98000',
+        image: imgGrey,
+        is_product: false,
+        bundle_types: ['5-in-1']
+      }
+    ] : [];
+
+    // Only inject on page 1, and only if filter is All or 5 in 1
+    if (page === 1 && promoCards.length > 0 && (filter === 'All' || filter === '5 in 1')) {
+      return [...promoCards, ...baseProducts];
+    }
+    
+    return baseProducts;
+  }, [products, page, filter]);
 
   const hasMoreProducts = displayedProducts.length < products.length;
 
@@ -254,7 +302,7 @@ const ProductGrid = () => {
               }`}>
                 {displayedProducts.map((product, index) => (
                   <ProductCard
-                    key={`${product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
+                    key={`${product.is_promo ? 'promo-' + product.preloadColor : product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
                     product={product}
                     onImageError={handleImageError}
                   />
@@ -283,12 +331,12 @@ const ProductGrid = () => {
 };
 
 const ProductCard = ({ product, onImageError }) => {
-  const { id, name, price, image, color, is_product, variantId, bundle_types, sizes, allow_preorder } = product;
+  const { id, name, price, image, color, is_product, variantId, bundle_types, sizes, allow_preorder, is_promo, preloadColor } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   
   // Clean product name (remove trailing "– Color")
   let displayName = name || 'Unnamed Product';
-  if (displayName.includes('–')) {
+  if (!is_promo && displayName.includes('–')) {
     displayName = displayName.split('–')[0].trim();
   }
   
@@ -299,9 +347,11 @@ const ProductCard = ({ product, onImageError }) => {
     
   const isPreorder = is_product && isOutOfStock && allow_preorder;
   
-  const productUrl = is_product
-    ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
-    : `/bundle/${id}`;
+  const productUrl = is_promo
+    ? `/bundle/${id}?preloadBundle=5-in-1&preloadColor=${preloadColor}`
+    : is_product
+      ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
+      : `/bundle/${id}`;
   
   // Price in NGN for Nigeria, USD for others
   const parsedPrice = parseFloat(price) || 0;
