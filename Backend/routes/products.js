@@ -1,6 +1,6 @@
  // Backend/routes/products.js
    import express from 'express';
-   import { getProductById, uploadProduct } from '../controllers/productController.js';
+   import { getProductById, uploadProduct, getSiblingBundle } from '../controllers/productController.js';
    import upload from '../utils/multer.js';
 
    const router = express.Router();
@@ -14,6 +14,7 @@
    ]);
 
    router.get('/:id', getProductById);
+   router.get('/:id/sibling-bundle', getSiblingBundle);
    router.post('/', multiFieldUpload, uploadProduct);
 
    export default router;

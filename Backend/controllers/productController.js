@@ -326,3 +326,27 @@ export const getProductById = async (req, res) => {
   }
 };
 
+
+
+export const getSiblingBundle = async (req, res) => {
+  const { id } = req.params;
+  const { targetType } = req.query;
+  if (!targetType || !['3-in-1', '5-in-1'].includes(targetType)) {
+    return res.status(400).json({ error: 'Invalid targetType' });
+  }
+  try {
+    const [currentBundle] = await sql`SELECT product_id FROM bundles WHERE id = ${id} AND is_active = TRUE`;
+    if (!currentBundle) return res.status(404).json({ error: 'Bundle not found' });
+    const [sibling] = await sql`
+      SELECT b.id, b.bundle_price AS price, b.bundle_type,
+        COALESCE((SELECT COALESCE(json_agg(image_url), '[]'::json) FROM bundle_images bi WHERE bi.bundle_id = b.id), '[]'::json) AS images
+      FROM bundles b
+      WHERE b.product_id = ${currentBundle.product_id} AND b.bundle_type = ${targetType} AND b.is_active = TRUE
+      LIMIT 1`;
+    if (!sibling) return res.status(404).json({ error: 'Sibling bundle not found' });
+    return res.json({ id: sibling.id, price: sibling.price, bundle_type: sibling.bundle_type, images: sibling.images });
+  } catch (err) {
+    console.error('Get sibling bundle error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};

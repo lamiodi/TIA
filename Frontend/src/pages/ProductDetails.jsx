@@ -43,7 +43,7 @@ const ProductDetails = () => {
   const [selectedSize, setSelectedSize] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [bundleType, setBundleType] = useState("3-in-1")
-
+  const [allBundleData, setAllBundleData] = useState({})
   const [selectedBundleVariants, setSelectedBundleVariants] = useState({})
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [isGuest, setIsGuest] = useState(false)
@@ -266,6 +266,32 @@ const ProductDetails = () => {
             
           setBundleType(initialBundleType)
           
+          // Cache current bundle data
+          const bundleDataCache = {
+            [res.data.data.bundle_type]: {
+              id: res.data.data.id,
+              price: res.data.data.price,
+              images: Array.isArray(res.data.data.images) ? res.data.data.images : []
+            }
+          }
+          
+          // Pre-fetch sibling bundle (3-in-1 <-> 5-in-1) in background
+          const siblingType = res.data.data.bundle_type === "3-in-1" ? "5-in-1" : "3-in-1"
+          try {
+            const siblingRes = await axios.get(`${API_BASE_URL}/api/products/${id}/sibling-bundle?targetType=${encodeURIComponent(siblingType)}`)
+            if (siblingRes.data && siblingRes.data.id) {
+              bundleDataCache[siblingType] = {
+                id: siblingRes.data.id,
+                price: siblingRes.data.price,
+                images: Array.isArray(siblingRes.data.images) ? siblingRes.data.images : []
+              }
+            }
+          } catch {
+            // Sibling may not exist — that's OK
+          }
+          
+          setAllBundleData(bundleDataCache)
+          
           let preloadedVariants = {}
           
           if (preloadColor) {
@@ -344,14 +370,31 @@ const ProductDetails = () => {
       setSelectedBundleVariants(updatedVariants)
     }
   }
-  const handleBundleTypeChange = (newBundleType) => {
-    const currentSelections = Object.keys(selectedBundleVariants).length
-    const newMax = newBundleType === "3-in-1" ? 3 : 5
-    if (currentSelections > newMax) {
-      setSelectedBundleVariants({})
-      setSelectedSize(null)
-    }
+  const handleBundleTypeChange = async (newBundleType) => {
+    // Always clear selections and reset image when switching bundle type
+    setSelectedBundleVariants({})
+    setSelectedSize(null)
+    setSelectedImage(0)
     setBundleType(newBundleType)
+    
+    // If we don't have sibling data cached yet, fetch it now
+    if (!allBundleData[newBundleType]) {
+      try {
+        const siblingRes = await axios.get(`${API_BASE_URL}/api/products/${id}/sibling-bundle?targetType=${encodeURIComponent(newBundleType)}`)
+        if (siblingRes.data && siblingRes.data.id) {
+          setAllBundleData(prev => ({
+            ...prev,
+            [newBundleType]: {
+              id: siblingRes.data.id,
+              price: siblingRes.data.price,
+              images: Array.isArray(siblingRes.data.images) ? siblingRes.data.images : []
+            }
+          }))
+        }
+      } catch {
+        // Sibling may not exist
+      }
+    }
   }
   const handleBundleColorSelection = (variant) => {
     const maxSelections = bundleType === "3-in-1" ? 3 : 5
@@ -494,8 +537,11 @@ const ProductDetails = () => {
           toastError("Each bundle item must have both color and size selected")
           return
         }
+        // Use the correct bundle ID for the selected type (may be sibling bundle)
+        const effectiveBundleId = allBundleData[bundleType]?.id || productData.data.id
         // Get bundle image
-        const bundleImage = productData?.data?.images?.[0] || "https://via.placeholder.com/500"
+        const bundleImages = getBundleImages()
+        const bundleImage = bundleImages[0] || productData?.data?.images?.[0] || "https://via.placeholder.com/500"
         // Get bundle name
         const bundleName = productData?.data?.name || "Unnamed Bundle"
         // Get bundle price
@@ -511,7 +557,9 @@ const ProductDetails = () => {
             "Adding bundle to cart: user_id=",
             userId,
             "bundle_id=",
-            productData.data.id,
+            effectiveBundleId,
+            "bundle_type=",
+            bundleType,
             "items=",
             selectedItems,
           )
@@ -523,7 +571,7 @@ const ProductDetails = () => {
           await authAxios.post(`${API_BASE_URL}/api/cart`, {
             user_id: userId,
             product_type: "bundle",
-            bundle_id: productData.data.id,
+            bundle_id: effectiveBundleId,
             quantity,
             items: selectedItems.map((item) => ({
               variant_id: item.variantId,
@@ -538,7 +586,7 @@ const ProductDetails = () => {
           // Add to guest cart
           addToGuestCart({
             product_type: "bundle",
-            bundle_id: productData.data.id,
+            bundle_id: effectiveBundleId,
             quantity,
             price: bundlePrice,
             is_preorder: isPreorderActive,
@@ -547,7 +595,7 @@ const ProductDetails = () => {
               size_id: item.sizeId,
             })),
             item: {
-              id: productData.data.id,
+              id: effectiveBundleId,
               name: bundleName,
               image: bundleImage,
               price: bundlePrice,
@@ -588,23 +636,19 @@ const ProductDetails = () => {
 
   const getBundlePrice = () => {
     if (!productData || productData.type !== "bundle") return 0
+    // Use cached sibling bundle price if available
+    if (allBundleData[bundleType]?.price) {
+      return Number.parseFloat(allBundleData[bundleType].price) || 0
+    }
     const basePrice = Number.parseFloat(productData.data.price) || 0
     const loadedType = productData.data.bundle_type || "3-in-1"
-
     // If the selected type matches the loaded bundle's type, return the actual price
     if (bundleType === loadedType) {
       return basePrice
     }
-
-    // Use standard bundle pricing when switching types to avoid rounding errors
-    if (bundleType === "5-in-1") {
-      return 98000
-    }
-
-    if (bundleType === "3-in-1") {
-      return 59999
-    }
-
+    // Fallback to standard bundle pricing
+    if (bundleType === "5-in-1") return 98000
+    if (bundleType === "3-in-1") return 59999
     return basePrice
   }
   if (loading || contextLoading || authLoading) {
@@ -631,13 +675,23 @@ const ProductDetails = () => {
   // Safely extract data with null checks
   const { type, data } = productData || {}
   const isProduct = type === "product"
+
+  // For bundles: use cached images for the current bundleType, fallback to loaded bundle images
+  const getBundleImages = () => {
+    if (isProduct) return []
+    // Use cached images for the current bundle type if available
+    if (allBundleData[bundleType]?.images?.length > 0) {
+      return allBundleData[bundleType].images
+    }
+    // Fallback to the loaded bundle's images
+    return Array.isArray(data?.images) ? data.images : []
+  }
+
   const images = isProduct
     ? Array.isArray(selectedVariant?.images)
       ? selectedVariant.images
       : []
-    : Array.isArray(data?.images)
-      ? data.images
-      : []
+    : getBundleImages()
   const name = data?.name || "Unnamed Product"
   const rawPrice = isProduct ? data?.price : getBundlePrice()
   const parsedPrice = Number.parseFloat(rawPrice) || 0

@@ -377,14 +377,41 @@ const ShopAllPage = () => {
 
   if (loading || contextLoading) {
     return (
-      <div className="container-padding typography flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <Navbar2 />
-        <div className="pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
-              {[...Array(10)].map((_, i) => (
-                 <div key={i} className="bg-gray-100 h-64 rounded-xl animate-pulse"></div>
-              ))}
+        <div className="typography container-padding flex flex-col pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
+          {/* Header skeleton */}
+          <div className="mb-8 space-y-3">
+            <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <div className="h-4 w-72 bg-gray-100 rounded animate-pulse" />
+              <div className="h-4 w-28 bg-gray-100 rounded animate-pulse" />
             </div>
+          </div>
+          {/* Filter bar skeleton */}
+          <div className="mb-8 space-y-4">
+            <div className="flex gap-3 pb-4 border-b border-gray-100">
+              {[...Array(7)].map((_, i) => (
+                <div key={i} className="h-8 w-20 bg-gray-200 rounded-full animate-pulse hidden sm:block" />
+              ))}
+              <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse sm:hidden" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <div className="h-8 w-24 bg-gray-100 rounded animate-pulse" />
+            </div>
+          </div>
+          {/* Product grid skeleton */}
+          <div className="grid gap-x-3 gap-y-6 mb-8 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col">
+                <div className="aspect-[3/4] bg-gray-200 animate-pulse rounded-t-xl" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+                  <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         <Footer />
       </div>
