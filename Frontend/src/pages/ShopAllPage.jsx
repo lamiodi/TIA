@@ -592,11 +592,11 @@ const ProductCard = ({ product, onImageError }) => {
   return (
     <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
       <Link to={productUrl} className="block relative overflow-hidden flex-1">
-        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-50">
+        <div className={`relative w-full aspect-[3/4] overflow-hidden ${product.is_gift_card ? 'bg-black flex items-center justify-center p-2' : 'bg-gray-50'}`}>
           <img
             src={image}
             alt={displayName}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+            className={`w-full h-full ${product.is_gift_card ? 'object-contain' : 'object-cover object-center'} group-hover:scale-105 transition-transform duration-700 ease-out`}
             onError={onImageError}
             loading="lazy"
           />
