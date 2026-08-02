@@ -69,11 +69,25 @@ const GiftCardPage = () => {
       
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="relative h-64 md:h-80 w-full bg-[#E5D4C0] flex items-center justify-center p-4">
-             <img src={giftCardImage} alt="The Tia Brand Gift Card" className="w-full h-full object-contain object-center" />
-             <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center backdrop-blur-[2px]">
-                <h1 className="text-4xl font-bold font-Manrope mb-3 shadow-sm tracking-tight">Give the Perfect Gift</h1>
-                <p className="text-lg text-gray-100 font-medium shadow-sm max-w-md">Send The Tia Brand Gift Card instantly via email. The ultimate gift of choice.</p>
+          {/* Page Header */}
+          <div className="pt-8 pb-4 px-6 text-center bg-white border-b border-gray-100">
+             <span className="inline-block bg-black text-white text-[11px] font-bold px-3 py-1 uppercase tracking-widest rounded-full mb-2">
+               Digital Gift Card
+             </span>
+             <h1 className="text-3xl md:text-4xl font-bold font-Manrope text-gray-900 mb-2 tracking-tight">Give the Perfect Gift</h1>
+             <p className="text-gray-600 font-medium max-w-md mx-auto text-sm md:text-base">
+               Send The Tia Brand Gift Card instantly via email. The ultimate gift of choice.
+             </p>
+          </div>
+
+          {/* Unobscured Card Display */}
+          <div className="bg-[#E5D4C0] p-6 md:p-10 flex items-center justify-center">
+             <div className="relative w-full max-w-lg h-56 md:h-72 flex items-center justify-center">
+                <img 
+                  src={giftCardImage} 
+                  alt="The Tia Brand Gift Card" 
+                  className="w-full h-full object-contain filter drop-shadow-2xl hover:scale-105 transition-transform duration-500" 
+                />
              </div>
           </div>
 
