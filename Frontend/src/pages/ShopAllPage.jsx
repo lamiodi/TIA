@@ -7,7 +7,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 import { Ban, ChevronDown } from 'lucide-react';
-const giftCardImage = '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG';
+import giftCardImage from '../assets/images/GiftCardImage.png';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
@@ -153,7 +153,7 @@ const ShopAllPage = () => {
     id: 'gift-card',
     name: 'The Tia Brand Gift Card',
     price: 100000,
-    image: '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG',
+    image: giftCardImage,
     is_product: true,
     is_gift_card: true,
     category: 'Gift Cards',

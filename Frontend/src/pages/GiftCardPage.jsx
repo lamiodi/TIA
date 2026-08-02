@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-const giftCardImage = '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG';
+import giftCardImage from '../assets/images/GiftCardImage.png';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
