@@ -205,7 +205,7 @@ const generateReceiptStream = (giftCard, outputStream) => {
   doc.pipe(outputStream);
 
   // Add content to PDF
-  doc.fontSize(20).text('Gift Card Receipt', { align: 'center' });
+  doc.fontSize(20).text('The Tia Brand Gift Card Receipt', { align: 'center' });
   doc.moveDown();
   doc.fontSize(12).text(`Date: ${new Date(giftCard.updated_at || giftCard.created_at).toLocaleDateString()}`);
   doc.text(`Reference: ${giftCard.payment_reference}`);

@@ -7,7 +7,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 import { Ban, ChevronDown } from 'lucide-react';
-import giftCardImage from '../assets/images/GiftCardImage.jpg';
+const giftCardImage = '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
@@ -125,8 +125,8 @@ const ShopAllPage = () => {
       description: 'Discover our newest arrivals in premium comfort wear. Be the first to experience our latest designs.'
     },
     'GIFT CARDS': {
-      title: 'Gift Cards | The TiaBrand',
-      description: 'Give the perfect gift with TiaBrand Gift Cards. Available in various denominations.'
+      title: 'The Tia Brand Gift Card | The TiaBrand',
+      description: 'Give the perfect gift with The Tia Brand Gift Card. Available in various denominations.'
     }
   };
 
@@ -151,9 +151,9 @@ const ShopAllPage = () => {
 
   const GIFT_CARD_PRODUCT = useMemo(() => ({
     id: 'gift-card',
-    name: 'TiaBrand Gift Card',
+    name: 'The Tia Brand Gift Card',
     price: 100000,
-    image: giftCardImage,
+    image: '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG',
     is_product: true,
     is_gift_card: true,
     category: 'Gift Cards',

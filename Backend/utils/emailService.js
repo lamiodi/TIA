@@ -70,14 +70,14 @@ export const sendGiftCardEmail = async (to, giftCard) => {
         
         <!-- Hero Image -->
         <div style="width: 100%; height: auto;">
-          <img src="${giftCardImageUrl}" alt="The TiaBrand Gift Card" style="width: 100%; height: auto; display: block;" />
+          <img src="${giftCardImageUrl}" alt="The Tia Brand Gift Card" style="width: 100%; height: auto; display: block;" />
         </div>
 
         <div style="padding: 40px 32px; text-align: center;">
           <h1 style="font-size: 32px; color: #000000; margin: 0 0 16px 0; font-weight: 700; letter-spacing: -0.5px; text-transform: uppercase;">You've Received a Gift</h1>
           
           <p style="font-size: 16px; color: #444444; margin-bottom: 32px; line-height: 1.6;">
-            ${giftCard.sender_name ? `<strong>${giftCard.sender_name}</strong> has sent you a TiaBrand Gift Card.` : 'You have received a TiaBrand Gift Card.'}
+            ${giftCard.sender_name ? `<strong>${giftCard.sender_name}</strong> has sent you The Tia Brand Gift Card.` : 'You have received The Tia Brand Gift Card.'}
           </p>
 
           ${giftCard.message ? `

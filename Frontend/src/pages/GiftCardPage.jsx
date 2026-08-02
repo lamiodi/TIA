@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import giftCardImage from '../assets/images/GiftCardImage.jpg';
+const giftCardImage = '/606E672C-FFAD-4A32-8587-E832ADF770D5.PNG';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -70,10 +70,10 @@ const GiftCardPage = () => {
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="relative h-64 md:h-80 w-full">
-             <img src={giftCardImage} alt="Gift Card" className="w-full h-full object-cover object-center" />
+             <img src={giftCardImage} alt="The Tia Brand Gift Card" className="w-full h-full object-cover object-center" />
              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center backdrop-blur-[2px]">
                 <h1 className="text-4xl font-bold font-Manrope mb-3 shadow-sm tracking-tight">Give the Perfect Gift</h1>
-                <p className="text-lg text-gray-100 font-medium shadow-sm max-w-md">Send a TiaBrand Gift Card instantly via email. The ultimate gift of choice.</p>
+                <p className="text-lg text-gray-100 font-medium shadow-sm max-w-md">Send The Tia Brand Gift Card instantly via email. The ultimate gift of choice.</p>
              </div>
           </div>
 
