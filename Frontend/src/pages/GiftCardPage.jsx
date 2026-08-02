@@ -69,7 +69,7 @@ const GiftCardPage = () => {
       
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="relative h-64 md:h-80 w-full bg-black flex items-center justify-center p-4">
+          <div className="relative h-64 md:h-80 w-full bg-[#E5D4C0] flex items-center justify-center p-4">
              <img src={giftCardImage} alt="The Tia Brand Gift Card" className="w-full h-full object-contain object-center" />
              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center backdrop-blur-[2px]">
                 <h1 className="text-4xl font-bold font-Manrope mb-3 shadow-sm tracking-tight">Give the Perfect Gift</h1>
