@@ -150,8 +150,7 @@ const LandingPage = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
-                  <h3 className="text-3xl font-bold mb-2">THE MICHEAL JORDAN</h3>
-                  <p className="text-lg mb-4">{formatPrice('₦19,999')}</p>
+                  <h3 className="text-3xl font-bold mb-4">THE MICHEAL JORDAN</h3>
                   <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -170,8 +169,7 @@ const LandingPage = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
-                  <h3 className="text-3xl font-bold mb-2">YOU THE BOSS</h3>
-                  <p className="text-lg mb-4">{formatPrice('₦19,000')}</p>
+                  <h3 className="text-3xl font-bold mb-4">YOU THE BOSS</h3>
                   <Link to="/shop?category=briefs">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -190,8 +188,7 @@ const LandingPage = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
-                  <h3 className="text-3xl font-bold mb-2">HIS AND HERS</h3>
-                  <p className="text-lg mb-4">{formatPrice('₦103,850')}</p>
+                  <h3 className="text-3xl font-bold mb-4">HIS AND HERS</h3>
                   <Link to="/shop">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
@@ -210,8 +207,7 @@ const LandingPage = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-8 left-8 text-white">
-                  <h3 className="text-3xl font-bold mb-2">EVSS TEA I</h3>
-                  <p className="text-lg mb-4">{formatPrice('₦52,850.00')}</p>
+                  <h3 className="text-3xl font-bold mb-4">EVSS TEA I</h3>
                   <Link to="/shop?category=gymwear">
                     <button className="bg-white text-black px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                       SHOP NOW
