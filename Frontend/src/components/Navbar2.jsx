@@ -132,7 +132,7 @@ export default function Navbar2() {
               </div>
               
               {/* Left: Desktop Navigation Links */}
-              <div className="hidden lg:flex items-center space-x-8">
+              <div className="hidden lg:flex lg:flex-1 items-center space-x-8">
                 <Link 
                   to="/shop" 
                   className={`text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70 ${
@@ -187,7 +187,7 @@ export default function Navbar2() {
               </div>
 
               {/* Right Side Tools: Currency, Search, Profile, Cart */}
-              <div className="flex items-center space-x-3 sm:space-x-6">
+              <div className="absolute inset-y-0 right-0 flex items-center lg:static lg:inset-auto lg:flex-1 lg:justify-end space-x-3 sm:space-x-6">
                 
                 {/* Currency Switcher Toggle (Desktop - shadcn style) */}
                 {toggleCurrency && (

@@ -104,7 +104,7 @@ export default function Navbar() {
               </div>
               
               {/* Right: Auth and navigation */}
-              <div className="flex items-center gap-4 ml-auto">
+              <div className="absolute inset-y-0 right-0 flex items-center gap-4 lg:static lg:inset-auto lg:flex-1 lg:justify-end lg:ml-auto">
                 {/* Search (desktop only - show from lg and above) */}
                 <div className="relative hidden lg:flex items-center">
                   <input
