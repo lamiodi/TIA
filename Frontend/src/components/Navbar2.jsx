@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { LogOut, Search, User, Package, ChevronDown } from 'lucide-react';
+import { LogOut, Search, User, Package, ChevronDown, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CurrencyContext } from '../pages/CurrencyContext';
 import { toastSuccess } from '../utils/toastConfig';
 import LogoWhite from '../assets/icons/LogoWhite.svg';
 import LogoBlack from '../assets/icons/LogoBLACK.svg';
@@ -12,9 +13,52 @@ export default function Navbar2() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
+  const { currency, toggleCurrency } = useContext(CurrencyContext) || {};
+  
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  // Scroll detection for dynamic header elevation & backdrop
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Sync cart item count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
+        if (Array.isArray(cartData)) {
+          const totalUnits = cartData.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+          setCartCount(totalUnits);
+        }
+      } catch (err) {
+        setCartCount(0);
+      }
+    };
+
+    updateCartCount();
+    window.addEventListener('storage', updateCartCount);
+    // Interval fallback to catch soft-state cart changes
+    const interval = setInterval(updateCartCount, 1000);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      clearInterval(interval);
+    };
+  }, []);
   
   // Determine if current page has white background
   const isWhiteBackgroundPage = () => {
@@ -41,7 +85,6 @@ export default function Navbar2() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn('Navbar2: Loading stuck, continuing render.');
         setLoadingTimeout(true);
       }
     }, 1000);
@@ -68,17 +111,19 @@ export default function Navbar2() {
     navigate(path);
     setIsMenuOpen(false);
   };
+
+  const isLightMode = isWhiteBackgroundPage();
   
   if (loading && !loadingTimeout) {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div className="mx-auto max-w-full container-padding flex h-[3.75rem] items-center justify-center">
-          <div className="flex items-center gap-2 text-white">
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 text-white text-xs tracking-widest uppercase font-mono">
+            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>Loading...</span>
+            <span>The TiaBrand</span>
           </div>
         </div>
       </nav>
@@ -86,338 +131,274 @@ export default function Navbar2() {
   }
   
   return (
-    <Disclosure as="nav" className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-sm">
+    <Disclosure as="nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      isScrolled 
+        ? (isLightMode ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 py-0' : 'bg-black/90 backdrop-blur-md border-b border-white/10 py-0') 
+        : 'bg-transparent py-1'
+    }`}>
       {({ open }) => (
         <>
-          <div className="mx-auto max-w-full container-padding py-1">
-            <div className="relative flex h-[3.75rem] items-center justify-between">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="relative flex h-16 items-center justify-between">
               
               {/* Mobile menu button - show below lg */}
               <div className="absolute inset-y-0 left-0 flex items-center lg:hidden">
-                <DisclosureButton className={`inline-flex items-center justify-center rounded-md p-2 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white ${
-                  isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
+                <DisclosureButton className={`inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-colors ${
+                  isLightMode ? 'text-black' : 'text-white'
                 }`}>
                   <span className="sr-only">Open menu</span>
                   {open ? (
-                    <XMarkIcon className="block h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
+                    <XMarkIcon className="block h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <Bars3Icon className="block h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
+                    <Bars3Icon className="block h-5 w-5" aria-hidden="true" />
                   )}
                 </DisclosureButton>
               </div>
               
-
-              
-              {/* Center: Logo */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 sm:transform-none">
-                <Link to="/home" className="flex items-center">
-                  <img 
-                    src={isWhiteBackgroundPage() ? LogoBlack : LogoWhite} 
-                    alt="Logo" 
-                    className="h-10 w-40 sm:h-12 sm:w-48 md:h-14 md:w-56"
-                  />
-                </Link>
-              </div>
-              
-              {/* Left-side Navigation Links for large screens - SHOP, CONTACT, MORE */}
-              <div className="hidden lg:flex items-center gap-6 ml-6">
+              {/* Left: Desktop Navigation Links */}
+              <div className="hidden lg:flex items-center space-x-8">
                 <Link 
                   to="/shop" 
-                  className={`text-sm font-medium hover:opacity-80 transition-opacity ${
-                    isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
+                  className={`text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                    isLightMode ? 'text-black' : 'text-white'
                   }`}
                 >
-                  SHOP
+                  Shop All
                 </Link>
                 <Link 
-                  to="/help" 
-                  className={`text-sm font-medium hover:opacity-80 transition-opacity ${
-                    isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
+                  to="/shop?category=briefs" 
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                    isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
-                  CONTACT
+                  Briefs
                 </Link>
                 <Link 
-                  to="/more" 
-                  className={`text-sm font-medium hover:opacity-80 transition-opacity ${
-                    isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
+                  to="/shop?category=lounge%20sets" 
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                    isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
-                  MORE
+                  Lounge
+                </Link>
+                <Link 
+                  to="/shop?category=3in1" 
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                    isLightMode ? 'text-gray-600' : 'text-gray-300'
+                  }`}
+                >
+                  3-in-1
+                </Link>
+                <Link 
+                  to="/gift-cards" 
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                    isLightMode ? 'text-gray-600' : 'text-gray-300'
+                  }`}
+                >
+                  Gift Cards
                 </Link>
               </div>
-              
 
-              
-              {/* Right: Auth and navigation */}
-              <div className="flex items-center gap-4 ml-auto">
-                {/* Search (desktop only - show from lg and above) */}
-                <div className="relative hidden lg:flex items-center">
-                  <input
-                    type="text"
-                    placeholder="Search products or categories..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
-                    className={`w-40 lg:w-60 xl:w-70 2xl:w-70 pl-2 pr-8 py-1 text-sm border-b bg-transparent focus:border-b-2 focus:outline-none ${
-                      isWhiteBackgroundPage() 
-                        ? 'text-Primarycolor border-Primarycolor focus:border-Primarycolor placeholder-Primarycolor/70' 
-                        : 'text-Secondarycolor border-Secondarycolor focus:border-Secondarycolor placeholder-white/70'
-                    }`}
+              {/* Center: Brand Logo */}
+              <div className="flex-1 flex justify-center lg:flex-initial">
+                <Link to="/home" className="flex items-center focus:outline-none focus:ring-2 focus:ring-black rounded px-1">
+                  <img 
+                    src={isLightMode ? LogoBlack : LogoWhite} 
+                    alt="The TiaBrand" 
+                    className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 hover:scale-[1.02]"
                   />
-                  <button 
-                    onClick={handleSearch}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2" 
-                    aria-label="Search"
-                  >
-                    <Search className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                      isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                    }`} />
-                  </button>
-                </div>
+                </Link>
+              </div>
+
+              {/* Right Side Tools: Currency, Search, Profile, Cart */}
+              <div className="flex items-center space-x-4 sm:space-x-6">
                 
-                {/* Hamburger menu for desktop - show from lg and above, only when user is logged in */}
-                {user && (
-                  <div className="hidden lg:flex relative group">
+                {/* Currency Switcher Toggle */}
+                {toggleCurrency && (
+                  <button
+                    onClick={toggleCurrency}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono tracking-wider rounded-full border transition-all duration-200 ${
+                      isLightMode 
+                        ? 'border-gray-300 hover:border-black text-black bg-gray-50/50' 
+                        : 'border-white/20 hover:border-white text-white bg-white/5'
+                    }`}
+                    title="Switch currency (NGN / USD)"
+                    aria-label="Toggle currency"
+                  >
+                    <Globe size={12} className="opacity-70" />
+                    <span>{currency || 'NGN'}</span>
+                  </button>
+                )}
+
+                {/* Search input (Desktop) */}
+                <div className="relative hidden lg:flex items-center">
+                  <form onSubmit={handleSearch} className="flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className={`w-28 focus:w-44 transition-all duration-300 pl-2 pr-7 py-1 text-xs tracking-wider border-b bg-transparent focus:outline-none ${
+                        isLightMode 
+                          ? 'text-black border-gray-300 focus:border-black placeholder-gray-400' 
+                          : 'text-white border-white/30 focus:border-white placeholder-gray-400'
+                      }`}
+                    />
+                    <button 
+                      type="submit"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 opacity-70 hover:opacity-100" 
+                      aria-label="Submit Search"
+                    >
+                      <Search size={14} className={isLightMode ? 'text-black' : 'text-white'} />
+                    </button>
+                  </form>
+                </div>
+
+                {/* User Menu / Auth */}
+                {user ? (
+                  <div className="relative">
                     <button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="flex items-center p-1 hover:opacity-80 transition-opacity relative"
-                      aria-label="User menu"
+                      className={`p-1.5 rounded-full transition-opacity hover:opacity-80 focus:outline-none ${
+                        isLightMode ? 'text-black hover:bg-gray-100' : 'text-white hover:bg-white/10'
+                      }`}
+                      aria-label="User Account"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`h-5 w-5 sm:h-6 sm:w-6 ${
-                        isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                      }`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                      </svg>
+                      <User size={18} />
                     </button>
-                    
-                    {/* Tooltip for Order History */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                      Order History
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
-                    </div>
-                    
-                    {/* Desktop dropdown menu */}
+
                     {isMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 rounded-md shadow-xl py-1 z-50 border border-gray-100 dark:border-zinc-800 text-xs">
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 text-gray-500 font-mono">
+                          {user.email || 'Account'}
+                        </div>
                         <Link 
                           to="/profile" 
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => handleMenuNavigation('/profile')}
+                          className="flex items-center px-4 py-2.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
                         >
-                          <User className="h-4 w-4 mr-3 text-gray-500" />
+                          <User size={14} className="mr-3 opacity-70" />
                           Profile
                         </Link>
                         <Link 
                           to="/orders" 
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => handleMenuNavigation('/orders')}
+                          className="flex items-center px-4 py-2.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
                         >
-                          <Package className="h-4 w-4 mr-3 text-gray-500" />
-                          Order History
+                          <Package size={14} className="mr-3 opacity-70" />
+                          Orders
                         </Link>
-                        <div className="border-t border-gray-100 my-1"></div>
+                        <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
                         <button
                           onClick={handleLogout}
-                          className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="flex items-center w-full text-left px-4 py-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                         >
-                          <LogOut className="h-4 w-4 mr-3 text-gray-500" />
+                          <LogOut size={14} className="mr-3" />
                           Logout
                         </button>
                       </div>
                     )}
                   </div>
-                )}
-                
-                {/* Auth button */}
-                {user ? (
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1 text-sm font-medium hover:opacity-80 transition-opacity"
-                    aria-label="Logout"
-                  >
-                    <LogOut size={14} className={`sm:w-4 sm:h-4 ${
-                      isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                    }`} />
-                  </button>
                 ) : (
-                  <Link to="/login">
-                    <button
-                      className="flex items-center gap-1 text-sm font-medium hover:opacity-80 transition-opacity"
-                      aria-label="Login"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`h-5 w-5 sm:h-6 sm:w-6 ${
-                        isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                      }`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                      </svg>
+                  <Link to="/login" aria-label="Login">
+                    <button className={`p-1.5 rounded-full transition-opacity hover:opacity-80 ${
+                      isLightMode ? 'text-black' : 'text-white'
+                    }`}>
+                      <User size={18} />
                     </button>
                   </Link>
                 )}
-                
-                {/* Cart or Back */}
-                {location.pathname === '/cart' ? (
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="flex items-center p-1 hover:opacity-80 transition-opacity"
-                    aria-label="Go back"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 sm:h-6 sm:w-6 ${
-                      isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                    }`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                    </svg>
-                  </button>
-                ) : (
-                  <Link to="/cart">
-                    <button className="flex items-center p-1 hover:opacity-80 transition-opacity" aria-label="Shopping cart">
-                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 sm:h-6 sm:w-6 ${
-                        isWhiteBackgroundPage() ? 'text-Primarycolor' : 'text-Secondarycolor'
-                      }`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                      </svg>
-                    </button>
-                  </Link>
-                )}
+
+                {/* Shopping Cart Link with Dynamic Badge */}
+                <Link to="/cart" className="relative p-1.5 focus:outline-none" aria-label="Shopping Cart">
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 hover:scale-105 ${
+                    isLightMode ? 'text-black' : 'text-white'
+                  }`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black dark:bg-white text-[10px] font-bold font-mono text-white dark:text-black shadow-sm animate-pulse">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
               </div>
             </div>
           </div>
-          
-          {/* Enhanced Mobile Menu */}
-          <DisclosurePanel className="lg:hidden bg-black/70 backdrop-blur-md border-t border-white/10">
-            <div className="space-y-1 px-4 pb-4 pt-3">
+
+          {/* Mobile Navigation Drawer */}
+          <DisclosurePanel className="lg:hidden bg-black/95 backdrop-blur-xl border-t border-white/10 text-white">
+            <div className="px-4 pt-4 pb-6 space-y-4">
               
-              {/* Enhanced Search input (mobile only - show below lg) */}
-              <div className="mb-6">
-                <form onSubmit={handleSearch} className="flex">
-                  <input
-                    type="text"
-                    placeholder="Search products or categories..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 px-4 py-3 text-sm border rounded-l bg-white/10 backdrop-blur-sm text-white border-white/20 placeholder-white/70 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all duration-200"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-white/20 backdrop-blur-sm text-white px-4 py-3 rounded-r border border-l-0 border-white/20 hover:bg-white/30 transition-all duration-200"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </form>
-              </div>
-              
-              {/* Enhanced Quick Navigation Links */}
-              <nav 
-                className="container quicknav flex flex-col space-y-3 lg:max-w-[800px] mb-[40dvh] sm:mb-38 md:mb-50 lg:mb-[50dvh] z-25 lg:absolute lg:left-0 lg:bg-black/70" 
-                role="navigation" 
-                aria-label="Product categories"
-              >
+              {/* Mobile Search */}
+              <form onSubmit={handleSearch} className="flex">
+                <input
+                  type="text"
+                  placeholder="Search products or categories..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-xs bg-white/10 border border-white/20 rounded-l-md text-white placeholder-gray-400 focus:outline-none focus:border-white"
+                />
+                <button
+                  type="submit"
+                  className="bg-white text-black px-4 py-2.5 rounded-r-md text-xs font-semibold"
+                >
+                  <Search size={14} />
+                </button>
+              </form>
+
+              {/* Mobile Navigation Links */}
+              <div className="space-y-2 pt-2 text-xs font-medium tracking-widest uppercase">
                 <Link 
                   to="/shop" 
-                  className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
+                  className="block px-3 py-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  SHOP
+                  Shop All Products
                 </Link>
-
-                {/* HIS Section with Subsections (Collapsible) */}
-                <Disclosure as="div" className="space-y-1">
-                  {({ open }) => (
-                    <>
-                      <DisclosureButton className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-200">
-                        <span>HIS</span>
-                        <ChevronDown
-                          className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 text-white/70`}
-                        />
-                      </DisclosureButton>
-                      <DisclosurePanel className="pl-4 space-y-1">
-                        <Link 
-                          to="/shop?category=briefs" 
-                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          Briefs
-                        </Link>
-                        <Link 
-                          to="/shop?category=3in1" 
-                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          3 in 1
-                        </Link>
-                        <Link 
-                          to="/shop?category=5in1" 
-                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          5 in 1
-                        </Link>
-                      </DisclosurePanel>
-                    </>
-                  )}
-                </Disclosure>
-
-                {/* HERS Section with Subsections (Collapsible) */}
-                <Disclosure as="div" className="space-y-1">
-                  {({ open }) => (
-                    <>
-                      <DisclosureButton className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-left font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-200">
-                        <span>HERS</span>
-                        <ChevronDown
-                          className={`${open ? 'rotate-180 transform' : ''} h-4 w-4 text-white/70`}
-                        />
-                      </DisclosureButton>
-                      <DisclosurePanel className="pl-4 space-y-1">
-                        <Link 
-                          to="/shop?category=lounge%20sets" 
-                          className="block text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg px-4 py-2 text-sm border-l border-white/10"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          LOUNGE SETS
-                        </Link>
-                      </DisclosurePanel>
-                    </>
-                  )}
-                </Disclosure>
-
-                <div className="border-t border-white/10 my-2"></div>
-
+                <Link 
+                  to="/shop?category=briefs" 
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Briefs & Boxers (Min 3 Units)
+                </Link>
+                <Link 
+                  to="/shop?category=lounge%20sets" 
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Lounge Sets
+                </Link>
+                <Link 
+                  to="/shop?category=3in1" 
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  3-in-1 Bundles
+                </Link>
+                <Link 
+                  to="/shop?category=5in1" 
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  5-in-1 Bundles
+                </Link>
+                <Link 
+                  to="/gift-cards" 
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Gift Cards
+                </Link>
                 <Link 
                   to="/help" 
-                  className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
+                  className="block px-3 py-2 rounded-md hover:bg-white/10 text-gray-300"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  CONTACT US
+                  Help & Contact
                 </Link>
-                <Link 
-                  to="/more" 
-                  className="text-white hover:text-white/80 hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-4 py-3 font-medium backdrop-blur-sm border border-white/10 hover:border-white/20"
-                >
-                  MORE
-                </Link>
-              </nav>
-              
-              {/* Enhanced Profile and Orders links (mobile only) */}
-              {user && (
-                <>
-                  <div className="border-t border-white/10 pt-4 mt-4">
-                    <Link to="/profile">
-                      <button className="flex items-center w-full text-left px-4 py-3 text-sm rounded-lg transition-all duration-200 text-white hover:text-white/80 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-white/20 mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white mr-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Profile
-                      </button>
-                    </Link>
-                    
-                    {/* Orders link (mobile only) */}
-                    <Link to="/orders">
-                      <button className="flex items-center w-full text-left px-4 py-3 text-sm rounded-lg transition-all duration-200 text-white hover:text-white/80 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-white/20">
-                        <Package className="h-4 w-4 text-white mr-3" />
-                        Order History
-                      </button>
-                    </Link>
-                  </div>
-                </>
-              )}
+              </div>
             </div>
           </DisclosurePanel>
         </>

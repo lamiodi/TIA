@@ -29,11 +29,18 @@ const useMetaTags = (title, description) => {
   }, [title, description]);
 };
 
-const CollectionPageSchema = () => {
-  const pageTitle = 'Shop All';
-  const pageDescription = 'Explore our complete collection of premium underwear and activewear';
+const CollectionPageSchema = ({ products = [] }) => {
+  const pageTitle = 'Shop All | The TiaBrand';
+  const pageDescription = 'Explore our luxury collection of underwear, boxer briefs, lounge sets, and activewear.';
   const pageUrl = window.location.href;
   
+  const itemListElement = products.slice(0, 16).map((product, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "name": product.name || 'TiaBrand Product',
+    "url": `${window.location.origin}/product/${product.id}`
+  }));
+
   return (
     <script type="application/ld+json">
       {JSON.stringify({
@@ -44,7 +51,7 @@ const CollectionPageSchema = () => {
         "url": pageUrl,
         "mainEntity": {
           "@type": "ItemList",
-          "itemListElement": []
+          "itemListElement": itemListElement
         }
       })}
     </script>
@@ -439,7 +446,7 @@ const ShopAllPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <CollectionPageSchema />
+      <CollectionPageSchema products={displayedProducts} />
       <Navbar2 />
       <div className="typography container-padding flex flex-col pt-20 py-8 px-2 sm:px-3 lg:px-4 flex-1">
         

@@ -60,3 +60,10 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Impeccable skills & AI harness directories
+.claude/
+.cursor/
+.gemini/
+.kiro/
+

@@ -71,8 +71,21 @@ export const CurrencyProvider = ({ children }) => {
     initializeCurrency();
   }, []);
 
+  const toggleCurrency = () => {
+    const nextCode = country === 'Nigeria' ? 'US' : 'NG';
+    const nextMap = countryCurrencyMap[nextCode];
+    localStorage.setItem('selectedCountry', nextCode);
+    setCountry(nextMap.name);
+    setCurrency(nextMap.currency);
+    if (nextMap.currency === 'USD') {
+      setExchangeRate(1);
+    } else {
+      setExchangeRate(1529.26);
+    }
+  };
+
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, exchangeRate, setExchangeRate, country, setCountry, contextLoading }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, exchangeRate, setExchangeRate, country, setCountry, toggleCurrency, contextLoading }}>
       {children}
     </CurrencyContext.Provider>
   );

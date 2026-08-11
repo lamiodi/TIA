@@ -29,15 +29,18 @@ import AdminRoute from './components/AdminRoute';
 import SearchResults from './pages/SearchResults';
 import LandingPage from './pages/LandingPage';
 import CartErrorBoundary from './components/CartErrorBoundary';
-import ScrollToTop from './components/ScrollToTop';
+import SmoothScroll from './components/SmoothScroll';
+import ScrollProgress from './components/ScrollProgress';
 
 function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
         <AdminAuthProvider>
-          <ScrollToTop />
-          <Routes>
+          <SmoothScroll>
+            <ScrollProgress />
+            <ScrollToTop />
+            <Routes>
             <Route path="/search" element={<SearchResults />} />
             <Route path="/home" element={<LandingPage />} />
             <Route path="/shop" element={<ShopAllPage />} />
@@ -61,6 +64,7 @@ function App() {
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           </Routes>
+          </SmoothScroll>
           <ToastContainer
             position="top-right"
             autoClose={2000}
