@@ -989,9 +989,9 @@ const Cart = () => {
   
   // Handle loading states AFTER all hooks are declared
   if (authLoading || contextLoading) {
-    console.log('Cart page showing loading state:', { authLoading, contextLoading });
     return (
       <div
+        className="min-h-screen bg-gray-50"
         style={{
           '--color-Primarycolor': '#1E1E1E',
           '--color-Secondarycolor': '#ffffff',
@@ -1001,12 +1001,43 @@ const Cart = () => {
         }}
       >
         <Navbar2 />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center justify-center text-gray-600">
-            <Loader2 className="animate-spin h-8 w-8 text-Primarycolor" />
-            <p className="mt-2 text-sm font-Jost">Loading cart...</p>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+          <div className="mb-8">
+            <div className="h-8 bg-gray-200 rounded-lg w-48 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
           </div>
-        </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Cart Items Skeleton */}
+            <div className="lg:col-span-8 space-y-4">
+              {[1, 2].map((i) => (
+                <CartItemSkeleton key={i} />
+              ))}
+            </div>
+
+            {/* Order Summary Skeleton */}
+            <div className="lg:col-span-4">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-6 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                </div>
+                <div className="border-t border-gray-100 pt-4 flex justify-between">
+                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                </div>
+                <div className="h-12 bg-gray-300 rounded-xl w-full"></div>
+              </div>
+            </div>
+          </div>
+        </main>
         <Suspense fallback={null}>
           <Footer />
         </Suspense>

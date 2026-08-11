@@ -658,11 +658,81 @@ const ProductDetails = () => {
   }
   if (loading || contextLoading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-gray-600">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
-          <p className="mt-2 text-sm font-Jost">Loading...</p>
-        </div>
+      <div 
+        className="min-h-screen bg-white"
+        style={{
+          '--color-Primarycolor': '#1E1E1E',
+          '--color-Secondarycolor': '#ffffff',
+          '--color-Accent': '#6E6E6E',
+          '--font-Manrope': '"Manrope", "sans-serif"',
+          '--font-Jost': '"Jost", "sans-serif"'
+        }}
+      >
+        <Navbar2 />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+          {/* Breadcrumb Skeleton */}
+          <div className="flex items-center gap-2 mb-8 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-16"></div>
+            <div className="h-4 bg-gray-200 rounded w-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="h-4 bg-gray-200 rounded w-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-32"></div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+            {/* Gallery Skeleton (7 cols) */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="w-full aspect-[3/4] bg-gray-200 rounded-2xl animate-pulse"></div>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="w-20 h-24 flex-shrink-0 bg-gray-200 rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Details Skeleton (5 cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              <div>
+                <div className="h-8 bg-gray-200 rounded-lg w-3/4 mb-3 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+                <div className="h-7 bg-gray-200 rounded-lg w-1/4 animate-pulse"></div>
+              </div>
+
+              <div className="border-t border-b border-gray-100 py-6 space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                <div className="flex gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/6 animate-pulse"></div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div key={i} className="h-11 bg-gray-200 rounded-xl animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 space-y-3">
+                <div className="h-14 bg-gray-300 rounded-xl w-full animate-pulse"></div>
+                <div className="h-12 bg-gray-200 rounded-xl w-full animate-pulse"></div>
+              </div>
+
+              <div className="space-y-3 pt-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
       </div>
     )
   }

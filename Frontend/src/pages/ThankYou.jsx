@@ -233,16 +233,39 @@ const ThankYou = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-Primarycolor mx-auto mb-4" />
-          <p className="text-base md:text-lg text-Accent font-Jost">Verifying your payment...</p>
-          {retryCount > 0 && (
-            <p className="text-sm md:text-base text-Accent mt-2 font-Jost">
-              Retry attempt {retryCount} of 3
+      <div 
+        className="min-h-screen bg-gray-50 typography"
+        style={{
+          '--color-Primarycolor': '#1E1E1E',
+          '--color-Secondarycolor': '#ffffff',
+          '--color-Accent': '#6E6E6E',
+          '--font-Manrope': '"Manrope", "sans-serif"',
+          '--font-Jost': '"Jost", "sans-serif"'
+        }}
+      >
+        <Navbar2 />
+        <main className="max-w-4xl mx-auto px-4 pt-28 pb-16">
+          <div className="text-center space-y-4 animate-pulse">
+            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto"></div>
+            <div className="h-8 bg-gray-200 rounded-lg w-1/2 mx-auto"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto"></div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 mt-8 space-y-4 text-left">
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-10 bg-gray-100 rounded-lg"></div>
+                <div className="h-10 bg-gray-100 rounded-lg"></div>
+                <div className="h-10 bg-gray-100 rounded-lg"></div>
+                <div className="h-10 bg-gray-100 rounded-lg"></div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 font-Jost pt-4">
+              Verifying transaction status securely... {retryCount > 0 ? `(Attempt ${retryCount}/3)` : ''}
             </p>
-          )}
-        </div>
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
