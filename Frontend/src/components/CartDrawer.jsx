@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Trash2, Plus, Minus, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import SmartProductSuggestions from './SmartProductSuggestions';
 
 const CartDrawer = () => {
   const {
@@ -257,6 +258,9 @@ const CartDrawer = () => {
                     </div>
                   );
                 })}
+                
+                {/* Smart Product Recommendations inside Bag */}
+                <SmartProductSuggestions type="cart-drawer" className="mt-6" />
               </div>
             )}
           </div>

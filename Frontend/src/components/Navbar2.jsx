@@ -176,7 +176,7 @@ export default function Navbar2() {
               </div>
 
               {/* Center: Brand Logo */}
-              <div className="flex-1 flex justify-center lg:flex-initial">
+              <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:flex-1 lg:flex lg:justify-center">
                 <Link to="/home" className="flex items-center focus:outline-none focus:ring-2 focus:ring-black rounded px-1">
                   <img 
                     src={isLightMode ? LogoBlack : LogoWhite} 
@@ -187,22 +187,23 @@ export default function Navbar2() {
               </div>
 
               {/* Right Side Tools: Currency, Search, Profile, Cart */}
-              <div className="flex items-center space-x-4 sm:space-x-6">
+              <div className="flex items-center space-x-3 sm:space-x-6">
                 
-                {/* Currency Switcher Toggle */}
+                {/* Currency Switcher Toggle (Desktop - shadcn style) */}
                 {toggleCurrency && (
                   <button
+                    type="button"
                     onClick={toggleCurrency}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono tracking-wider rounded-full border transition-all duration-200 ${
+                    className={`hidden sm:inline-flex items-center justify-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wider rounded-full border transition-all duration-200 active:scale-95 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 ${
                       isLightMode 
-                        ? 'border-gray-300 hover:border-black text-black bg-gray-50/50' 
-                        : 'border-white/20 hover:border-white text-white bg-white/5'
+                        ? 'border-gray-200 hover:border-gray-900 text-gray-900 bg-gray-50/80 hover:bg-gray-100 focus-visible:ring-gray-900' 
+                        : 'border-white/20 hover:border-white text-white bg-white/5 hover:bg-white/15 focus-visible:ring-white/50'
                     }`}
                     title="Switch currency (NGN / USD)"
                     aria-label="Toggle currency"
                   >
-                    <Globe size={12} className="opacity-70" />
-                    <span>{currency || 'NGN'}</span>
+                    <Globe size={12} className="opacity-70 shrink-0" aria-hidden="true" />
+                    <span className="font-semibold">{currency || 'NGN'}</span>
                   </button>
                 )}
 
@@ -222,7 +223,7 @@ export default function Navbar2() {
                     />
                     <button 
                       type="submit"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 opacity-70 hover:opacity-100" 
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 opacity-70 hover:opacity-100 focus:outline-none" 
                       aria-label="Submit Search"
                     >
                       <Search size={14} className={isLightMode ? 'text-black' : 'text-white'} />
@@ -235,8 +236,8 @@ export default function Navbar2() {
                   <div className="relative">
                     <button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className={`p-1.5 rounded-full transition-opacity hover:opacity-80 focus:outline-none ${
-                        isLightMode ? 'text-black hover:bg-gray-100' : 'text-white hover:bg-white/10'
+                      className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-1 ${
+                        isLightMode ? 'text-black hover:bg-gray-100 focus-visible:ring-black' : 'text-white hover:bg-white/10 focus-visible:ring-white'
                       }`}
                       aria-label="User Account"
                     >
@@ -244,8 +245,8 @@ export default function Navbar2() {
                     </button>
 
                     {isMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 rounded-md shadow-xl py-1 z-50 border border-gray-100 dark:border-zinc-800 text-xs">
-                        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 text-gray-500 font-mono">
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 rounded-lg shadow-xl py-1 z-50 border border-gray-100 dark:border-zinc-800 text-xs">
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 text-gray-500 font-mono text-[11px]">
                           {user.email || 'Account'}
                         </div>
                         <Link 
@@ -277,8 +278,8 @@ export default function Navbar2() {
                   </div>
                 ) : (
                   <Link to="/login" aria-label="Login">
-                    <button className={`p-1.5 rounded-full transition-opacity hover:opacity-80 ${
-                      isLightMode ? 'text-black' : 'text-white'
+                    <button className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 ${
+                      isLightMode ? 'text-black hover:bg-gray-100' : 'text-white hover:bg-white/10'
                     }`}>
                       <User size={18} />
                     </button>
@@ -288,16 +289,16 @@ export default function Navbar2() {
                 {/* Shopping Cart Button with Dynamic Badge */}
                 <button
                   onClick={openCart}
-                  className="relative p-1.5 focus:outline-none cursor-pointer group"
+                  className="relative p-1.5 focus:outline-none cursor-pointer group active:scale-95 transition-transform"
                   aria-label="Shopping Cart"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110 ${
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${
                     isLightMode ? 'text-black' : 'text-white'
                   }`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                   </svg>
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold font-mono text-black shadow-sm">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold font-mono text-black shadow-xs">
                       {cartCount}
                     </span>
                   )}
@@ -310,6 +311,23 @@ export default function Navbar2() {
           <DisclosurePanel className="lg:hidden bg-black/95 backdrop-blur-xl border-t border-white/10 text-white">
             <div className="px-4 pt-4 pb-6 space-y-4">
               
+              {/* Mobile Currency Switcher (shadcn style card item) */}
+              {toggleCurrency && (
+                <div className="flex items-center justify-between px-3.5 py-2.5 bg-white/5 rounded-lg border border-white/10 shadow-xs">
+                  <span className="text-xs font-mono tracking-wider text-gray-300 uppercase">Currency</span>
+                  <button 
+                    type="button"
+                    onClick={toggleCurrency}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wider rounded-full border border-white/20 bg-white/5 hover:bg-white/15 hover:border-white text-white transition-all duration-200 active:scale-95 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" 
+                    title="Switch currency (NGN / USD)" 
+                    aria-label="Toggle currency"
+                  >
+                    <Globe size={12} className="opacity-70 shrink-0" aria-hidden="true" />
+                    <span className="font-semibold">{currency || 'NGN'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Mobile Search */}
               <form onSubmit={handleSearch} className="flex">
                 <input

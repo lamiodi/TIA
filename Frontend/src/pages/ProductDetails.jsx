@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext"
 import { CurrencyContext } from "../pages/CurrencyContext"
 import ReviewSection from "../components/ReviewSection"
 import DescriptionSection from "../components/DescriptionSection"
+import SmartProductSuggestions from "../components/SmartProductSuggestions"
 import { toastSuccess, toastError } from "../utils/toastConfig"
 import ProductSchema from "../components/ProductSchema"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tia-backend-r331.onrender.com"
@@ -1227,7 +1228,22 @@ const ProductDetails = () => {
             </div>
           </div>
           <DescriptionSection isProduct={isProduct} description={description} data={data} />
+          
+          {/* Frequently Bought Together Smart Suggestions */}
+          <SmartProductSuggestions 
+            type="frequently-bought-together" 
+            currentProductId={id} 
+            currentProductPrice={displayPrice} 
+            currentProductName={name} 
+          />
+
           <ReviewSection productId={isProduct ? id : null} bundleId={isProduct ? null : id} productName={name} />
+
+          {/* You May Also Like Recommendation Grid */}
+          <SmartProductSuggestions 
+            type="you-may-also-like" 
+            currentProductId={id} 
+          />
         </div>
       </div>
       <Footer />

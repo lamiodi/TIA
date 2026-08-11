@@ -97,7 +97,7 @@ export default function Navbar() {
               </div>
               
               {/* Center: Logo */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 sm:transform-none">
+              <div className="absolute left-1/2 transform -translate-x-1/2">
                 <Link to="/home" className="flex items-center">
                   <img src={Logo} alt="Logo" className="h-6 w-auto sm:h-7 md:h-8" />
                 </Link>
