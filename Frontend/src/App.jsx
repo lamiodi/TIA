@@ -31,16 +31,22 @@ import LandingPage from './pages/LandingPage';
 import CartErrorBoundary from './components/CartErrorBoundary';
 import SmoothScroll from './components/SmoothScroll';
 import ScrollProgress from './components/ScrollProgress';
+import ScrollToTop from './components/ScrollToTop';
+
+import { CartProvider } from './context/CartContext';
+import CartDrawer from './components/CartDrawer';
 
 function App() {
   return (
     <AuthProvider>
       <CurrencyProvider>
-        <AdminAuthProvider>
-          <SmoothScroll>
-            <ScrollProgress />
-            <ScrollToTop />
-            <Routes>
+        <CartProvider>
+          <AdminAuthProvider>
+            <SmoothScroll>
+              <ScrollProgress />
+              <ScrollToTop />
+              <CartDrawer />
+              <Routes>
             <Route path="/search" element={<SearchResults />} />
             <Route path="/home" element={<LandingPage />} />
             <Route path="/shop" element={<ShopAllPage />} />
@@ -78,6 +84,7 @@ function App() {
             theme="light"
           />
         </AdminAuthProvider>
+        </CartProvider>
       </CurrencyProvider>
     </AuthProvider>
   );

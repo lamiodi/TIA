@@ -497,6 +497,7 @@ const ProductDetails = () => {
           })
           toastSuccess(isPreorderActive ? "Pre-order added to cart" : "Product added to cart")
           window.dispatchEvent(new Event("cartUpdated"))
+          window.dispatchEvent(new Event("openCartModal"))
         } else {
           // Add to guest cart
           addToGuestCart({
@@ -522,6 +523,7 @@ const ProductDetails = () => {
           })
           toastSuccess(isPreorderActive ? "Pre-order added to guest cart" : "Product added to guest cart")
           window.dispatchEvent(new Event("cartUpdated"))
+          window.dispatchEvent(new Event("openCartModal"))
         }
       }
       // Bundle product
@@ -580,6 +582,7 @@ const ProductDetails = () => {
           })
           toastSuccess("Bundle added to cart")
           window.dispatchEvent(new Event("cartUpdated"))
+          window.dispatchEvent(new Event("openCartModal"))
           // Reset bundle progress after adding to cart
           setSelectedBundleVariants({})
         } else {
@@ -611,6 +614,7 @@ const ProductDetails = () => {
           })
           toastSuccess("Bundle added to guest cart")
           window.dispatchEvent(new Event("cartUpdated"))
+          window.dispatchEvent(new Event("openCartModal"))
           // Reset bundle progress after adding to cart
           setSelectedBundleVariants({})
         }
