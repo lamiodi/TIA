@@ -670,7 +670,7 @@ const ProductDetails = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 font-Inter">Oops! Product Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 font-Manrope">Oops! Product Not Found</h2>
           <p className="text-gray-600 font-Jost">{error || "Failed to load product"}</p>
         </div>
       </div>
@@ -776,8 +776,9 @@ const ProductDetails = () => {
     : bundleStatus.isPreorder;
 
   const depositPrice = isPreorderActive ? parsedPrice * 0.5 : parsedPrice;
-  const displayPrice = country === "Nigeria" ? depositPrice : (depositPrice * exchangeRate).toFixed(2)
-  const displayCurrency = country === "Nigeria" ? "NGN" : "USD"
+  const isUSD = currency === "USD" || country !== "Nigeria";
+  const displayPrice = isUSD ? (depositPrice / (exchangeRate || 1529.26)) : depositPrice;
+  const displayCurrency = isUSD ? "USD" : "NGN";
   const description = data?.description || "No description available"
   const colorOptions = isProduct
     ? Array.isArray(data?.variants)
@@ -874,95 +875,53 @@ const ProductDetails = () => {
           <span className="mx-2 text-gray-400">/</span>
           <span className="text-Primarycolor font-medium font-Jost">{name}</span>
         </nav>
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+        <div className="bg-[#f3ede4] rounded-2xl overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative items-start">
             {/* Image Section */}
-            <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-white">
-              <div className="space-y-6">
-                {/* Main Image */}
-                <div className="relative aspect-[3/4] bg-white rounded-2xl overflow-hidden shadow-lg group">
-                  <img
-                    src={images[selectedImage] || "https://via.placeholder.com/500"}
-                    alt="Product"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  {/* Sold Out Overlay */}
-                  {isAllSoldOut && (
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
-                      <div className="bg-red-600/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl transform scale-110 border border-red-400/50">
-                        <Ban className="w-6 h-6" />
-                        <span className="text-lg font-bold tracking-wider font-Inter uppercase">Sold Out</span>
+            <div className="p-4 sm:p-6 lg:p-0">
+              <div className="flex flex-col gap-4 lg:gap-8">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group">
+                    <img
+                      src={img || "https://via.placeholder.com/500"}
+                      alt={`${name} view ${idx + 1}`}
+                      className="w-full max-w-lg h-auto object-contain transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {/* Sold Out Overlay */}
+                    {idx === 0 && isAllSoldOut && (
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
+                        <div className="bg-red-600/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl transform scale-110 border border-red-400/50">
+                          <Ban className="w-6 h-6" />
+                          <span className="text-lg font-bold tracking-wider font-Manrope uppercase">Sold Out</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {/* Bundle Badge */}
-                  {!isProduct && !isAllSoldOut && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r font-Inter from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
-                      <Package className="w-4 h-4" />
-                      <span>Bundle</span>
-                    </div>
-                  )}
-                  {/* Navigation Buttons */}
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setSelectedImage((selectedImage - 1 + images.length) % images.length)}
-                        className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => setSelectedImage((selectedImage + 1) % images.length)}
-                        className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
-                  {/* Image Counter */}
-                  {images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-Jost">
-                      {selectedImage + 1} / {images.length}
-                    </div>
-                  )}
-                </div>
-                {/* Thumbnail Images */}
-                {images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-3">
-                    {images.map((img, idx) => (
-                      <button
-                        key={idx}
-                        className={`relative aspect-square rounded-lg overflow-hidden transition-all duration-200 ${selectedImage === idx ? "ring-2 ring-gray-900 shadow-lg" : "hover:shadow-md hover:scale-105"
-                          }`}
-                        onClick={() => setSelectedImage(idx)}
-                      >
-                        <img
-                          src={img || "/placeholder.svg"}
-                          alt={`thumbnail ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {selectedImage === idx && <div className="absolute inset-0 bg-gray-900/20"></div>}
-                      </button>
-                    ))}
+                    )}
+                    {/* Bundle Badge */}
+                    {idx === 0 && !isProduct && !isAllSoldOut && (
+                      <div className="absolute top-4 left-4 bg-gradient-to-r font-Manrope from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
+                        <Package className="w-4 h-4" />
+                        <span>Bundle</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             </div>
             {/* Product Info Section */}
-            <div className="p-3 sm:p-4 md:p-12">
+            <div className="p-3 sm:p-4 md:p-12 lg:sticky lg:top-24 self-start">
               <div className="space-y-8">
                 {/* Header */}
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-Inter">
+                      <h1 className="text-2xl lg:text-3xl font-normal text-gray-900 leading-tight font-Manrope uppercase tracking-wide">
                         {name}
                       </h1>
                     </div>
 
                   </div>
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <p className="text-3xl font-bold text-gray-900 font-Inter">
+                    <p className="text-xl font-bold text-gray-900 font-Manrope">
                       {Number.parseFloat(displayPrice).toLocaleString(country === "Nigeria" ? "en-NG" : "en-US", {
                         style: "currency",
                         currency: displayCurrency,
@@ -1001,62 +960,61 @@ const ProductDetails = () => {
                 {isProduct && (
                   <div className="space-y-6">
                     {/* Color Selection */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
-                        Color: <span className="font-normal font-Inter text-gray-600">{selectedColor}</span>
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-xs font-semibold text-gray-900 font-Manrope uppercase tracking-wider w-16">
+                        COLOUR:
                       </h3>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-2">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
                             onClick={() => handleColorChange(color)}
-                            className={`relative flex items-center space-x-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${color === selectedColor
-                                ? "border-gray-900 bg-gray-50"
-                                : "border-gray-200 hover:border-gray-300"
+                            className={`relative flex items-center justify-center transition-all duration-200 ${color === selectedColor
+                                ? "ring-1 ring-gray-900 ring-offset-2"
+                                : "hover:ring-1 hover:ring-gray-300 hover:ring-offset-1"
                               }`}
                           >
                             <div
-                              className={`w-6 h-6 rounded-full shadow-sm ${color === "White" ? "border border-gray-300" : ""}`}
+                              className={`w-4 h-4 shadow-sm ${color === "White" ? "border border-gray-300" : ""}`}
                               style={{ backgroundColor: colorMap[color] || "#cccccc" }}
+                              title={color}
                             ></div>
-                            <span className="text-sm font-medium text-center font-Jost">{color}</span>
-                            {color === selectedColor && <Check className="w-4 h-4 text-gray-900" />}
                           </button>
                         ))}
                       </div>
                     </div>
                     {/* Size Selection */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-Primarycolor font-Inter mb-4">
-                        Size: <span className="font-normal text-gray-600 font-Inter">{selectedSize}</span>
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-xs font-semibold text-gray-900 font-Manrope uppercase tracking-wider w-16">
+                        SIZE:
                       </h3>
-                      <div className="grid grid-cols-4 gap-3">
-                        {sizeOptions.map((s) => (
-                          <button
-                            key={s.size_name}
-                            onClick={() => handleSizeChange(s.size_name)}
-                            disabled={s.stock_quantity === 0 && !isPreorderEnabled}
-                            title={s.stock_quantity === 0 ? (isPreorderEnabled ? "Pre-order" : "Sold Out") : "Select size"}
-                            className={`relative py-3 px-2 text-sm font-Inter font-medium border-2 rounded-xl transition-all duration-200 ${selectedSize === s.size_name
-                                ? "border-Primarycolor bg-gray-900 text-white shadow-lg"
-                                : (s.stock_quantity > 0 || isPreorderEnabled)
-                                  ? "border-gray-200 text-gray-900 hover:border-gray-300 hover:shadow-md"
-                                  : "border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50"
-                              }`}
-                          >
-                            {s.size_name}
-                            {s.stock_quantity === 0 && !isPreorderEnabled && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Ban className="w-4 h-4 text-red-500" aria-label="Sold Out" />
-                              </div>
-                            )}
-                            {s.stock_quantity === 0 && isPreorderEnabled && (
-                              <span className="absolute -top-2 -right-2 text-[10px] bg-blue-100 text-blue-800 px-1 rounded-full">
-                                Pre
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                      <div className="flex flex-1 items-center justify-between">
+                        <div className="flex flex-wrap gap-3">
+                          {sizeOptions.map((s) => (
+                            <button
+                              key={s.size_name}
+                              onClick={() => handleSizeChange(s.size_name)}
+                              disabled={s.stock_quantity === 0 && !isPreorderEnabled}
+                              title={s.stock_quantity === 0 ? (isPreorderEnabled ? "Pre-order" : "Sold Out") : "Select size"}
+                              className={`relative text-xs font-Manrope transition-all duration-200 ${selectedSize === s.size_name
+                                  ? "text-gray-900 font-bold"
+                                  : (s.stock_quantity > 0 || isPreorderEnabled)
+                                    ? "text-gray-500 hover:text-gray-900"
+                                    : "text-gray-300 cursor-not-allowed line-through"
+                                }`}
+                            >
+                              {s.size_name}
+                              {s.stock_quantity === 0 && isPreorderEnabled && (
+                                <span className="absolute -top-3 -right-3 text-[8px] text-blue-600">
+                                  Pre
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <button className="text-[10px] text-gray-500 hover:text-gray-900 underline uppercase tracking-wider whitespace-nowrap">
+                          Size guide
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1066,7 +1024,7 @@ const ProductDetails = () => {
                   <div className="space-y-6">
                     {/* Bundle Type Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">Bundle Type</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">Bundle Type</h3>
                       <div className="flex space-x-4">
                         {bundleTypes.map((type) => (
                           <button
@@ -1084,8 +1042,8 @@ const ProductDetails = () => {
                     </div>
                     {/* Size Selection for Bundle */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
-                        Size: <span className="font-normal text-gray-600 font-Inter">{selectedSize}</span>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">
+                        Size: <span className="font-normal text-gray-600 font-Manrope">{selectedSize}</span>
                       </h3>
                       <div className="grid grid-cols-4 gap-3">
                         {sizeOptions.map((size) => (
@@ -1113,7 +1071,7 @@ const ProductDetails = () => {
                     </div>
                     {/* Bundle Color Selection */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">
                         Select Items
                         <span className="text-sm font-normal text-gray-600 ml-2 font-Jost">
                           ({Object.keys(selectedBundleVariants).length}/{bundleType === "3-in-1" ? "3" : "5"})
@@ -1122,7 +1080,7 @@ const ProductDetails = () => {
                       <div className="p-6 border border-gray-200 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50">
                         {/* Available Colors */}
                         <div className="mb-6">
-                          <h4 className="font-medium text-gray-900 mb-3 font-Inter">Available Colors</h4>
+                          <h4 className="font-medium text-gray-900 mb-3 font-Manrope">Available Colors</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {(Array.isArray(data?.items?.[0]?.all_variants) ? data.items[0].all_variants : []).map(
                               (variant) => {
@@ -1171,7 +1129,7 @@ const ProductDetails = () => {
                         {/* Selected Items Display */}
                         {Object.keys(selectedBundleVariants).length > 0 && (
                           <div className="mb-6">
-                            <h4 className="font-medium text-gray-900 mb-3 font-Inter">Selected Items</h4>
+                            <h4 className="font-medium text-gray-900 mb-3 font-Manrope">Selected Items</h4>
                             <div className="flex flex-wrap gap-3">
                               {Object.entries(selectedBundleVariants).map(([index, selection]) => (
                                 <div
@@ -1224,37 +1182,15 @@ const ProductDetails = () => {
                     </div>
                   </div>
                 )}
-                {/* Quantity and Add to Cart */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium font-Inter text-gray-900">Quantity:</span>
-                    <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                      <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="p-3 hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="px-4 py-3 font-medium min-w-[60px] text-center font-Jost">{quantity}</span>
-                      <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="p-3 hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex space-x-4">
+                {/* Add to Bag */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex w-full">
                     <button
                       onClick={handleAddToCart}
                       disabled={isAddingToCart}
-                      className="flex-1 py-4 bg-gray-900 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-4 bg-gray-900 text-white font-medium flex items-center justify-center space-x-2 hover:bg-black transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
                     >
-                      <ShoppingCart className="h-5 w-5 " />
-                      <span className="font-Inter">{isAddingToCart ? "Adding..." : isPreorderActive ? "Pre-order Now" : "Add to Cart"}</span>
-                    </button>
-                    <button className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 transition-all duration-200 hover:shadow-md">
-                      <Share2 className="h-5 w-5" />
+                      <span className="font-Manrope">{isAddingToCart ? "ADDING..." : isPreorderActive ? "PRE-ORDER NOW" : "ADD TO BAG"}</span>
                     </button>
                   </div>
                   {/* Guest Notice */}
@@ -1269,19 +1205,22 @@ const ProductDetails = () => {
                     </div>
                   )}
                 </div>
-                {/* Features */}
-                <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
-                  <div className="text-center space-y-2">
-                    <Truck className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Jost">Free Shipping</p>
+                {/* Accordions */}
+                <div className="pt-4 flex flex-col">
+                  <div className="border-t border-gray-200">
+                    <button className="w-full py-3 flex justify-between items-center text-xs font-medium uppercase tracking-wider text-left text-gray-800 hover:text-black">
+                      DETAILS
+                    </button>
                   </div>
-                  <div className="text-center space-y-2">
-                    <RotateCcw className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Jost">Easy Returns</p>
+                  <div className="border-t border-gray-200">
+                    <button className="w-full py-3 flex justify-between items-center text-xs font-medium uppercase tracking-wider text-left text-gray-800 hover:text-black">
+                      SHIPPING AND RETURN
+                    </button>
                   </div>
-                  <div className="text-center space-y-2">
-                    <Shield className="h-6 w-6 mx-auto text-gray-600" />
-                    <p className="text-xs text-gray-600 font-Jost">2 Year Warranty</p>
+                  <div className="border-t border-b border-gray-200">
+                    <button className="w-full py-3 flex justify-between items-center text-xs font-medium uppercase tracking-wider text-left text-gray-800 hover:text-black">
+                      THE COMPOSITION AND CARE
+                    </button>
                   </div>
                 </div>
               </div>

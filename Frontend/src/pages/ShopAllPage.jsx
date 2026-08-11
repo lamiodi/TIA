@@ -593,8 +593,9 @@ const ProductCard = ({ product, onImageError }) => {
         : `/bundle/${id}`;
     
   const parsedPrice = parseFloat(price) || 0;
-  const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
-  const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
+  const isUSD = currency === 'USD' || country !== 'Nigeria';
+  const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+  const displayCurrency = isUSD ? 'USD' : 'NGN';
   
   return (
     <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
@@ -645,10 +646,10 @@ const ProductCard = ({ product, onImageError }) => {
             {displayName}
           </h3>
           <p className="text-sm font-semibold text-gray-900">
-            {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
+            {Number(displayPrice).toLocaleString(isUSD ? 'en-US' : 'en-NG', { 
               style: 'currency', 
               currency: displayCurrency,
-              minimumFractionDigits: country === 'Nigeria' ? 0 : 2
+              minimumFractionDigits: isUSD ? 2 : 0
             })}
           </p>
         </div>

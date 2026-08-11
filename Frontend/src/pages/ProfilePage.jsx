@@ -197,18 +197,18 @@ const ProfilePage = () => {
         '--color-Primarycolor': '#1E1E1E',
         '--color-Secondarycolor': '#ffffff',
         '--color-Accent': '#6E6E6E',
-        '--font-Inter': '"Inter", sans-serif',
+        '--font-Manrope': '"Inter", sans-serif',
         '--font-Jost': '"Jost", "sans-serif"'
       }}
     >
       <Navbar2 />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-Primarycolor mb-8 font-Inter">Edit Profile</h1>
+        <h1 className="text-3xl font-bold text-Primarycolor mb-8 font-Manrope">Edit Profile</h1>
 
         {/* Profile Update Section */}
         <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-Primarycolor flex items-center font-Inter">
+            <h2 className="text-lg font-semibold text-Primarycolor flex items-center font-Manrope">
               <User className="h-5 w-5 mr-2" /> Profile Information
             </h2>
           </div>
@@ -316,7 +316,7 @@ const ProfilePage = () => {
         {/* Change Password Section */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-Primarycolor flex items-center font-Inter">
+            <h2 className="text-lg font-semibold text-Primarycolor flex items-center font-Manrope">
               <Lock className="h-5 w-5 mr-2" /> Change Password
             </h2>
           </div>

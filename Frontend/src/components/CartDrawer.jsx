@@ -50,7 +50,7 @@ const CartDrawer = () => {
   const formatPrice = (amount) => {
     const numericAmount = Number(amount) || 0;
     if (currency === 'USD') {
-      const converted = numericAmount * (exchangeRate || 1);
+      const converted = numericAmount / (exchangeRate || 1529.26);
       return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     return `₦${numericAmount.toLocaleString('en-NG')}`;

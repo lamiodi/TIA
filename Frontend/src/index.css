@@ -15,7 +15,7 @@
     --color-Secondarycolor: #ffffff;
     --color-Accent: #6E6E6E;
     --color-Softcolor: #F5F5DC;
-    --font-Inter: "Inter", sans-serif; 
+    --font-Manrope: "Manrope", sans-serif; 
     --font-Jost: "Jost", "sans-serif";
     --breakpoint-xs: 30rem;
     --breakpoint-sm: 40rem;
@@ -38,7 +38,7 @@
 
   }
     .typography {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Manrope', sans-serif;
   
       p {
         font-family: 'Jost', sans-serif;
@@ -48,14 +48,14 @@
       }
   
       h1 {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: 2em;
         font-weight: 800;
         color: var(--color-Secondarycolor);
       }
   
       h2 {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: var(--text-3xl);
         line-height: var(--line-height-snug);
         font-weight: var(--font-weight-extrabold);
@@ -63,7 +63,7 @@
       }
   
       h3 {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: var(--text-xl);
         line-height: 1.5;
         font-weight: var(--font-weight-bold);
@@ -71,7 +71,7 @@
       }
 
       h4 {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: var(--text-lg);
         line-height: 1.5;
         font-weight: var(--font-weight-medium);
@@ -79,7 +79,7 @@
       }
   
       a {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
         font-size: var(--text-base);
         color: var(--color-accent);
         text-decoration: none;
@@ -113,7 +113,7 @@
     }
 
     .quicknav{
-      font-family: 'Inter', sans-serif;
+      font-family: 'Manrope', sans-serif;
       font-size: var(--text-base);
       font-weight: 600;
       color: var(--color-Secondarycolor);
@@ -145,7 +145,7 @@
 
   @layer components {
   .btn {
-    font-family: var(--font-Inter);
+    font-family: var(--font-Manrope);
     font-size: 0.875rem; /* base size (text-sm) */
     font-weight: 500;
     padding: 1em 0.5em; /* py-2 px-6 */

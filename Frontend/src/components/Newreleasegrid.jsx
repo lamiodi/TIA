@@ -222,10 +222,10 @@ const ProductCard = ({ product, onImageError, priority }) => {
     
   const isPreorder = isOutOfStock && allow_preorder;
   
-  // Price in NGN for Nigeria, USD for others
   const parsedPrice = parseFloat(price) || 0;
-  const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
-  const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
+  const isUSD = currency === 'USD' || country !== 'Nigeria';
+  const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+  const displayCurrency = isUSD ? 'USD' : 'NGN';
   
   return (
     <div className="group w-[calc(100vw-2rem)] sm:w-[calc(50vw-1.5rem)] md:min-w-[240px] md:max-w-[240px] bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col flex-shrink-0">
@@ -264,10 +264,10 @@ const ProductCard = ({ product, onImageError, priority }) => {
             {displayName}
           </h3>
           <p className="text-lg sm:text-xl font-semibold font-Manrope text-Accent mt-auto">
-            {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
+            {Number(displayPrice).toLocaleString(isUSD ? 'en-US' : 'en-NG', { 
               style: 'currency', 
               currency: displayCurrency,
-              minimumFractionDigits: country === 'Nigeria' ? 0 : 2
+              minimumFractionDigits: isUSD ? 2 : 0
             })}
           </p>
         </div>

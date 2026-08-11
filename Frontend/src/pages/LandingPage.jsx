@@ -35,13 +35,14 @@ const LandingPage = () => {
   // Helper function to format prices dynamically
   const formatPrice = (priceInNaira) => {
     const parsedPrice = parseFloat(priceInNaira.replace(/[₦,]/g, '')) || 0;
-    const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate);
-    const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
+    const isUSD = currency === 'USD' || country !== 'Nigeria';
+    const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+    const displayCurrency = isUSD ? 'USD' : 'NGN';
     
-    return displayPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+    return displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
       style: 'currency',
       currency: displayCurrency,
-      minimumFractionDigits: country === 'Nigeria' ? 0 : 2
+      minimumFractionDigits: isUSD ? 2 : 0
     });
   };
 

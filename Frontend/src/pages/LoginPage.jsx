@@ -206,7 +206,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2 font-Inter" style={{ color: '#1E1E1E' }}>
+            <h1 className="text-4xl font-bold mb-2 font-Manrope" style={{ color: '#1E1E1E' }}>
               Welcome Back
             </h1>
             <p className="text-base font-Jost" style={{ color: '#6E6E6E' }}>
@@ -339,7 +339,7 @@ const Login = () => {
                 onClick={() =>
                   navigate('/forgot-password', { state: { email: formData.email } })
                 }
-                className="font-medium hover:underline transition-all font-Inter"
+                className="font-medium hover:underline transition-all font-Manrope"
                 style={{ color: '#1E1E1E' }}
               >
                 Forgot password?
@@ -350,7 +350,7 @@ const Login = () => {
               type="submit"
               disabled={loading}
               onClick={handleLogin}
-              className="w-full font-semibold py-3 rounded-xl focus:outline-none focus:ring-2 transition-all flex justify-center items-center gap-2 hover:opacity-90 font-Inter"
+              className="w-full font-semibold py-3 rounded-xl focus:outline-none focus:ring-2 transition-all flex justify-center items-center gap-2 hover:opacity-90 font-Manrope"
               style={{
                 backgroundColor: '#1E1E1E',
                 color: '#ffffff',
@@ -371,7 +371,7 @@ const Login = () => {
             <span style={{ color: '#6E6E6E' }}>Don't have an account? </span>
             <Link
               to="/signup"
-              className="font-semibold hover:underline transition-all font-Inter"
+              className="font-semibold hover:underline transition-all font-Manrope"
               style={{ color: '#1E1E1E' }}
             >
               Create account
@@ -404,7 +404,7 @@ const Login = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 z-0">
                 <div className="max-w-md">
                   <h2
-                    className="text-3xl font-bold mb-4 transition-all duration-500 font-Inter"
+                    className="text-3xl font-bold mb-4 transition-all duration-500 font-Manrope"
                     style={{ color: '#ffffff' }}
                   >
                     {image.title}

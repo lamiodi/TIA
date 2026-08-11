@@ -18,28 +18,28 @@ const HelpPage = () => {
 
   const faqData = [
     {
+      question: "Can I mix and match colors in my bundles?",
+      answer: "Yes! Our exclusive 3-in-1 and 5-in-1 bundles allow you to fully customize your selection. You can mix and match from our available premium colors to build your perfect set."
+    },
+    {
       question: "How long does shipping take?",
-      answer: "Standard Delievery takes 3-5 business days within Nigeria."
+      answer: "Standard delivery takes 3-5 business days within Nigeria. Orders placed before 2 PM are processed on the same day to ensure you receive your comfort wear as swiftly as possible."
     },
     {
       question: "What payment methods do you accept?",
-      answer: "We accept all major credit cards, debit cards, bank transfers, and mobile payment options through Paystack "
+      answer: "We accept all major credit cards, debit cards, bank transfers, and mobile payment options securely processed through Paystack."
     },
     {
       question: "Can I track my order?",
-      answer: "Yes! Once your order ships, you'll receive a tracking number via email. If you have any questions about your order, feel free to WhatsApp us or send us an email us we're happy to help!"
+      answer: "Absolutely. Once your order is dispatched, you will receive a tracking number via email. You can also reach out to us on WhatsApp for real-time updates."
     },
     {
       question: "Do you offer international shipping?",
-      answer: "Yes! We offer international shipping via DHL. Once you place your order, we'll calculate the shipping fee based on your location and send the details via email or WhatsApp. Feel free to reach out if you have any questions!"
+      answer: "Yes! We offer expedited international shipping via DHL. Once your order is placed, we calculate the shipping fee based on your exact location and contact you with the details."
     },
     {
-      question: "How do I know what size to order?",
-      answer: "Please refer to our detailed Size Guide section. We recommend measuring yourself and comparing with our size chart for the perfect fit."
-    },
-    {
-      question: "Are your products authentic?",
-      answer: "Absolutely! All our products are 100% authentic and sourced directly from verified manufacturers."
+      question: "How do I care for my TiaBrand boxers and gymwear?",
+      answer: "To maintain the premium feel and elasticity of our fabrics, we recommend machine washing in cold water with similar colors. Tumble dry on low heat or air dry. Do not bleach or iron."
     }
   ];
 
@@ -71,7 +71,7 @@ const HelpPage = () => {
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 sm:p-8 rounded-xl border border-gray-100 shadow-lg">
               <h3 className="text-3xl font-bold font-Manrope text-Primarycolor mb-4">3-Day Return Policy</h3>
               <p className="font-Jost text-gray-600 leading-relaxed">
-                All returns must be 2 to 3 days from the date of delivery. To be eligible for a return, your item must be unused, in the same condition that you received it, and in its original packaging. A receipt or proof of purchase is required.
+                All returns must be initiated within 3 days from the date of delivery. As our primary offerings include premium intimate apparel (boxers and briefs), we maintain strict hygiene standards. To be eligible for a return, your item must be strictly unused, unworn, in its original pristine condition, and within its unopened original packaging. A receipt or proof of purchase is required.
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
@@ -81,11 +81,11 @@ const HelpPage = () => {
                   Returnable Items
                 </h4>
                 <ul className="space-y-2 font-Jost text-gray-600">
-                  <li>• Unworn items with original tags</li>
-                  <li>• Items in original packaging</li>
-                  <li>• Defective or damaged products</li>
-                  <li>• Client must be in Lagos</li>
-                  <li>• Items returned within 3 days</li>
+                  <li>• Unopened items in original sealed packaging</li>
+                  <li>• Gymwear that is unworn with original tags</li>
+                  <li>• Defective products upon arrival</li>
+                  <li>• Incorrect items delivered by mistake</li>
+                  <li>• Items returned within the 3-day window</li>
                 </ul>
               </div>
               <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -94,10 +94,10 @@ const HelpPage = () => {
                   Non-Returnable Items
                 </h4>
                 <ul className="space-y-2 font-Jost text-gray-600">
-                  <li>• Worn or washed items</li>
-                  <li>• Items without original tags</li>
-                  <li>• Intimate apparel (for hygiene reasons)</li>
-                  <li>• Torn item will not be accepted</li>
+                  <li>• Opened or tried-on intimate apparel (boxers/briefs)</li>
+                  <li>• Worn or washed gymwear</li>
+                  <li>• Items without original tags attached</li>
+                  <li>• Damaged or torn items caused by the customer</li>
                 </ul>
               </div>
             </div>

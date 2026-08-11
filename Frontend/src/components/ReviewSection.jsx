@@ -326,11 +326,11 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
       <div className="p-6 sm:p-8 lg:p-12">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-6">
           <div className="flex-1">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-Inter font-bold text-Primarycolor mb-3">Customer Reviews</h2>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-Manrope font-bold text-Primarycolor mb-3">Customer Reviews</h2>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <div className="flex items-center space-x-3">
                 <StarRating rating={Math.round(averageRating)} />
-                <span className="text-xl sm:text-2xl font-bold text-gray-900 font-Inter">{averageRating.toFixed(1)}</span>
+                <span className="text-xl sm:text-2xl font-bold text-gray-900 font-Manrope">{averageRating.toFixed(1)}</span>
               </div>
               <span className="text-gray-600 font-Jost text-sm sm:text-base">Based on {totalReviews} reviews</span>
             </div>
@@ -351,7 +351,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
           <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Inter">Rating Breakdown</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 font-Manrope">Rating Breakdown</h3>
             <div className="space-y-3">
               {ratingDistribution.map(({ rating, count, percentage }) => (
                 <div key={rating} className="flex items-center space-x-3">
@@ -416,10 +416,10 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
         )}
         {showWriteReview && isAuthenticated() && (
           <div className="mb-8 p-6 bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Inter">Write Your Review</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 font-Manrope">Write Your Review</h3>
             <form onSubmit={handleSubmitReview} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Rating</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Manrope">Rating</label>
                 <StarRating
                   rating={newReview.rating}
                   size="w-8 h-8"
@@ -428,7 +428,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Review Title</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Manrope">Review Title</label>
                 <input
                   type="text"
                   value={newReview.title}
@@ -439,7 +439,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Your Review</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Manrope">Your Review</label>
                 <textarea
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
@@ -450,7 +450,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 font-Inter">Upload Images (Max 3)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 font-Manrope">Upload Images (Max 3)</label>
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center ${
@@ -519,14 +519,14 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
               <div key={review.id} className="p-6 sm:p-8 border-2 border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-lg transition-all duration-300 bg-white">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6">
                   <div className="flex items-start space-x-4 flex-1">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center font-bold text-blue-700 font-Inter text-sm sm:text-base flex-shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center font-bold text-blue-700 font-Manrope text-sm sm:text-base flex-shrink-0">
                       {review.user_name && typeof review.user_name === 'string'
                         ? review.user_name.split(' ').map((n) => n[0]).join('').toUpperCase()
                         : 'AN'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900 font-Inter text-base sm:text-lg truncate">{review.user_name || 'Anonymous'}</h4>
+                        <h4 className="font-semibold text-gray-900 font-Manrope text-base sm:text-lg truncate">{review.user_name || 'Anonymous'}</h4>
                         <span className="text-sm text-gray-500 font-Jost mt-1 sm:mt-0 sm:ml-4 flex-shrink-0">
                           {review.date ? new Date(review.date).toLocaleDateString() : 'Unknown Date'}
                         </span>
@@ -542,7 +542,7 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                   </button>
                 </div>
                 <div className="mb-6">
-                  <h5 className="font-semibold text-gray-900 mb-3 font-Inter text-lg">{review.title || 'No Title'}</h5>
+                  <h5 className="font-semibold text-gray-900 mb-3 font-Manrope text-lg">{review.title || 'No Title'}</h5>
                   <p className="text-gray-700 leading-relaxed font-Jost text-base">{review.comment || 'No comment provided.'}</p>
                 </div>
                 {Array.isArray(review.images) && review.images.length > 0 && (

@@ -323,10 +323,10 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
     ? `/product/${id}${variantId ? `?variant=${variantId}` : ''}`
     : `/bundle/${id}`;
     
-  // Format price based on currency
   const parsedPrice = parseFloat(price) || 0;
-  const displayPrice = country === 'Nigeria' ? parsedPrice : (parsedPrice * exchangeRate).toFixed(2);
-  const displayCurrency = country === 'Nigeria' ? 'NGN' : 'USD';
+  const isUSD = currency === 'USD' || country !== 'Nigeria';
+  const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+  const displayCurrency = isUSD ? 'USD' : 'NGN';
   
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
@@ -376,10 +376,10 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
             {displayName}
           </h3>
           <p className="text-lg sm:text-xl font-semibold font-Manrope text-Accent">
-            {parseFloat(displayPrice).toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', { 
+            {Number(displayPrice).toLocaleString(isUSD ? 'en-US' : 'en-NG', { 
               style: 'currency', 
               currency: displayCurrency,
-              minimumFractionDigits: country === 'Nigeria' ? 0 : 2
+              minimumFractionDigits: isUSD ? 2 : 0
             })}
           </p>
         </div>

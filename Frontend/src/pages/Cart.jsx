@@ -755,9 +755,10 @@ const Cart = () => {
   const total = Number(cart.total) || 0;
   
   // Format values for display
-  const displaySubtotal = country === 'Nigeria' ? subtotal : subtotal * exchangeRate;
-  const displayTax = country === 'Nigeria' ? tax : tax * exchangeRate;
-  const displayTotal = country === 'Nigeria' ? total : total * exchangeRate;
+  const isUSD = currency === 'USD' || country !== 'Nigeria';
+  const displaySubtotal = isUSD ? subtotal / (exchangeRate || 1529.26) : subtotal;
+  const displayTax = isUSD ? tax / (exchangeRate || 1529.26) : tax;
+  const displayTotal = isUSD ? total / (exchangeRate || 1529.26) : total;
   
   // Memoized Cart Item Component
   const CartItem = useCallback(
@@ -765,17 +766,17 @@ const Cart = () => {
         const bundleItems = item.item.is_product ? [] : item.item.items || [];
         console.log(`Cart: Rendering cart_item_id ${item.id}, bundle items:`, JSON.stringify(bundleItems, null, 2));
         const basePrice = Number(item.item.price) || 0;
-        const displayPrice = country === 'Nigeria' ? basePrice : basePrice * exchangeRate;
-        const formattedPrice = displayPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+        const displayPrice = isUSD ? basePrice / (exchangeRate || 1529.26) : basePrice;
+        const formattedPrice = displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
           style: 'currency',
-          currency: currency,
-          minimumFractionDigits: 0,
+          currency: isUSD ? 'USD' : 'NGN',
+          minimumFractionDigits: isUSD ? 2 : 0,
         });
         const totalPrice = displayPrice * item.quantity;
-        const formattedTotalPrice = totalPrice.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+        const formattedTotalPrice = totalPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
           style: 'currency',
-          currency: currency,
-          minimumFractionDigits: 0,
+          currency: isUSD ? 'USD' : 'NGN',
+          minimumFractionDigits: isUSD ? 2 : 0,
         });
         const isPreorder = item.is_preorder || item.item.is_preorder;
         const isOutOfStock = item.item.stock_quantity === 0 && !isPreorder;
@@ -821,7 +822,7 @@ const Cart = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="text-base md:text-lg font-semibold font-Inter text-gray-900 line-clamp-2">
+                        <h3 className="text-base md:text-lg font-semibold font-Manrope text-gray-900 line-clamp-2">
                           {item.item.name}
                           {!item.item.is_product && (
                             <span className="inline-flex items-center ml-2 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
@@ -1030,7 +1031,7 @@ const Cart = () => {
           <div className="mb-6 md:mb-8">
             <div className="flex flex-col gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-Inter text-gray-900">Shopping Cart</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-Manrope text-gray-900">Shopping Cart</h1>
                 <p className="font-Jost text-gray-600 text-sm md:text-base mt-1">
                   {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
                   {isGuest && (
@@ -1069,7 +1070,7 @@ const Cart = () => {
               <div className="space-y-4">
                 {/* Your Items Header with Clear All Items Button */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                  <h2 className="text-lg md:text-xl font-semibold font-Inter text-gray-900">Your Items</h2>
+                  <h2 className="text-lg md:text-xl font-semibold font-Manrope text-gray-900">Your Items</h2>
                   <button
                     onClick={clearCart}
                     className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium font-Jost flex items-center justify-center gap-2 transition-colors"
@@ -1092,7 +1093,7 @@ const Cart = () => {
                           <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-full mb-4">
                             <ShoppingBag className="h-10 w-10 md:h-12 md:w-12 text-gray-400" />
                           </div>
-                          <h2 className="text-xl md:text-2xl font-bold font-Inter text-gray-900 mb-3">Your cart is empty</h2>
+                          <h2 className="text-xl md:text-2xl font-bold font-Manrope text-gray-900 mb-3">Your cart is empty</h2>
                           <p className="font-Jost text-gray-600 mb-8 text-sm md:text-base">
                             Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
                           </p>
@@ -1129,7 +1130,7 @@ const Cart = () => {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
                 {/* Header */}
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold font-Inter text-gray-900">Order Summary</h2>
+                  <h2 className="text-xl font-semibold font-Manrope text-gray-900">Order Summary</h2>
                 </div>
                 
                 {/* Summary Details */}
@@ -1171,7 +1172,7 @@ const Cart = () => {
                   {/* Divider */}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between text-lg font-bold">
-                      <span className="font-Inter text-gray-900">Total</span>
+                      <span className="font-Manrope text-gray-900">Total</span>
                       <span className="font-Jost text-gray-900">
                         {displayTotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
                           style: 'currency',
@@ -1189,7 +1190,7 @@ const Cart = () => {
                   }) ? (
                     <div className="relative">
                       <button
-                        className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Inter cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
+                        className="w-full mt-6 bg-gray-400 text-white py-4 px-6 rounded-lg font-semibold font-Manrope cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
                         disabled
                         title={cart.warning || "Remove out of stock items to continue checkout"}
                       >
@@ -1207,7 +1208,7 @@ const Cart = () => {
                   ) : (
                     <Link to="/checkout">
                       <button
-                        className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Inter hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                        className="w-full mt-6 bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold font-Manrope hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                       >
                         <span>Proceed to Checkout</span>
                         <ArrowRight className="h-5 w-5" />
@@ -1221,7 +1222,7 @@ const Cart = () => {
                       <div className="flex items-start gap-3">
                         <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-orange-800 font-Inter mb-1">Minimum Order Requirement</p>
+                          <p className="text-sm font-semibold text-orange-800 font-Manrope mb-1">Minimum Order Requirement</p>
                           <p className="text-xs text-orange-700 font-Jost">{cart.warning}</p>
                           <p className="text-xs text-orange-600 font-Jost mt-1">
                             You can continue shopping to add more briefs to your cart.

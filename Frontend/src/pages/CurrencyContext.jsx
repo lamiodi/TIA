@@ -23,69 +23,53 @@ export const CurrencyProvider = ({ children }) => {
       setCurrency(mappedCurrency);
       setCountry(name);
 
-      const savedExchangeRate = localStorage.getItem('exchangeRate');
-      if (savedExchangeRate) {
-        const { rate, timestamp, currency: savedCurrency } = JSON.parse(savedExchangeRate);
-        const isRecent = Date.now() - timestamp < 24 * 60 * 60 * 1000; // 24 hours
-        if (isRecent && savedCurrency === mappedCurrency) {
-          setExchangeRate(rate);
-          setContextLoading(false);
-          console.log('Using cached exchange rate:', { currency: mappedCurrency, rate, country: name });
-          return;
+      const fallbackRate = 1529.26;
+      
+      try {
+        const apiKey = import.meta.env.VITE_EXCHANGERATE_API_KEY;
+        if (apiKey) {
+          const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD?apiKey=${apiKey}`);
+          if (response.ok) {
+            const data = await response.json();
+            const rate = data.rates['NGN'] || fallbackRate;
+            setExchangeRate(rate);
+            localStorage.setItem('exchangeRate', JSON.stringify({ rate, timestamp: Date.now() }));
+          } else {
+            setExchangeRate(fallbackRate);
+          }
+        } else {
+          setExchangeRate(fallbackRate);
         }
+      } catch (err) {
+        setExchangeRate(fallbackRate);
       }
 
-      if (mappedCurrency === 'USD') {
-        setExchangeRate(1);
-        localStorage.setItem('exchangeRate', JSON.stringify({ rate: 1, timestamp: Date.now(), currency: mappedCurrency }));
-      } else if (mappedCurrency === 'NGN') {
-        try {
-          const apiKey = import.meta.env.VITE_EXCHANGERATE_API_KEY;
-          if (!apiKey) {
-            throw new Error('API key is missing');
-          }
-          const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD?apiKey=${apiKey}`);
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          const data = await response.json();
-          const rate = data.rates[mappedCurrency] || 1529.26;
-          setExchangeRate(rate);
-          localStorage.setItem('exchangeRate', JSON.stringify({ rate, timestamp: Date.now(), currency: mappedCurrency }));
-          console.log('Exchange rate fetched:', { currency: mappedCurrency, rate, country: name });
-        } catch (err) {
-          console.error('Error initializing exchange rate:', err.message);
-          const fallbackRate = 1529.26;
-          setExchangeRate(fallbackRate);
-          localStorage.setItem('exchangeRate', JSON.stringify({ rate: fallbackRate, timestamp: Date.now(), currency: mappedCurrency }));
-        }
-      } else {
-        // For other currencies (e.g., GBP), use USD for now as per requirement
-        setExchangeRate(1);
-        localStorage.setItem('exchangeRate', JSON.stringify({ rate: 1, timestamp: Date.now(), currency: mappedCurrency }));
-      }
       setContextLoading(false);
-      console.log('Context initialized:', { currency: mappedCurrency, exchangeRate: exchangeRate || 1529.26, country: name });
     };
 
     initializeCurrency();
   }, []);
 
   const toggleCurrency = () => {
-    const nextCode = country === 'Nigeria' ? 'US' : 'NG';
+    const isCurrentlyNigeria = country === 'Nigeria' || currency === 'NGN';
+    const nextCode = isCurrentlyNigeria ? 'US' : 'NG';
     const nextMap = countryCurrencyMap[nextCode];
     localStorage.setItem('selectedCountry', nextCode);
     setCountry(nextMap.name);
     setCurrency(nextMap.currency);
-    if (nextMap.currency === 'USD') {
-      setExchangeRate(1);
-    } else {
-      setExchangeRate(1529.26);
+  };
+
+  const formatPrice = (amountInNaira) => {
+    const numericAmount = Number(amountInNaira) || 0;
+    if (currency === 'USD') {
+      const converted = numericAmount / (exchangeRate || 1529.26);
+      return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
+    return `₦${numericAmount.toLocaleString('en-NG')}`;
   };
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, exchangeRate, setExchangeRate, country, setCountry, toggleCurrency, contextLoading }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, exchangeRate, setExchangeRate, country, setCountry, toggleCurrency, formatPrice, contextLoading }}>
       {children}
     </CurrencyContext.Provider>
   );
