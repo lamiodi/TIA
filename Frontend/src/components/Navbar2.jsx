@@ -132,10 +132,10 @@ export default function Navbar2() {
               </div>
               
               {/* Left: Desktop Navigation Links */}
-              <div className="hidden lg:flex lg:flex-1 items-center space-x-8">
+              <div className="hidden lg:flex lg:flex-1 min-w-0 items-center space-x-4 xl:space-x-8">
                 <Link 
                   to="/shop" 
-                  className={`text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                  className={`text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70 whitespace-nowrap ${
                     isLightMode ? 'text-black' : 'text-white'
                   }`}
                 >
@@ -143,7 +143,7 @@ export default function Navbar2() {
                 </Link>
                 <Link 
                   to="/shop?category=briefs" 
-                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 whitespace-nowrap ${
                     isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
@@ -151,7 +151,7 @@ export default function Navbar2() {
                 </Link>
                 <Link 
                   to="/shop?category=lounge%20sets" 
-                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 whitespace-nowrap ${
                     isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
@@ -159,7 +159,7 @@ export default function Navbar2() {
                 </Link>
                 <Link 
                   to="/shop?category=3in1" 
-                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 whitespace-nowrap ${
                     isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
@@ -167,7 +167,7 @@ export default function Navbar2() {
                 </Link>
                 <Link 
                   to="/gift-cards" 
-                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 ${
+                  className={`text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-70 whitespace-nowrap ${
                     isLightMode ? 'text-gray-600' : 'text-gray-300'
                   }`}
                 >
@@ -176,7 +176,7 @@ export default function Navbar2() {
               </div>
 
               {/* Center: Brand Logo */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:flex-1 lg:flex lg:justify-center">
+              <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:flex-shrink-0 lg:flex lg:justify-center lg:px-6 xl:px-10">
                 <Link to="/home" className="flex items-center focus:outline-none focus:ring-2 focus:ring-black rounded px-1">
                   <img 
                     src={isLightMode ? LogoBlack : LogoWhite} 
@@ -187,7 +187,7 @@ export default function Navbar2() {
               </div>
 
               {/* Right Side Tools: Currency, Search, Profile, Cart */}
-              <div className="absolute inset-y-0 right-0 flex items-center lg:static lg:inset-auto lg:flex-1 lg:justify-end space-x-3 sm:space-x-6">
+              <div className="absolute inset-y-0 right-0 flex items-center lg:static lg:inset-auto lg:flex-1 lg:min-w-0 lg:justify-end space-x-3 sm:space-x-4 lg:space-x-6">
                 
                 {/* Currency Switcher Toggle (Desktop - shadcn style) */}
                 {toggleCurrency && (
@@ -208,8 +208,8 @@ export default function Navbar2() {
                 )}
 
                 {/* Search input (Desktop) */}
-                <div className="relative hidden lg:flex items-center">
-                  <form onSubmit={handleSearch} className="flex items-center">
+                <div className="hidden lg:flex items-center">
+                  <form onSubmit={handleSearch} className="flex items-center relative">
                     <input
                       type="text"
                       placeholder="Search..."
@@ -223,7 +223,7 @@ export default function Navbar2() {
                     />
                     <button 
                       type="submit"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 opacity-70 hover:opacity-100 focus:outline-none" 
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 p-1 opacity-70 hover:opacity-100 focus:outline-none flex items-center justify-center" 
                       aria-label="Submit Search"
                     >
                       <Search size={14} className={isLightMode ? 'text-black' : 'text-white'} />
@@ -236,7 +236,7 @@ export default function Navbar2() {
                   <div className="relative">
                     <button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-1 ${
+                      className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-1 flex items-center justify-center ${
                         isLightMode ? 'text-black hover:bg-gray-100 focus-visible:ring-black' : 'text-white hover:bg-white/10 focus-visible:ring-white'
                       }`}
                       aria-label="User Account"
@@ -278,7 +278,7 @@ export default function Navbar2() {
                   </div>
                 ) : (
                   <Link to="/login" aria-label="Login">
-                    <button className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 ${
+                    <button className={`p-1.5 rounded-full transition-all duration-200 active:scale-95 flex items-center justify-center ${
                       isLightMode ? 'text-black hover:bg-gray-100' : 'text-white hover:bg-white/10'
                     }`}>
                       <User size={18} />
@@ -289,7 +289,7 @@ export default function Navbar2() {
                 {/* Shopping Cart Button with Dynamic Badge */}
                 <button
                   onClick={openCart}
-                  className="relative p-1.5 focus:outline-none cursor-pointer group active:scale-95 transition-transform"
+                  className="relative p-1.5 focus:outline-none cursor-pointer group active:scale-95 transition-transform inline-flex items-center justify-center"
                   aria-label="Shopping Cart"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${
@@ -339,7 +339,7 @@ export default function Navbar2() {
                 />
                 <button
                   type="submit"
-                  className="bg-white text-black px-4 py-2.5 rounded-r-md text-xs font-semibold"
+                  className="bg-white text-black px-4 py-2.5 rounded-r-md text-xs font-semibold flex items-center justify-center"
                 >
                   <Search size={14} />
                 </button>
