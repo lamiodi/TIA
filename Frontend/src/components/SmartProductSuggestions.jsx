@@ -128,15 +128,15 @@ export const SmartProductSuggestions = ({
   // Mode 1: Cart Drawer Compact Recommendation List
   if (type === 'cart-drawer') {
     return (
-      <div className={`pt-4 border-t border-white/10 ${className}`}>
+      <div className={`pt-4 border-t border-stone-200 ${className}`}>
         <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-1.5 text-amber-400">
-            <Sparkles className="w-3.5 h-3.5" />
-            <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-stone-200">
-              Complete Your Set
+          <div className="flex items-center gap-1.5 text-stone-900">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-900">
+              Complete Your Look
             </h4>
           </div>
-          <span className="text-[10px] text-stone-500 font-mono">Special Add-ons</span>
+          <span className="text-[10px] text-stone-500 font-mono">Curated Add-ons</span>
         </div>
 
         <div className="space-y-2.5">
@@ -147,24 +147,26 @@ export const SmartProductSuggestions = ({
             return (
               <div 
                 key={product.id}
-                className="flex items-center justify-between p-2.5 bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-lg transition-all duration-200"
+                className="flex items-center justify-between p-2.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl transition-all duration-200 shadow-2xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img 
                     src={product.image} 
                     alt={product.name} 
-                    className="w-11 h-13 object-cover rounded-md border border-white/10 shrink-0 bg-stone-900"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-11 h-13 object-cover rounded-md border border-stone-200 shrink-0 bg-stone-100"
                   />
                   <div className="min-w-0 pr-2">
-                    <p className="text-[11px] font-medium text-stone-200 truncate font-Jost">
+                    <p className="text-[11px] font-semibold text-stone-900 truncate font-Jost">
                       {product.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] font-mono font-semibold text-amber-300">
+                      <span className="text-[11px] font-mono font-bold text-stone-900">
                         {formatPrice(product.price)}
                       </span>
                       {product.originalPrice && (
-                        <span className="text-[10px] font-mono line-through text-stone-500">
+                        <span className="text-[10px] font-mono line-through text-stone-400">
                           {formatPrice(product.originalPrice)}
                         </span>
                       )}
@@ -175,15 +177,15 @@ export const SmartProductSuggestions = ({
                 <button
                   onClick={(e) => handleQuickAdd(product, e)}
                   disabled={isLoading || isCartLoading}
-                  className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono font-semibold uppercase tracking-wider transition-all duration-200 flex items-center gap-1 active:scale-95 cursor-pointer border ${
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-1 active:scale-95 cursor-pointer border ${
                     isSuccess 
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                      : 'bg-white/10 hover:bg-amber-400 hover:text-black text-stone-200 border-white/15'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-white hover:bg-stone-900 hover:text-white text-stone-900 border-stone-300 shadow-2xs'
                   }`}
                 >
                   {isSuccess ? (
                     <>
-                      <Check className="w-3 h-3 text-emerald-400" />
+                      <Check className="w-3 h-3 text-emerald-700" />
                       Added
                     </>
                   ) : (

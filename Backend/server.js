@@ -3,8 +3,11 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import compression from "compression";
 import { v2 as cloudinary } from "cloudinary";
 import { EventEmitter } from "events";
+import { cacheMiddleware } from "./utils/apiCache.js";
+import { ensurePerformanceIndexes } from "./utils/initDbIndexes.js";
 
 // Routes
 import productRoutes from "./routes/products.js";
@@ -32,6 +35,9 @@ dotenv.config();
 EventEmitter.defaultMaxListeners = 40;
 
 const app = express();
+
+// High performance response compression (gzip/brotli)
+app.use(compression({ level: 6 }));
 
 // ==== Cloudinary Setup ====
 cloudinary.config({
@@ -93,9 +99,9 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/paystack", paystackRouter);
 app.use("/api/bundles", bundleRoutes);
 app.use("/api/inventory", inventoryRoutes);
-app.use("/api/meta", metaRoutes);
+app.use("/api/meta", cacheMiddleware(120), metaRoutes);
 app.use("/api/cart", cartRoutes);
-app.use("/api/shopall", shopallRoutes);
+app.use("/api/shopall", cacheMiddleware(60), shopallRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/auth", authRoutes);
@@ -122,11 +128,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// ==== Cron Job ====
-// cleanupOldOrders(); // runs on startup - REMOVED
-
 // ==== Start Server ====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  ensurePerformanceIndexes();
+});

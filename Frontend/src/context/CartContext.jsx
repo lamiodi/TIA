@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
@@ -6,6 +6,12 @@ import { CurrencyContext } from '../pages/CurrencyContext';
 const API_BASE_URL = import.meta.env.PROD
   ? 'https://tia-backend-r331.onrender.com/api'
   : '/api';
+
+// Shared axios instance with timeout
+const cartApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 8000,
+});
 
 export const CartContext = createContext();
 
@@ -31,6 +37,10 @@ export const CartProvider = ({ children }) => {
   const [isCartLoading, setIsCartLoading] = useState(true);
   const [isUpdatingItem, setIsUpdatingItem] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
+
+  // Ref to track in-flight fetch to avoid duplicate requests
+  const isFetchingRef = useRef(false);
+  const fetchDebounceRef = useRef(null);
 
   const openCart = useCallback(() => setIsCartOpen(true), []);
   const closeCart = useCallback(() => setIsCartOpen(false), []);
@@ -146,13 +156,20 @@ export const CartProvider = ({ children }) => {
     }
   }, []);
 
-  // Fetch cart (logged in or guest)
-  const fetchCart = useCallback(async () => {
+  // Fetch cart with deduplication — won't fire if already in-flight
+  const fetchCart = useCallback(async (silent = false) => {
+    // Prevent duplicate concurrent fetches
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     const token = getToken();
     if (!token) {
       loadGuestCart();
+      isFetchingRef.current = false;
       return;
     }
+
+    if (!silent) setIsCartLoading(true);
 
     try {
       const userId = getUserId();
@@ -161,7 +178,7 @@ export const CartProvider = ({ children }) => {
         return;
       }
 
-      const res = await axios.get(`${API_BASE_URL}/cart/${userId}`, {
+      const res = await cartApi.get(`/cart/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'X-User-Country': country,
@@ -184,34 +201,60 @@ export const CartProvider = ({ children }) => {
       loadGuestCart();
     } finally {
       setIsCartLoading(false);
+      isFetchingRef.current = false;
     }
   }, [getToken, getUserId, country, loadGuestCart, validateBriefQuantity]);
 
+  // Debounced fetch — coalesces rapid-fire events into one request
+  const debouncedFetchCart = useCallback((delay = 300) => {
+    clearTimeout(fetchDebounceRef.current);
+    fetchDebounceRef.current = setTimeout(() => fetchCart(true), delay);
+  }, [fetchCart]);
+
   useEffect(() => {
     fetchCart();
+    return () => clearTimeout(fetchDebounceRef.current);
   }, [fetchCart]);
 
   // Listen to custom events ('cartUpdated', 'openCartModal', 'storage')
   useEffect(() => {
     const handleCartUpdated = () => {
-      fetchCart();
+      debouncedFetchCart(200);
     };
 
     const handleOpenCart = () => {
-      fetchCart();
+      debouncedFetchCart(0);
       setIsCartOpen(true);
+    };
+
+    // Only refetch from storage if it's the guestCart key
+    const handleStorage = (e) => {
+      if (e.key === 'guestCart' || e.key === null) {
+        debouncedFetchCart(200);
+      }
     };
 
     window.addEventListener('cartUpdated', handleCartUpdated);
     window.addEventListener('openCartModal', handleOpenCart);
-    window.addEventListener('storage', handleCartUpdated);
+    window.addEventListener('storage', handleStorage);
 
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdated);
       window.removeEventListener('openCartModal', handleOpenCart);
-      window.removeEventListener('storage', handleCartUpdated);
+      window.removeEventListener('storage', handleStorage);
     };
-  }, [fetchCart]);
+  }, [debouncedFetchCart]);
+
+  // Compute the updated totals locally (used for optimistic updates)
+  const computeTotals = useCallback((items) => {
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.quantity * (item.item?.price || item.price || 0),
+      0
+    );
+    const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
+    const total = subtotal + tax;
+    return { subtotal, tax, total };
+  }, [country]);
 
   // Update item quantity
   const updateQuantity = useCallback(
@@ -224,20 +267,13 @@ export const CartProvider = ({ children }) => {
           const updatedItems = cart.items.map((item) =>
             item.id === itemId ? { ...item, quantity: newQuantity } : item
           );
-          const subtotal = updatedItems.reduce(
-            (sum, item) => sum + item.quantity * (item.item?.price || item.price || 0),
-            0
-          );
-          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-          const total = subtotal + tax;
-
+          const { subtotal, tax, total } = computeTotals(updatedItems);
           const validation = validateBriefQuantity(updatedItems);
           let warning = null;
           if (validation.hasInsufficientBriefs) {
             const rem = 3 - validation.totalBriefQuantity;
             warning = `Minimum order quantity for briefs is 3 units. Please add ${rem} more brief${rem > 1 ? 's' : ''} to meet the requirement.`;
           }
-
           const updatedCart = { ...cart, items: updatedItems, subtotal, tax, total, warning };
           setCart(updatedCart);
           saveGuestCart(updatedCart);
@@ -245,34 +281,26 @@ export const CartProvider = ({ children }) => {
           return;
         }
 
-        // Authenticated user
+        // Authenticated user — optimistic update first
         const token = getToken();
         if (!token) return;
 
-        // Optimistic update
         setCart((prev) => {
           const updatedItems = prev.items.map((item) =>
             item.id === itemId ? { ...item, quantity: newQuantity } : item
           );
-          const subtotal = updatedItems.reduce(
-            (sum, item) => sum + item.quantity * (item.item?.price || item.price || 0),
-            0
-          );
-          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-          const total = subtotal + tax;
-
+          const { subtotal, tax, total } = computeTotals(updatedItems);
           const validation = validateBriefQuantity(updatedItems);
           let warning = null;
           if (validation.hasInsufficientBriefs) {
             const rem = 3 - validation.totalBriefQuantity;
             warning = `Minimum order quantity for briefs is 3 units. Please add ${rem} more brief${rem > 1 ? 's' : ''} to meet the requirement.`;
           }
-
           return { ...prev, items: updatedItems, subtotal, tax, total, warning };
         });
 
-        await axios.put(
-          `${API_BASE_URL}/cart/${itemId}`,
+        await cartApi.put(
+          `/cart/${itemId}`,
           { quantity: newQuantity },
           {
             headers: {
@@ -281,16 +309,15 @@ export const CartProvider = ({ children }) => {
             },
           }
         );
-
-        fetchCart();
+        // Optimistic update was successful — no need to re-fetch
       } catch (err) {
         console.error('Failed to update quantity:', err);
-        fetchCart();
+        fetchCart(true); // Rollback: re-sync with server
       } finally {
         setIsUpdatingItem(null);
       }
     },
-    [isGuest, cart, country, saveGuestCart, validateBriefQuantity, getToken, fetchCart, isUpdatingItem]
+    [isGuest, cart, country, saveGuestCart, validateBriefQuantity, getToken, fetchCart, isUpdatingItem, computeTotals]
   );
 
   // Remove item
@@ -299,20 +326,13 @@ export const CartProvider = ({ children }) => {
       try {
         if (isGuest) {
           const remaining = cart.items.filter((item) => item.id !== itemId);
-          const subtotal = remaining.reduce(
-            (sum, item) => sum + item.quantity * (item.item?.price || item.price || 0),
-            0
-          );
-          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-          const total = subtotal + tax;
-
+          const { subtotal, tax, total } = computeTotals(remaining);
           const validation = validateBriefQuantity(remaining);
           let warning = null;
           if (validation.hasInsufficientBriefs) {
             const rem = 3 - validation.totalBriefQuantity;
             warning = `Minimum order quantity for briefs is 3 units. Please add ${rem} more brief${rem > 1 ? 's' : ''} to meet the requirement.`;
           }
-
           const updatedCart = { ...cart, items: remaining, subtotal, tax, total, warning };
           setCart(updatedCart);
           saveGuestCart(updatedCart);
@@ -323,38 +343,29 @@ export const CartProvider = ({ children }) => {
         const token = getToken();
         if (!token) return;
 
+        // Optimistic removal
         setCart((prev) => {
           const remaining = prev.items.filter((item) => item.id !== itemId);
-          const subtotal = remaining.reduce(
-            (sum, item) => sum + item.quantity * (item.item?.price || item.price || 0),
-            0
-          );
-          const tax = country === 'Nigeria' ? 0 : subtotal * 0.05;
-          const total = subtotal + tax;
-
+          const { subtotal, tax, total } = computeTotals(remaining);
           const validation = validateBriefQuantity(remaining);
           let warning = null;
           if (validation.hasInsufficientBriefs) {
             const rem = 3 - validation.totalBriefQuantity;
             warning = `Minimum order quantity for briefs is 3 units. Please add ${rem} more brief${rem > 1 ? 's' : ''} to meet the requirement.`;
           }
-
           return { ...prev, items: remaining, subtotal, tax, total, warning };
         });
 
-        await axios.delete(`${API_BASE_URL}/cart/${itemId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        await cartApi.delete(`/cart/${itemId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-
-        fetchCart();
+        // Optimistic removal was successful — no need to re-fetch
       } catch (err) {
         console.error('Failed to remove item:', err);
-        fetchCart();
+        fetchCart(true); // Rollback: re-sync with server
       }
     },
-    [isGuest, cart, country, saveGuestCart, validateBriefQuantity, getToken, fetchCart]
+    [isGuest, cart, country, saveGuestCart, validateBriefQuantity, getToken, fetchCart, computeTotals]
   );
 
   // Clear cart
@@ -375,19 +386,18 @@ export const CartProvider = ({ children }) => {
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });
 
       try {
-        await axios.delete(`${API_BASE_URL}/cart/clear/${userId}`, {
+        await cartApi.delete(`/cart/clear/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch {
-        await axios.post(`${API_BASE_URL}/cart/clear/${userId}`, {}, {
+        await cartApi.post(`/cart/clear/${userId}`, {}, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
-
-      fetchCart();
+      // Optimistic clear was successful — no re-fetch needed
     } catch (err) {
       console.error('Failed to clear cart:', err);
-      fetchCart();
+      fetchCart(true); // Rollback on error
     }
   }, [isGuest, saveGuestCart, getToken, getUserId, fetchCart]);
 

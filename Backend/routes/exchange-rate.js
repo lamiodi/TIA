@@ -1,10 +1,11 @@
 import express from 'express';
 import sql from '../db/index.js'; // Changed from pool to sql
 import { authenticateAdmin } from '../middleware/auth.js';
+import { cacheMiddleware, invalidateCache } from '../utils/apiCache.js';
 
 const router = express.Router();
 
-router.get('/exchange-rate', async (req, res) => {
+router.get('/exchange-rate', cacheMiddleware(300), async (req, res) => {
   try {
     // Changed to tagged template literal and destructuring assignment
     const [result] = await sql`SELECT rate FROM settings WHERE key = ${'ngn_to_usd_rate'}`;
@@ -29,6 +30,7 @@ router.put('/exchange-rate', authenticateAdmin, async (req, res) => {
       VALUES (${'ngn_to_usd_rate'}, ${rate}) 
       ON CONFLICT (key) DO UPDATE SET rate = ${rate}
     `;
+    invalidateCache('exchange-rate');
     console.log('ExchangeRate: Updated rate to', rate);
     res.json({ rate });
   } catch (error) {
