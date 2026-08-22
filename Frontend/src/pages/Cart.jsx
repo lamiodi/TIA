@@ -6,6 +6,7 @@ import Navbar2 from '../components/Navbar2';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from './CurrencyContext';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.PROD
   ? 'https://tia-backend-r331.onrender.com/api'
@@ -788,13 +789,14 @@ const Cart = () => {
               <div className="relative flex-shrink-0">
                 <div className="relative overflow-hidden rounded-lg bg-gray-100">
                   <img
-                    src={item.item.image || 'https://via.placeholder.com/150x150?text=No+Image'}
+                    src={getThumbnailUrl(item.item.image, 200) || 'https://via.placeholder.com/150x150?text=No+Image'}
                     alt={item.item.name}
                     className={`w-full h-40 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/150x150?text=No+Image';
                     }}
                     loading="lazy"
+                    decoding="async"
                     width="150"
                     height="150"
                   />
@@ -894,13 +896,14 @@ const Cart = () => {
                           {bundleItems.slice(0, 4).map((bi, index) => (
                             <div key={`${item.id}-bundle-item-${bi.id}`} className="flex items-center gap-2">
                               <img
-                                src={bi.image_url || 'https://via.placeholder.com/40x40'}
+                                src={getThumbnailUrl(bi.image_url, 80) || 'https://via.placeholder.com/40x40'}
                                 alt={bi.product_name}
                                 className="w-8 h-8 rounded object-cover flex-shrink-0"
                                 onError={(e) => {
                                   e.target.src = 'https://via.placeholder.com/40x40';
                                 }}
                                 loading="lazy"
+                                decoding="async"
                                 width="40"
                                 height="40"
                               />

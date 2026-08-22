@@ -13,6 +13,7 @@ import { CurrencyContext } from './CurrencyContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
@@ -2531,12 +2532,14 @@ const CheckoutPage = () => {
                           <div className="flex gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
                             <div className="relative flex-shrink-0">
                               <img
-                                src={item.image || item.image_url || 'https://via.placeholder.com/80x80?text=No+Image'}
+                                src={getThumbnailUrl(item.image || item.image_url, 160) || 'https://via.placeholder.com/80x80?text=No+Image'}
                                 alt={item.name || 'Product'}
                                 className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
                                 onError={(e) => {
                                   e.target.src = 'https://via.placeholder.com/80x80?text=No+Image';
                                 }}
+                                loading="lazy"
+                                decoding="async"
                               />
                               <div className="absolute -top-2 -right-2 bg-Primarycolor text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
                                 {cartItem.quantity || 1}
@@ -2567,12 +2570,14 @@ const CheckoutPage = () => {
                                     {item.items.map((bundleItem, idx) => (
                                       <div key={bundleItem.id || idx} className="flex flex-col items-center">
                                         <img
-                                          src={bundleItem.image_url || 'https://via.placeholder.com/40x40'}
+                                          src={getThumbnailUrl(bundleItem.image_url, 96) || 'https://via.placeholder.com/40x40'}
                                           alt={bundleItem.product_name}
                                           className="w-12 h-12 object-cover rounded-md mb-1"
                                           onError={(e) => {
                                             e.target.src = 'https://via.placeholder.com/40x40';
                                           }}
+                                          loading="lazy"
+                                          decoding="async"
                                         />
                                         <span className="text-xs text-Accent font-Jost truncate w-full text-center">
                                           {bundleItem.color_name}

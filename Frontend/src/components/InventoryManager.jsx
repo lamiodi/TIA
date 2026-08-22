@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const api = axios.create({
@@ -955,10 +956,12 @@ const InventoryManager = () => {
                                     }`}
                                   >
                                     <img
-                                      src={img.image_url}
+                                      src={getThumbnailUrl(img.image_url, 100)}
                                       alt={`Variant image ${imgIndex + 1}`}
                                       className="w-10 h-10 object-cover rounded flex-shrink-0 cursor-pointer"
                                       onClick={() => handleSetPrimaryImage(variant.id, img.id)}
+                                      loading="lazy"
+                                      decoding="async"
                                     />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1">
@@ -1060,10 +1063,12 @@ const InventoryManager = () => {
                             >
                               {/* Thumbnail */}
                               <img
-                                src={img.image_url}
+                                src={getThumbnailUrl(img.image_url, 140)}
                                 alt={`Bundle image ${index + 1}`}
                                 className="w-14 h-14 object-cover rounded flex-shrink-0 cursor-pointer"
                                 onClick={() => handleSetPrimaryBundleImage(img.id)}
+                                loading="lazy"
+                                decoding="async"
                               />
 
                               {/* Info + Controls */}

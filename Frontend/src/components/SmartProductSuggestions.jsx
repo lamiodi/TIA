@@ -6,6 +6,7 @@ import { CurrencyContext } from '../pages/CurrencyContext';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
+import { getThumbnailUrl, getCardImageUrl } from '../utils/imageUtils';
 
 // Curated high-converting catalog for smart recommendations
 const DEFAULT_SUGGESTIONS = [
@@ -151,7 +152,7 @@ export const SmartProductSuggestions = ({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img 
-                    src={product.image} 
+                    src={getThumbnailUrl(product.image, 120)} 
                     alt={product.name} 
                     loading="lazy"
                     decoding="async"
@@ -260,7 +261,13 @@ export const SmartProductSuggestions = ({
                   }`}>
                     {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                   </div>
-                  <img src={item.image} alt={item.name} className="w-10 h-12 object-cover rounded bg-stone-900 shrink-0" />
+                  <img 
+                    src={getThumbnailUrl(item.image, 100)} 
+                    alt={item.name} 
+                    loading="lazy"
+                    decoding="async"
+                    className="w-10 h-12 object-cover rounded bg-stone-900 shrink-0" 
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate font-Jost">{item.name}</p>
                     <p className="text-xs font-mono text-amber-300 mt-0.5">{formatPrice(item.price)}</p>
@@ -338,8 +345,10 @@ export const SmartProductSuggestions = ({
               {/* Product Media */}
               <div className="relative aspect-[4/5] bg-stone-950 overflow-hidden">
                 <img 
-                  src={product.image} 
+                  src={getCardImageUrl(product.image, 500)} 
                   alt={product.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 {product.badge && (

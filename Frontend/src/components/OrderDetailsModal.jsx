@@ -3,6 +3,7 @@ import {
   ChevronRight as ChevronRightIcon, ChevronLeft as ChevronLeftIcon, 
   Printer, CheckCircle, Trash2, Truck, FileText
 } from 'lucide-react';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const OrderDetailsModal = ({
   selectedOrder,
@@ -76,10 +77,12 @@ const OrderDetailsModal = ({
     return (
       <div className="flex flex-col">
         <img 
-          src={currentImage} 
+          src={getThumbnailUrl(currentImage, 140)} 
           alt={productName} 
           className="w-16 h-16 object-cover rounded-md border border-gray-200"
           onError={(e) => { e.target.src = 'https://via.placeholder.com/100'; }}
+          loading="lazy"
+          decoding="async"
         />
         {imageArray.length > 1 && (
           <div className="flex mt-1 space-x-1">

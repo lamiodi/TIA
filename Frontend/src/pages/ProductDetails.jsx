@@ -25,6 +25,7 @@ import DescriptionSection from "../components/DescriptionSection"
 import SmartProductSuggestions from "../components/SmartProductSuggestions"
 import { toastSuccess, toastError } from "../utils/toastConfig"
 import ProductSchema from "../components/ProductSchema"
+import { getDetailImageUrl } from "../utils/imageUtils"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tia-backend-r331.onrender.com"
 const ProductDetails = () => {
   const { id } = useParams()
@@ -954,8 +955,11 @@ const ProductDetails = () => {
                 {images.map((img, idx) => (
                   <div key={idx} className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group">
                     <img
-                      src={img || "https://via.placeholder.com/500"}
+                      src={getDetailImageUrl(img, 1000) || "https://via.placeholder.com/500"}
                       alt={`${name} view ${idx + 1}`}
+                      loading={idx === 0 ? "eager" : "lazy"}
+                      fetchPriority={idx === 0 ? "high" : "auto"}
+                      decoding="async"
                       className="w-full max-w-lg h-auto object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                     {/* Sold Out Overlay */}

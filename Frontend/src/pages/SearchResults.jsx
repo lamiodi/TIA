@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+import { getCardImageUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
@@ -282,6 +283,7 @@ const SearchResults = () => {
                   product={product}
                   onAddToCart={handleAddToCart}
                   onImageError={handleImageError}
+                  priority={index < 4}
                 />
               ))}
             </div>
@@ -308,9 +310,10 @@ const SearchResults = () => {
   );
 };
 
-const ProductCard = ({ product, onAddToCart, onImageError }) => {
+const ProductCard = ({ product, onAddToCart, onImageError, priority = false }) => {
   const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
+  const [imgLoaded, setImgLoaded] = useState(false);
   
   // Clean product name (remove trailing "– Something")
   let displayName = name || 'Unnamed Product';
@@ -332,16 +335,26 @@ const ProductCard = ({ product, onAddToCart, onImageError }) => {
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   const isPreorder = isSoldOut && allow_preorder;
 
+  const optimizedImage = useMemo(() => getCardImageUrl(image, 550), [image]);
+
   return (
     <div className="group bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full border border-gray-100">
       <Link to={productUrl} className="block relative overflow-hidden">
         <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-stone-200/60 animate-pulse pointer-events-none" />
+          )}
           <img
-            src={image}
+            src={optimizedImage}
             alt={displayName}
-            className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 ease-out"
+            className={`w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 ease-out ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            } transition-opacity duration-300`}
             onError={onImageError}
-            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
           

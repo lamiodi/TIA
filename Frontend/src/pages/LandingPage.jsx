@@ -145,8 +145,10 @@ const LandingPage = () => {
             <div className="relative group cursor-pointer overflow-hidden">
               <div className="aspect-[4/5]">
                 <img 
-                  src="https://res.cloudinary.com/dgcwviufp/image/upload/v1756112981/Loginpic1_lki5se.jpg" 
+                  src="https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1756112981/Loginpic1_lki5se.jpg" 
                   alt="Sculpt Blush Collection" 
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -164,8 +166,10 @@ const LandingPage = () => {
             <div className="relative group cursor-pointer overflow-hidden">
               <div className="aspect-[4/5]">
                 <img 
-                  src="https://res.cloudinary.com/dgcwviufp/image/upload/v1751100926/e2okih4fkrhkejikken4.webp" 
+                  src="https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1751100926/e2okih4fkrhkejikken4.webp" 
                   alt="Sculpt Bon Bon Collection" 
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -183,8 +187,10 @@ const LandingPage = () => {
             <div className="relative group cursor-pointer overflow-hidden">
               <div className="aspect-[4/5]">
                 <img 
-                  src="https://res.cloudinary.com/dgcwviufp/image/upload/v1757873752/tinywow_IMG_2972_2__83441506_eqsdds.jpg" 
+                  src="https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1757873752/tinywow_IMG_2972_2__83441506_eqsdds.jpg" 
                   alt="Sculpt Storm Collection" 
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -202,8 +208,10 @@ const LandingPage = () => {
             <div className="relative group cursor-pointer overflow-hidden">
               <div className="aspect-[4/5]">
                 <img 
-                  src="https://res.cloudinary.com/dgcwviufp/image/upload/v1756112985/Signuppic2_q1rzbx.jpg" 
+                  src="https://res.cloudinary.com/dgcwviufp/image/upload/f_auto,q_auto,w_800/v1756112985/Signuppic2_q1rzbx.jpg" 
                   alt="Sculpt Premium Collection" 
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

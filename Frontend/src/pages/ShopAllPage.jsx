@@ -11,6 +11,7 @@ import giftCardImage from '../assets/images/GiftCardImage.png';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
+import { getCardImageUrl } from '../utils/imageUtils';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
@@ -550,6 +551,7 @@ const ShopAllPage = () => {
               product={product}
               onAddToCart={handleAddToCart}
               onImageError={handleImageError}
+              priority={index < 4}
             />
           ))}
         </div>
@@ -571,9 +573,10 @@ const ShopAllPage = () => {
   );
 };
 
-const ProductCard = ({ product, onImageError }) => {
+const ProductCard = ({ product, onImageError, priority = false }) => {
   const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder, is_promo, preloadColor } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   
@@ -596,17 +599,27 @@ const ProductCard = ({ product, onImageError }) => {
   const isUSD = currency === 'USD' || country !== 'Nigeria';
   const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
   const displayCurrency = isUSD ? 'USD' : 'NGN';
+
+  const optimizedImage = useMemo(() => getCardImageUrl(image, 550), [image]);
   
   return (
     <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
       <Link to={productUrl} className="block relative overflow-hidden flex-1">
         <div className={`relative w-full aspect-[3/4] overflow-hidden ${product.is_gift_card ? 'bg-[#E5D4C0] flex items-center justify-center p-3' : 'bg-gray-50'}`}>
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-stone-200/60 animate-pulse pointer-events-none" />
+          )}
           <img
-            src={image}
+            src={optimizedImage}
             alt={displayName}
-            className={`w-full h-full ${product.is_gift_card ? 'object-contain filter drop-shadow-md' : 'object-cover object-center'} group-hover:scale-105 transition-transform duration-700 ease-out`}
+            className={`w-full h-full ${product.is_gift_card ? 'object-contain filter drop-shadow-md' : 'object-cover object-center'} group-hover:scale-105 transition-transform duration-700 ease-out ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            } transition-opacity duration-300`}
             onError={onImageError}
-            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
           />
           
           {/* Badges */}

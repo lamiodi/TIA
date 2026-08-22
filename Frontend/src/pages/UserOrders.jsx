@@ -6,6 +6,7 @@ import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -90,12 +91,14 @@ const UserOrders = () => {
     return (
       <div className="flex flex-col">
         <img
-          src={currentImage}
+          src={getThumbnailUrl(currentImage, 140)}
           alt={productName}
           className="w-16 h-16 object-cover rounded-md border border-gray-200"
           onError={(e) => {
             e.target.src = 'https://via.placeholder.com/100';
           }}
+          loading="lazy"
+          decoding="async"
         />
         {imageArray.length > 1 && (
           <div className="flex mt-1 space-x-1">

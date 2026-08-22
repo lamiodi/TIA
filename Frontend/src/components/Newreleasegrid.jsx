@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
+import { getCardImageUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -227,6 +228,8 @@ const ProductCard = ({ product, onImageError, priority }) => {
   const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
   const displayCurrency = isUSD ? 'USD' : 'NGN';
   
+  const optimizedImage = React.useMemo(() => getCardImageUrl(image, 480), [image]);
+
   return (
     <div className="group w-[calc(100vw-2rem)] sm:w-[calc(50vw-1.5rem)] md:min-w-[240px] md:max-w-[240px] bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col flex-shrink-0">
       <Link to={`/product/${productId}?variant=${variantId}`} className="block">
@@ -235,13 +238,15 @@ const ProductCard = ({ product, onImageError, priority }) => {
             <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
           )}
           <img
-            src={image}
+            src={optimizedImage}
             alt={displayName}
             className={`w-full h-full object-contain object-center transition-transform duration-300 ${
-              imageLoaded ? 'hover:scale-105' : ''
-            }`}
+              imageLoaded ? 'hover:scale-105 opacity-100' : 'opacity-0'
+            } transition-opacity duration-300`}
             onError={onImageError}
             onLoad={() => setImageLoaded(true)}
+            loading="lazy"
+            decoding="async"
             width={240}
             height={300}
           />

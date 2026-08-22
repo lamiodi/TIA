@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../context/AuthContext';
+import { getCardImageUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -548,10 +549,12 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
                 {Array.isArray(review.images) && review.images.length > 0 && (
                   <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {review.images.map((url, index) => (
-                      <div key={index} className="relative group overflow-hidden rounded-xl">
+                      <div key={index} className="relative group overflow-hidden rounded-xl bg-gray-100">
                         <img
-                          src={url}
+                          src={getCardImageUrl(url, 400)}
                           alt={`Review image ${index + 1}`}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-xl"></div>

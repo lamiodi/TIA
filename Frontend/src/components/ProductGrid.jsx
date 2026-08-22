@@ -7,6 +7,7 @@ import { CurrencyContext } from '../pages/CurrencyContext';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
+import { getCardImageUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -305,6 +306,7 @@ const ProductGrid = () => {
                     key={`${product.is_promo ? 'promo-' + product.preloadColor : product.is_product ? 'product' : 'bundle'}-${product.id}-${index}`}
                     product={product}
                     onImageError={handleImageError}
+                    priority={index < 4}
                   />
                 ))}
               </div>
@@ -330,9 +332,10 @@ const ProductGrid = () => {
   );
 };
 
-const ProductCard = ({ product, onImageError }) => {
+const ProductCard = ({ product, onImageError, priority = false }) => {
   const { id, name, price, image, color, is_product, variantId, bundle_types, sizes, allow_preorder, is_promo, preloadColor } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
+  const [imgLoaded, setImgLoaded] = useState(false);
   
   // Clean product name (remove trailing "– Color")
   let displayName = name || 'Unnamed Product';
@@ -357,17 +360,27 @@ const ProductCard = ({ product, onImageError }) => {
   const isUSD = currency === 'USD' || country !== 'Nigeria';
   const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
   const displayCurrency = isUSD ? 'USD' : 'NGN';
+
+  const optimizedImage = useMemo(() => getCardImageUrl(image, 550), [image]);
   
   return (
     <div className="group bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full border border-gray-100">
       <Link to={productUrl} className="block relative overflow-hidden">
         <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-stone-200/60 animate-pulse pointer-events-none" />
+          )}
           <img
-            src={image}
+            src={optimizedImage}
             alt={displayName}
-            className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 ease-out"
+            className={`w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 ease-out ${
+              imgLoaded ? 'opacity-100' : 'opacity-0'
+            } transition-opacity duration-300`}
             onError={onImageError}
-            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300"></div>
           

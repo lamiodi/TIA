@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Trash2, Plus, Minus, AlertCircle, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import SmartProductSuggestions from './SmartProductSuggestions';
+import { getThumbnailUrl } from '../utils/imageUtils';
 
 const CartDrawer = () => {
   const {
@@ -167,7 +168,7 @@ const CartDrawer = () => {
                       {/* Image */}
                       <div className="w-20 h-24 bg-stone-100 rounded-lg overflow-hidden shrink-0 border border-stone-200 relative">
                         <img
-                          src={image}
+                          src={getThumbnailUrl(image, 160)}
                           alt={productName}
                           loading="lazy"
                           decoding="async"
