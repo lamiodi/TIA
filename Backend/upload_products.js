@@ -84,105 +84,10 @@ async function main() {
 
     const uploadsDir = path.join(__dirname, 'product-uploads');
 
-    // 1. Thee Vibee (Variant Product)
-    console.log('\n========================================');
-    console.log('📦 Processing Multi-Variant Product: Thee Vibee');
-    console.log('========================================');
-
-    const tvLongTxt = parseProductTxt(path.join(uploadsDir, 'Thee Vibee Long', 'product.txt'));
-    const tvShortTxt = parseProductTxt(path.join(uploadsDir, 'Thee Vibee Short', 'product.txt'));
-
-    const tvLongImages = getImagesInFolder(path.join(uploadsDir, 'Thee Vibee Long', 'images'));
-    const tvShortImages = getImagesInFolder(path.join(uploadsDir, 'Thee Vibee Short', 'images'));
-
-    console.log(`Thee Vibee Long has ${tvLongImages.length} images.`);
-    console.log(`Thee Vibee Short has ${tvShortImages.length} images.`);
-
-    // Insert Parent Product
-    const [theeVibeeProduct] = await sql`
-      INSERT INTO products (name, description, base_price, sku_prefix, category, gender, is_new_release, is_active)
-      VALUES (
-        'Thee Vibee',
-        'Engineered for superior comfort and modern athletic style, Thee Vibee is a premium windbreaker set designed for versatility and everyday performance. Featuring high-grade weather-resistant fabric, clean contrast branding, and tailored silhouettes.',
-        ${Number(tvShortTxt.price || 160000)},
-        'TVB',
-        'Lounge Set',
-        'Male',
-        true,
-        true
-      )
-      RETURNING id, name
-    `;
-    console.log(` Created Product: ${theeVibeeProduct.name} (ID: ${theeVibeeProduct.id})`);
-
-    // Variant 1: Thee Vibee Long
-    const [tvLongVariant] = await sql`
-      INSERT INTO product_variants (product_id, color_id, sku, name, is_active)
-      VALUES (
-        ${theeVibeeProduct.id},
-        ${colorMap.get('black') || 1},
-        'TVL-0',
-        'Thee Vibee Long',
-        true
-      )
-      RETURNING id, name
-    `;
-    console.log(`  Created Variant: ${tvLongVariant.name} (ID: ${tvLongVariant.id})`);
-
-    // Sizes for Thee Vibee Long
-    for (const size of sizes) {
-      await sql`
-        INSERT INTO variant_sizes (variant_id, size_id, stock_quantity)
-        VALUES (${tvLongVariant.id}, ${size.id}, 10)
-      `;
-    }
-    console.log(`  Added stock (10 per size) for ${tvLongVariant.name}`);
-
-    // Images for Thee Vibee Long
-    for (let i = 0; i < tvLongImages.length; i++) {
-      const url = await uploadImageToCloudinary(tvLongImages[i]);
-      await sql`
-        INSERT INTO product_images (variant_id, image_url, is_primary)
-        VALUES (${tvLongVariant.id}, ${url}, ${i === 0})
-      `;
-      console.log(`   Saved image ${i + 1}/${tvLongImages.length} (Primary: ${i === 0})`);
-    }
-
-    // Variant 2: Thee Vibee Short
-    const [tvShortVariant] = await sql`
-      INSERT INTO product_variants (product_id, color_id, sku, name, is_active)
-      VALUES (
-        ${theeVibeeProduct.id},
-        ${colorMap.get('black') || 1},
-        'TVS-0',
-        'Thee Vibee Short',
-        true
-      )
-      RETURNING id, name
-    `;
-    console.log(`  Created Variant: ${tvShortVariant.name} (ID: ${tvShortVariant.id})`);
-
-    // Sizes for Thee Vibee Short
-    for (const size of sizes) {
-      await sql`
-        INSERT INTO variant_sizes (variant_id, size_id, stock_quantity)
-        VALUES (${tvShortVariant.id}, ${size.id}, 10)
-      `;
-    }
-    console.log(`  Added stock (10 per size) for ${tvShortVariant.name}`);
-
-    // Images for Thee Vibee Short
-    for (let i = 0; i < tvShortImages.length; i++) {
-      const url = await uploadImageToCloudinary(tvShortImages[i]);
-      await sql`
-        INSERT INTO product_images (variant_id, image_url, is_primary)
-        VALUES (${tvShortVariant.id}, ${url}, ${i === 0})
-      `;
-      console.log(`   Saved image ${i + 1}/${tvShortImages.length} (Primary: ${i === 0})`);
-    }
-
-    // 2. Standalone Products
+    // Standalone Products List
     const standaloneProducts = [
+      { folder: 'Thee Vibee Long', colorKey: 'black' },
+      { folder: 'Thee Vibee Short', colorKey: 'black' },
       { folder: 'Bubble Gum', colorKey: 'pink' },
       { folder: 'Butterflies', colorKey: 'blue' },
       { folder: 'Capri 101', colorKey: 'black' },
