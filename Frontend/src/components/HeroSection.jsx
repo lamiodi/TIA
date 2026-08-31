@@ -10,13 +10,13 @@ const HeroSection = () => {
   const mobileVideoRef = useRef(null);
   const desktopVideoRef = useRef(null);
 
-  // Optimized Cloudinary video URLs with aggressive optimization
-  const mobileVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_600,c_scale/v1/CS_m65dwf';
-  const desktopVideoURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_1000,c_scale/v1/tia2_gljwos';
+  // Optimized Cloudinary video URLs for IMG_2055
+  const mobileVideoURL = 'https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto:eco,w_600,vc_auto/v1788166154/hero/tia_hero_video.mp4';
+  const desktopVideoURL = 'https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto,w_1080,vc_auto/v1788166154/hero/tia_hero_video.mp4';
   
   // Poster images for immediate display
-  const mobilePosterURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_600,c_scale,so_0/v1/CS_m65dwf.jpg';
-  const desktopPosterURL = 'https://res.cloudinary.com/dgcwviufp/video/upload/f_auto,q_auto:low,w_1000,c_scale,so_0/v1/tia2_gljwos.jpg';
+  const mobilePosterURL = 'https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto:eco,w_600,so_0/v1788166154/hero/tia_hero_video.jpg';
+  const desktopPosterURL = 'https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto,w_1080,so_0/v1788166154/hero/tia_hero_video.jpg';
 
   // Detect iOS devices
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);

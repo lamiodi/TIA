@@ -77,7 +77,8 @@ const LandingPage = () => {
           <video
             ref={mobileVideoRef}
             className="absolute top-0 left-0 w-full h-full object-cover lg:hidden z-10"
-            src="https://res.cloudinary.com/dgcwviufp/video/upload/f_mp4,q_auto:low,w_600,c_scale/v1/CS_m65dwf.mp4"
+            src="https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto:eco,w_600,vc_auto/v1788166154/hero/tia_hero_video.mp4"
+            poster="https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto:eco,w_600,so_0/v1788166154/hero/tia_hero_video.jpg"
             autoPlay
             muted
             loop
@@ -91,7 +92,8 @@ const LandingPage = () => {
           <video
             ref={desktopVideoRef}
             className="absolute top-0 left-0 w-full h-full object-cover hidden lg:block z-10"
-            src="https://res.cloudinary.com/dgcwviufp/video/upload/f_mp4,q_auto:low,w_1000,c_scale/v1/tia2_gljwos.mp4"
+            src="https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto,w_1080,vc_auto/v1788166154/hero/tia_hero_video.mp4"
+            poster="https://res.cloudinary.com/ddxqsfrin/video/upload/f_auto,q_auto,w_1080,so_0/v1788166154/hero/tia_hero_video.jpg"
             autoPlay
             muted
             loop
