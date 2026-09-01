@@ -43,6 +43,15 @@ function getImagesInFolder(dirPath) {
     .map(f => path.join(dirPath, f));
 }
 
+function getVideosInFolder(dirPath) {
+  if (!fs.existsSync(dirPath)) return [];
+  const files = fs.readdirSync(dirPath);
+  return files
+    .filter(f => /\.(mp4|webm|mov|m4v|mkv)$/i.test(f))
+    .sort()
+    .map(f => path.join(dirPath, f));
+}
+
 async function ensureColors() {
   const existingColors = await sql`SELECT id, color_name FROM colors`;
   const colorMap = new Map();
@@ -59,6 +68,17 @@ async function ensureColors() {
     colorMap.set('wine', inserted.id);
   }
 
+  // Add Navy if not present
+  if (!colorMap.has('navy')) {
+    const [inserted] = await sql`
+      INSERT INTO colors (color_name, color_code, hex_code)
+      VALUES ('Navy', 'NVY', '#1B2430')
+      RETURNING id, color_name
+    `;
+    console.log(`Added color: Navy (ID: ${inserted.id})`);
+    colorMap.set('navy', inserted.id);
+  }
+
   return colorMap;
 }
 
@@ -72,9 +92,40 @@ async function uploadImageToCloudinary(filePath, folder = 'tia-products') {
   return result.secure_url;
 }
 
+async function uploadVideoToCloudinary(filePath, folder = 'tia-products/videos', maxRetries = 3) {
+  console.log(`  Uploading variant video to Cloudinary: ${path.basename(filePath)}...`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const secureUrl = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_large(
+          filePath,
+          {
+            folder,
+            resource_type: 'video',
+            chunk_size: 6000000,
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result?.secure_url || result?.url || null);
+          }
+        );
+      });
+      return secureUrl;
+    } catch (err) {
+      console.warn(`  ⚠️ Video upload attempt ${attempt}/${maxRetries} failed: ${err.message || err}. Retrying in 3s...`);
+      if (attempt === maxRetries) throw err;
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+  return null;
+}
+
 async function main() {
   try {
     console.log('🚀 Starting product upload process...');
+
+    // Ensure video_url column exists
+    await sql`ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS video_url TEXT;`;
 
     const colorMap = await ensureColors();
     console.log('Available colors:', Object.fromEntries(colorMap));
@@ -86,6 +137,11 @@ async function main() {
 
     // Standalone Products List
     const standaloneProducts = [
+      { folder: 'Baby Doll', colorKey: 'pink' },
+      { folder: 'Hour Glass', colorKey: 'navy' },
+      { folder: 'Midnight', colorKey: 'navy' },
+      { folder: 'Moon Lit', colorKey: 'black' },
+      { folder: 'Pink Hour', colorKey: 'pink' },
       { folder: 'Thee Vibee Long', colorKey: 'black' },
       { folder: 'Thee Vibee Short', colorKey: 'black' },
       { folder: 'Bubble Gum', colorKey: 'pink' },
@@ -99,6 +155,9 @@ async function main() {
       { folder: 'Lets Go Padel', colorKey: 'blue' },
       { folder: 'Spicy Wine', colorKey: 'wine' },
     ];
+
+    // Clean up any incomplete orphaned products from interrupted uploads
+    await sql`DELETE FROM products WHERE id NOT IN (SELECT DISTINCT product_id FROM product_variants)`;
 
     for (const item of standaloneProducts) {
       console.log('\n========================================');
@@ -115,6 +174,7 @@ async function main() {
 
       const pData = parseProductTxt(txtPath);
       const images = getImagesInFolder(imgDir);
+      const videos = getVideosInFolder(imgDir);
 
       if (images.length === 0) {
         console.warn(`⚠️ No images found for ${item.folder}, skipping.`);
@@ -123,13 +183,26 @@ async function main() {
 
       const colorId = colorMap.get(item.colorKey) || 1;
       const basePrice = Number(pData.price || 100000);
+      const productName = pData.name || item.folder;
       const skuPrefix = pData.sku_prefix || item.folder.substring(0, 3).toUpperCase();
+      const [existingProduct] = await sql`
+        SELECT id, name FROM products WHERE LOWER(name) = LOWER(${productName}) LIMIT 1
+      `;
+      if (existingProduct) {
+        console.log(`⚠️ Product "${existingProduct.name}" already exists in database (ID: ${existingProduct.id}). Skipping.`);
+        continue;
+      }
+
+      let variantVideoUrl = pData.video_url || null;
+      if (!variantVideoUrl && videos.length > 0) {
+        variantVideoUrl = (await uploadVideoToCloudinary(videos[0])) || null;
+      }
 
       // Insert Product
       const [product] = await sql`
         INSERT INTO products (name, description, base_price, sku_prefix, category, gender, is_new_release, is_active)
         VALUES (
-          ${pData.name || item.folder},
+          ${productName},
           ${pData.description || ''},
           ${basePrice},
           ${skuPrefix},
@@ -142,19 +215,20 @@ async function main() {
       `;
       console.log(` Created Product: ${product.name} (ID: ${product.id})`);
 
-      // Insert Variant
+      // Insert Variant with variant-specific video_url
       const [variant] = await sql`
-        INSERT INTO product_variants (product_id, color_id, sku, name, is_active)
+        INSERT INTO product_variants (product_id, color_id, sku, name, is_active, video_url)
         VALUES (
           ${product.id},
           ${colorId},
           ${`${skuPrefix}-0`},
           ${product.name},
-          true
+          true,
+          ${variantVideoUrl || null}
         )
         RETURNING id, name
       `;
-      console.log(`  Created Variant: ${variant.name} (ID: ${variant.id})`);
+      console.log(`  Created Variant: ${variant.name} (ID: ${variant.id})${variantVideoUrl ? ' [Has Video]' : ''}`);
 
       // Insert Sizes
       for (const size of sizes) {

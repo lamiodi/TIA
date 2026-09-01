@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useContext, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar2 from '../components/Navbar2';
@@ -11,7 +11,7 @@ import giftCardImage from '../assets/images/GiftCardImage.png';
 import imgWhite from '../assets/im/IMG_6222.PNG';
 import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
-import { getCardImageUrl } from '../utils/imageUtils';
+import { getCardImageUrl, optimizeCloudinaryVideoUrl } from '../utils/imageUtils';
 
 // Hook to update meta tags dynamically
 const useMetaTags = (title, description) => {
@@ -273,6 +273,12 @@ const ShopAllPage = () => {
              // If one is sold out and the other isn't, available (or pre-order) comes first
              if (aSoldOut && !bSoldOut) return 1;
              if (!aSoldOut && bSoldOut) return -1;
+
+             // Priority: Espresso Martini
+             const aIsEspresso = (a.name || '').toLowerCase().includes('espresso martini');
+             const bIsEspresso = (b.name || '').toLowerCase().includes('espresso martini');
+             if (aIsEspresso && !bIsEspresso) return -1;
+             if (!aIsEspresso && bIsEspresso) return 1;
 
              // If both available (or both sold out), prioritize New Arrivals
              if (a.is_new_release && !b.is_new_release) return -1;
@@ -574,9 +580,15 @@ const ShopAllPage = () => {
 };
 
 const ProductCard = ({ product, onImageError, priority = false }) => {
-  const { id, name, price, image, is_product, variantId, bundle_types, allow_preorder, is_promo, preloadColor } = product;
+  const { id, name, price, image, video_url, is_product, variantId, bundle_types, allow_preorder, is_promo, preloadColor } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const cardRef = useRef(null);
+  const videoRef = useRef(null);
+
   const sizes = product.sizes || [];
   const isSoldOut = is_product && Array.isArray(sizes) && sizes.length > 0 && sizes.every(sz => (Number(sz.stock_quantity) || 0) <= 0);
   
@@ -601,14 +613,55 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
   const displayCurrency = isUSD ? 'USD' : 'NGN';
 
   const optimizedImage = useMemo(() => getCardImageUrl(image, 550), [image]);
-  
+  const optimizedVideo = useMemo(() => {
+    if (!video_url) return null;
+    return optimizeCloudinaryVideoUrl(video_url, { width: 550, quality: 'auto:eco' });
+  }, [video_url]);
+
+  const hasVideo = !!optimizedVideo && !videoFailed && !product.is_gift_card;
+
+  // Viewport Observer to optimize video loading and playback
+  useEffect(() => {
+    if (!hasVideo || !cardRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { rootMargin: '200px 0px', threshold: 0.1 }
+    );
+
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [hasVideo]);
+
+  // Safely manage video playback when in viewport
+  useEffect(() => {
+    if (!hasVideo || !videoRef.current) return;
+    if (isInView) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay policy prevented playback
+        });
+      }
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isInView, hasVideo]);
+
   return (
-    <div className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative">
+    <div 
+      ref={cardRef}
+      className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative"
+    >
       <Link to={productUrl} className="block relative overflow-hidden flex-1">
         <div className={`relative w-full aspect-[3/4] overflow-hidden ${product.is_gift_card ? 'bg-[#E5D4C0] flex items-center justify-center p-3' : 'bg-gray-50'}`}>
           {!imgLoaded && (
             <div className="absolute inset-0 bg-stone-200/60 animate-pulse pointer-events-none" />
           )}
+          
+          {/* Base Image / Poster */}
           <img
             src={optimizedImage}
             alt={displayName}
@@ -621,6 +674,26 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
             fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
           />
+
+          {/* Optimized Variant Video */}
+          {hasVideo && isInView && (
+            <video
+              ref={videoRef}
+              src={optimizedVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              disablePictureInPicture
+              disableRemotePlayback
+              onCanPlay={() => setVideoReady(true)}
+              onError={() => setVideoFailed(true)}
+              className={`absolute inset-0 w-full h-full object-cover object-center pointer-events-none group-hover:scale-105 transition-all duration-700 ease-out ${
+                videoReady ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          )}
           
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
@@ -636,6 +709,15 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
                 <span className="bg-black text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">Gift Card</span>
              )}
           </div>
+
+          {/* Video Indicator Badge */}
+          {hasVideo && (
+            <div className="absolute top-2 right-2 z-20 transition-opacity duration-300 bg-black/40 backdrop-blur-sm text-white p-1 rounded-full pointer-events-none flex items-center justify-center">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          )}
 
           {/* Status Overlay */}
           {isPreorder ? (

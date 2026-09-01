@@ -219,6 +219,7 @@ CREATE TABLE public.product_variants (
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   deleted_at timestamp without time zone,
   name text,
+  video_url text,
   CONSTRAINT product_variants_pkey PRIMARY KEY (id),
   CONSTRAINT product_variants_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
   CONSTRAINT product_variants_color_id_fkey FOREIGN KEY (color_id) REFERENCES public.colors(id)

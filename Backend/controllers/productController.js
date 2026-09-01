@@ -168,6 +168,7 @@ export const getProductById = async (req, res) => {
                 'color_code', c.color_code,
                 'sku', pv.sku,
                 'name', pv.name,
+                'video_url', pv.video_url,
                 'images', (
                   SELECT COALESCE(json_agg(image_url), '[]'::json)
                   FROM product_images pi
@@ -286,6 +287,7 @@ export const getProductById = async (req, res) => {
               'color_code', c.color_code,
               'sku', pv.sku,
               'name', pv.name,
+              'video_url', pv.video_url,
               'images', (
                 SELECT COALESCE(json_agg(image_url), '[]'::json)
                 FROM product_images pi

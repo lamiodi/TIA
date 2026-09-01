@@ -12,6 +12,7 @@ export const getShopAll = async (req, res) => {
         p.base_price AS price,
         pv.id AS variant_id,
         pv.name AS variant_name,
+        pv.video_url,
         (
           SELECT pi.image_url 
           FROM product_images pi 
@@ -45,6 +46,7 @@ export const getShopAll = async (req, res) => {
         p.id AS product_id,
         b.name,
         b.bundle_price AS price,
+        b.video_url,
         p.category,
         p.gender,
         p.created_at,
@@ -115,7 +117,7 @@ export const getShopAll = async (req, res) => {
     }
 
     // Finish Bundle Query Group By
-    bundleQuery = sql`${bundleQuery} GROUP BY b.id, p.id, b.name, b.bundle_price, p.category, p.gender, p.created_at, p.is_new_release, p.allow_preorder`;
+    bundleQuery = sql`${bundleQuery} GROUP BY b.id, p.id, b.name, b.bundle_price, b.video_url, p.category, p.gender, p.created_at, p.is_new_release, p.allow_preorder`;
 
     // Execute in parallel
     const [products, bundles] = await Promise.all([productQuery, bundleQuery]);
@@ -126,6 +128,7 @@ export const getShopAll = async (req, res) => {
       name: row.variant_name,
       price: row.price,
       image: row.primary_image || 'https://via.placeholder.com/300x300?text=No+Image',
+      video_url: row.video_url || null,
       color: row.color_name,
       variantId: row.variant_id,
       category: row.category,
@@ -143,6 +146,7 @@ export const getShopAll = async (req, res) => {
       name: row.name,
       price: row.price,
       image: row.image || 'https://via.placeholder.com/300x300?text=No+Image',
+      video_url: row.video_url || null,
       is_product: false,
       bundle_types: row.bundle_types,
       category: row.category,
@@ -155,13 +159,19 @@ export const getShopAll = async (req, res) => {
     // Combine
     const allItems = [...formattedProducts, ...formattedBundles];
 
-    // Sort: New Releases first, then by creation date (newest first)
+    // Sort: Featured (Espresso Martini) -> New Releases -> Creation date (newest first)
     allItems.sort((a, b) => {
-      // 1. New Release Priority
+      // 1. Featured priority: Espresso Martini
+      const aIsEspresso = (a.name || '').toLowerCase().includes('espresso martini');
+      const bIsEspresso = (b.name || '').toLowerCase().includes('espresso martini');
+      if (aIsEspresso && !bIsEspresso) return -1;
+      if (!aIsEspresso && bIsEspresso) return 1;
+
+      // 2. New Release Priority
       if (a.is_new_release && !b.is_new_release) return -1;
       if (!a.is_new_release && b.is_new_release) return 1;
 
-      // 2. Creation Date (Newest first)
+      // 3. Creation Date (Newest first)
       return new Date(b.created_at) - new Date(a.created_at);
     });
 

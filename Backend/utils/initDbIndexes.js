@@ -15,7 +15,13 @@ export const ensurePerformanceIndexes = async () => {
     await sql`CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cart_id);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);`;
-    console.log('⚡ DB Performance Indexes Initialized Successfully');
+
+    // Ensure video_url columns exist on variants, products, and bundles
+    await sql`ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS video_url TEXT;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url TEXT;`;
+    await sql`ALTER TABLE bundles ADD COLUMN IF NOT EXISTS video_url TEXT;`;
+
+    console.log('⚡ DB Performance Indexes & Schema Initialized Successfully');
   } catch (err) {
     console.warn('⚠️ Warning during DB index creation:', err.message);
   }

@@ -152,6 +152,76 @@ export function getSrcSet(url, widths = [320, 480, 640, 800, 1000]) {
     .join(', ');
 }
 
+/**
+ * Optimizes a Cloudinary video URL for performant web playback.
+ * Applies automatic video codec, format selection, responsive width scaling,
+ * and economy quality to prevent buffering and high data usage.
+ *
+ * @param {string} url - Cloudinary video URL
+ * @param {Object} options - Video transformation options
+ * @param {number} [options.width=600] - Max video width
+ * @param {string} [options.quality='auto:eco'] - Quality mode
+ * @returns {string} - Optimized video URL
+ */
+export function optimizeCloudinaryVideoUrl(url, options = {}) {
+  if (!url || typeof url !== 'string') return url || '';
+
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) {
+    return url;
+  }
+
+  const {
+    width = 600,
+    quality = 'auto:eco',
+    crop = 'limit',
+  } = options;
+
+  const transforms = [
+    'f_auto',
+    `q_${quality}`,
+    'vc_auto',
+    `w_${Math.round(width)}`,
+    `c_${crop}`,
+  ];
+
+  const transformString = transforms.join(',');
+  const uploadIndex = url.indexOf('/upload/');
+  if (uploadIndex === -1) return url;
+
+  const prefix = url.substring(0, uploadIndex + 8); // includes '/upload/'
+  let suffix = url.substring(uploadIndex + 8);
+
+  // Strip existing transformation segment if present
+  const segments = suffix.split('/');
+  if (
+    segments.length > 1 &&
+    (segments[0].includes('f_') ||
+      segments[0].includes('q_') ||
+      segments[0].includes('w_') ||
+      segments[0].includes('vc_') ||
+      segments[0].includes(','))
+  ) {
+    suffix = segments.slice(1).join('/');
+  }
+
+  return `${prefix}${transformString}/${suffix}`;
+}
+
+/**
+ * Extracts a lightweight first-frame poster JPEG from a Cloudinary video URL.
+ */
+export function getVideoPosterUrl(url, width = 600) {
+  if (!url || typeof url !== 'string') return '';
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) {
+    return '';
+  }
+
+  const optimizedVideo = optimizeCloudinaryVideoUrl(url, { width, quality: 'auto:good' });
+  return optimizedVideo
+    .replace('/upload/', '/upload/so_0,')
+    .replace(/\.(mp4|webm|mov|mkv|m4v)(\?.*)?$/i, '.jpg$2');
+}
+
 export default {
   optimizeCloudinaryUrl,
   getThumbnailUrl,
@@ -160,4 +230,7 @@ export default {
   getHeroImageUrl,
   getPlaceholderBlurUrl,
   getSrcSet,
+  optimizeCloudinaryVideoUrl,
+  getVideoPosterUrl,
 };
+

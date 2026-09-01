@@ -1,0 +1,7 @@
+name: Hour Glass
+price: 90000
+category: Active Set
+gender: Female
+sku_prefix: HGL
+stock_per_size: 10
+description: Designed to sculpt and celebrate your natural silhouette, the Hour Glass Multi-Piece Set combines high-performance comfort with unmatched sophistication. Featuring a scoop-neck halter sports bra with crisp contrast trim, a coordinating long-sleeve shrug bolero, and high-rise sculpting leggings adorned with the iconic TIA logo.

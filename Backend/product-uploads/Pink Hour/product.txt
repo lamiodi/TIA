@@ -1,0 +1,7 @@
+name: Pink Hour
+price: 145000
+category: Parachute Set
+gender: Female
+sku_prefix: PNH
+stock_per_size: 10
+description: The ultimate elevated streetwear statement. The Pink Hour 3-Piece Parachute Lounge Set delivers a relaxed yet sculpted silhouette featuring a signature scoop bra top, a lightweight cropped zip-up hooded bomber jacket, and breezy wide-leg parachute pants complete with the iconic circular TIA logo emblem.

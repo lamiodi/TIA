@@ -1,0 +1,7 @@
+name: Moon Lit
+price: 95000
+category: Dress Set
+gender: Female
+sku_prefix: MLT
+stock_per_size: 10
+description: Step into modern chic with the Moon Lit 2-Piece Mini Dress & Cropped Jacket Set. Crafted in sleek noir fabric with striking white contrast piping across the bustier cups and side contour seams, this show-stopping duo includes a bodycon mini dress paired with a matching long-sleeve cropped zip jacket with TIA insignia.
