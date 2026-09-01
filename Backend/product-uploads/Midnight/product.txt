@@ -1,7 +1,0 @@
-name: Midnight
-price: 90000
-category: Unitard
-gender: Female
-sku_prefix: MID
-stock_per_size: 10
-description: Sleek, sculpted, and undeniably flattering. The Midnight Open-Back Halter Catsuit delivers streamlined minimalism crafted from premium second-skin contouring fabric. Featuring a supportive halter neckline, dramatic open cross-back detailing, and the signature circular TIA emblem on the lower back.

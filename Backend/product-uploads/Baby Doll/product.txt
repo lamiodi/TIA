@@ -1,7 +1,0 @@
-name: Baby Doll
-price: 75000
-category: Lounge Set
-gender: Female
-sku_prefix: BBD
-stock_per_size: 10
-description: Embrace effortless feminine luxury with the Baby Doll 2-Piece Lounge Set. Designed with ultra-soft, body-contouring stretch fabric in a soft pastel pink hue, this set features a fitted short-sleeve crop tee with structured silhouette stitching paired with sculpting high-waisted shorts finished with the signature TIA emblem.

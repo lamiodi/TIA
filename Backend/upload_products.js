@@ -189,7 +189,21 @@ async function main() {
         SELECT id, name FROM products WHERE LOWER(name) = LOWER(${productName}) LIMIT 1
       `;
       if (existingProduct) {
-        console.log(`⚠️ Product "${existingProduct.name}" already exists in database (ID: ${existingProduct.id}). Skipping.`);
+        if (videos.length > 0) {
+          const [variant] = await sql`
+            SELECT id, video_url FROM product_variants WHERE product_id = ${existingProduct.id} LIMIT 1
+          `;
+          if (variant && !variant.video_url) {
+            console.log(`📹 Updating video for existing product "${existingProduct.name}"...`);
+            const variantVideoUrl = await uploadVideoToCloudinary(videos[0]);
+            if (variantVideoUrl) {
+              await sql`UPDATE product_variants SET video_url = ${variantVideoUrl} WHERE id = ${variant.id}`;
+              await sql`UPDATE products SET video_url = ${variantVideoUrl} WHERE id = ${existingProduct.id}`;
+              console.log(`✅ Video updated for "${existingProduct.name}"!`);
+            }
+          }
+        }
+        console.log(`⚠️ Product "${existingProduct.name}" already exists in database (ID: ${existingProduct.id}). Skipping full creation.`);
         continue;
       }
 
