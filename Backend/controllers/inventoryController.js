@@ -21,6 +21,7 @@ export const getProducts = async (req, res) => {
         p.sku_prefix AS design_code,
         p.is_active,
         p.is_new_release,
+        p.video_url,
         (SELECT array_agg(DISTINCT pi.image_url)
          FROM product_images pi
          JOIN product_variants pv ON pi.variant_id = pv.id
@@ -44,6 +45,7 @@ export const getProducts = async (req, res) => {
             'color_id', pv.color_id,
             'color_name', c.color_name,
             'sku', pv.sku,
+            'video_url', pv.video_url,
             'images', (
               SELECT jsonb_agg(
                 jsonb_build_object(
@@ -96,6 +98,7 @@ export const getBundles = async (req, res) => {
         b.bundle_price AS price,
         b.is_active,
         b.bundle_type,
+        b.video_url,
         (SELECT jsonb_agg(
           jsonb_build_object(
             'id', bi.id,
@@ -146,6 +149,7 @@ export const getBundle = async (req, res) => {
         b.is_active,
         b.bundle_type,
         b.sku_prefix,
+        b.video_url,
         (SELECT jsonb_agg(
           jsonb_build_object(
             'id', bi.id,
@@ -570,3 +574,171 @@ export const reorderVariantImages = async (req, res) => {
     res.status(500).json({ error: 'Failed to reorder images' });
   }
 };
+
+// Upload or replace video for a product variant
+export const uploadVariantVideo = async (req, res) => {
+  const { variantId } = req.params;
+
+  try {
+    let videoUrl = req.body.video_url;
+
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: 'video',
+        folder: 'tia-products/videos',
+        timeout: 600000,
+      });
+      videoUrl = uploadResult.secure_url;
+
+      try {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      } catch (cleanErr) {
+        console.error('Temp file cleanup error:', cleanErr);
+      }
+    }
+
+    if (!videoUrl) {
+      return res.status(400).json({ error: 'No video file or URL provided' });
+    }
+
+    const [variant] = await sql`
+      UPDATE product_variants
+      SET video_url = ${videoUrl}
+      WHERE id = ${variantId}
+      RETURNING id, product_id, video_url
+    `;
+
+    if (!variant) {
+      return res.status(404).json({ error: 'Variant not found' });
+    }
+
+    // Sync to main product
+    await sql`
+      UPDATE products
+      SET video_url = ${videoUrl}
+      WHERE id = ${variant.product_id}
+    `;
+
+    res.json({
+      success: true,
+      message: 'Variant video updated successfully',
+      video_url: videoUrl,
+      variantId: variant.id,
+    });
+  } catch (err) {
+    console.error('Error uploading variant video:', err);
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.status(500).json({ error: 'Failed to upload video', details: err.message });
+  }
+};
+
+// Delete video from a product variant
+export const deleteVariantVideo = async (req, res) => {
+  const { variantId } = req.params;
+
+  try {
+    const [variant] = await sql`
+      SELECT id, product_id, video_url FROM product_variants WHERE id = ${variantId}
+    `;
+
+    if (!variant) {
+      return res.status(404).json({ error: 'Variant not found' });
+    }
+
+    await sql`
+      UPDATE product_variants
+      SET video_url = NULL
+      WHERE id = ${variantId}
+    `;
+
+    // Re-sync main product video_url from remaining variants
+    const [otherVariant] = await sql`
+      SELECT video_url FROM product_variants
+      WHERE product_id = ${variant.product_id} AND video_url IS NOT NULL
+      LIMIT 1
+    `;
+
+    await sql`
+      UPDATE products
+      SET video_url = ${otherVariant ? otherVariant.video_url : null}
+      WHERE id = ${variant.product_id}
+    `;
+
+    res.json({ success: true, message: 'Video deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting variant video:', err);
+    res.status(500).json({ error: 'Failed to delete video', details: err.message });
+  }
+};
+
+// Upload or replace video for a bundle
+export const uploadBundleVideo = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    let videoUrl = req.body.video_url;
+
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: 'video',
+        folder: 'tia-products/videos',
+        timeout: 600000,
+      });
+      videoUrl = uploadResult.secure_url;
+
+      try {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      } catch (cleanErr) {
+        console.error('Temp file cleanup error:', cleanErr);
+      }
+    }
+
+    if (!videoUrl) {
+      return res.status(400).json({ error: 'No video file or URL provided' });
+    }
+
+    const [bundle] = await sql`
+      UPDATE bundles
+      SET video_url = ${videoUrl}
+      WHERE id = ${id}
+      RETURNING id, video_url
+    `;
+
+    if (!bundle) {
+      return res.status(404).json({ error: 'Bundle not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Bundle video updated successfully',
+      video_url: videoUrl,
+    });
+  } catch (err) {
+    console.error('Error uploading bundle video:', err);
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.status(500).json({ error: 'Failed to upload video', details: err.message });
+  }
+};
+
+// Delete video from a bundle
+export const deleteBundleVideo = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await sql`
+      UPDATE bundles
+      SET video_url = NULL
+      WHERE id = ${id}
+    `;
+
+    res.json({ success: true, message: 'Bundle video deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting bundle video:', err);
+    res.status(500).json({ error: 'Failed to delete video', details: err.message });
+  }
+};
+

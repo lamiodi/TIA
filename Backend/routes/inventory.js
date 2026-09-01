@@ -13,6 +13,10 @@ import {
   addVariantImages,
   deleteVariantImage,
   reorderVariantImages,
+  uploadVariantVideo,
+  deleteVariantVideo,
+  uploadBundleVideo,
+  deleteBundleVideo,
 } from '../controllers/inventoryController.js';
 import upload from '../utils/multer.js';
 
@@ -57,5 +61,16 @@ router.delete('/products/images/:imageId', deleteVariantImage);
 // ✅ Reorder product variant images
 router.put('/products/variants/:variantId/images/reorder', reorderVariantImages);
 
-export default router;
-// ✅ Inventory management routes for admin panel
+// ✅ Upload/Update video for a product variant
+router.post('/products/variants/:variantId/video', upload.single('video'), uploadVariantVideo);
+
+// ✅ Delete video from a product variant
+router.delete('/products/variants/:variantId/video', deleteVariantVideo);
+
+// ✅ Upload/Update video for a bundle
+router.post('/bundles/:id/video', upload.single('video'), uploadBundleVideo);
+
+// ✅ Delete video from a bundle
+router.delete('/bundles/:id/video', deleteBundleVideo);
+
+export default router;

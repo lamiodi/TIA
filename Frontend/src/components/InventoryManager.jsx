@@ -15,6 +15,8 @@ import {
   Plus,
   Upload,
   GripVertical,
+  Film,
+  Video,
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +40,7 @@ const InventoryManager = () => {
   const [success, setSuccess] = useState('');
   const [expandedItems, setExpandedItems] = useState({});
   const [conflictInfo, setConflictInfo] = useState(null);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -384,6 +387,162 @@ const InventoryManager = () => {
     }
   };
 
+  const handleUploadVariantVideo = async (e, variantId) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      setVideoUploading(true);
+      setError('');
+      const response = await api.post(`/products/variants/${variantId}/video`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000,
+      });
+
+      const videoUrl = response.data.video_url;
+      setEditingItem((prev) => {
+        if (!prev || !prev.variants) return prev;
+        const updatedVariants = prev.variants.map((v) => {
+          if (v.id === variantId) {
+            return { ...v, video_url: videoUrl };
+          }
+          return v;
+        });
+        return { ...prev, video_url: videoUrl, variants: updatedVariants };
+      });
+
+      // Update product list
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === editingItem?.id) {
+            const updatedVariants = (p.variants || []).map((v) =>
+              v.id === variantId ? { ...v, video_url: videoUrl } : v
+            );
+            return { ...p, video_url: videoUrl, variants: updatedVariants };
+          }
+          return p;
+        })
+      );
+
+      setSuccess('Video uploaded successfully!');
+      setTimeout(() => setSuccess(''), 4000);
+      e.target.value = '';
+    } catch (err) {
+      console.error('Error uploading variant video:', err);
+      setError(err.response?.data?.error || err.response?.data?.details || 'Failed to upload video');
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const handleDeleteVariantVideo = async (variantId) => {
+    if (!window.confirm('Are you sure you want to delete this video?')) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      await api.delete(`/products/variants/${variantId}/video`);
+
+      setEditingItem((prev) => {
+        if (!prev || !prev.variants) return prev;
+        const updatedVariants = prev.variants.map((v) => {
+          if (v.id === variantId) {
+            return { ...v, video_url: null };
+          }
+          return v;
+        });
+        return { ...prev, variants: updatedVariants };
+      });
+
+      // Update product list
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === editingItem?.id) {
+            const updatedVariants = (p.variants || []).map((v) =>
+              v.id === variantId ? { ...v, video_url: null } : v
+            );
+            return { ...p, variants: updatedVariants };
+          }
+          return p;
+        })
+      );
+
+      setSuccess('Video deleted successfully!');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      console.error('Error deleting variant video:', err);
+      setError(err.response?.data?.error || 'Failed to delete video');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadBundleVideo = async (e, bundleId) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+      setVideoUploading(true);
+      setError('');
+      const response = await api.post(`/bundles/${bundleId}/video`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000,
+      });
+
+      const videoUrl = response.data.video_url;
+      setEditingItem((prev) => ({
+        ...prev,
+        video_url: videoUrl,
+      }));
+
+      setBundles((prev) =>
+        prev.map((b) => (b.id === bundleId ? { ...b, video_url: videoUrl } : b))
+      );
+
+      setSuccess('Bundle video uploaded successfully!');
+      setTimeout(() => setSuccess(''), 4000);
+      e.target.value = '';
+    } catch (err) {
+      console.error('Error uploading bundle video:', err);
+      setError(err.response?.data?.error || err.response?.data?.details || 'Failed to upload video');
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const handleDeleteBundleVideo = async (bundleId) => {
+    if (!window.confirm('Are you sure you want to delete this bundle video?')) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      await api.delete(`/bundles/${bundleId}/video`);
+
+      setEditingItem((prev) => ({
+        ...prev,
+        video_url: null,
+      }));
+
+      setBundles((prev) =>
+        prev.map((b) => (b.id === bundleId ? { ...b, video_url: null } : b))
+      );
+
+      setSuccess('Bundle video deleted successfully!');
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      console.error('Error deleting bundle video:', err);
+      setError(err.response?.data?.error || 'Failed to delete video');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleExpand = (id, type) => {
     setExpandedItems((prev) => ({
       ...prev,
@@ -551,14 +710,20 @@ const InventoryManager = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <button
                           onClick={() => toggleExpand(product.id, 'product')}
-                          className="flex items-center"
+                          className="flex items-center gap-1.5 text-left"
                         >
                           {expandedItems[`product-${product.id}`] ? (
-                            <ChevronUp className="h-4 w-4 mr-1" />
+                            <ChevronUp className="h-4 w-4 flex-shrink-0" />
                           ) : (
-                            <ChevronDown className="h-4 w-4 mr-1" />
+                            <ChevronDown className="h-4 w-4 flex-shrink-0" />
                           )}
-                          {product.name}
+                          <span>{product.name}</span>
+                          {(product.video_url || product.variants?.some((v) => v.video_url)) && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full flex-shrink-0" title="Has active video">
+                              <Film size={10} />
+                              Video
+                            </span>
+                          )}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -633,11 +798,17 @@ const InventoryManager = () => {
                                     key={`variant-${variant.id}`}
                                     className="border border-gray-200 rounded-lg p-4"
                                   >
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-start">
                                       <div>
                                         <p className="font-medium text-gray-900">{variant.color_name}</p>
                                         <p className="text-sm text-gray-500">{variant.sku}</p>
                                       </div>
+                                      {variant.video_url && (
+                                        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">
+                                          <Film size={12} />
+                                          Video Active
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="mt-2">
                                       <h5 className="text-sm font-medium text-gray-700 mb-2">Sizes</h5>
@@ -715,14 +886,20 @@ const InventoryManager = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <button
                           onClick={() => toggleExpand(bundle.id, 'bundle')}
-                          className="flex items-center"
+                          className="flex items-center gap-1.5 text-left"
                         >
                           {expandedItems[`bundle-${bundle.id}`] ? (
-                            <ChevronUp className="h-4 w-4 mr-1" />
+                            <ChevronUp className="h-4 w-4 flex-shrink-0" />
                           ) : (
-                            <ChevronDown className="h-4 w-4 mr-1" />
+                            <ChevronDown className="h-4 w-4 flex-shrink-0" />
                           )}
-                          {bundle.name}
+                          <span>{bundle.name}</span>
+                          {bundle.video_url && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full flex-shrink-0" title="Has active video">
+                              <Film size={10} />
+                              Video
+                            </span>
+                          )}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1017,6 +1194,69 @@ const InventoryManager = () => {
                             )}
                           </div>
                         </div>
+
+                        {/* Video Management for Variant */}
+                        <div className="mt-4 border-t pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <h6 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                              <Film size={15} className="text-purple-600" />
+                              <span>Variant Video</span>
+                            </h6>
+                            {variant.video_url && (
+                              <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                Active Video
+                              </span>
+                            )}
+                          </div>
+
+                          {variant.video_url ? (
+                            <div className="space-y-2 bg-purple-50/50 p-2.5 rounded-lg border border-purple-100">
+                              <video
+                                src={variant.video_url}
+                                controls
+                                playsInline
+                                className="w-full max-h-44 rounded-lg bg-black object-contain shadow-sm"
+                              />
+                              <div className="flex items-center gap-2 pt-1">
+                                <label className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer text-xs font-medium shadow-sm">
+                                  <Upload size={13} />
+                                  <span>{videoUploading ? 'Uploading...' : 'Replace Video'}</span>
+                                  <input
+                                    type="file"
+                                    accept="video/*"
+                                    className="hidden"
+                                    onChange={(e) => handleUploadVariantVideo(e, variant.id)}
+                                    disabled={videoUploading || loading}
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVariantVideo(variant.id)}
+                                  disabled={videoUploading || loading}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition-colors text-xs font-medium"
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Delete Video</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer w-fit text-xs font-medium">
+                                <Upload size={14} />
+                                <span>{videoUploading ? 'Uploading Video...' : 'Add Video'}</span>
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  className="hidden"
+                                  onChange={(e) => handleUploadVariantVideo(e, variant.id)}
+                                  disabled={videoUploading || loading}
+                                />
+                              </label>
+                              <p className="text-[11px] text-gray-400 mt-1">Accepts MP4, MOV, WebM</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1128,6 +1368,71 @@ const InventoryManager = () => {
                       <div className="text-center py-6 text-gray-400">
                         <Upload size={32} className="mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No images yet. Upload some above.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bundle Video Management */}
+                  <div className="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <Film size={16} className="text-purple-600" />
+                        <span>Bundle Video</span>
+                      </label>
+                      {editingItem.video_url && (
+                        <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          Active Video
+                        </span>
+                      )}
+                    </div>
+
+                    {editingItem.video_url ? (
+                      <div className="space-y-2 bg-white p-3 rounded-lg border border-purple-100">
+                        <video
+                          src={editingItem.video_url}
+                          controls
+                          playsInline
+                          className="w-full max-h-56 rounded-lg bg-black object-contain shadow-sm"
+                        />
+                        <div className="flex items-center gap-2 pt-1">
+                          <label className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer text-xs font-medium shadow-sm">
+                            <Upload size={13} />
+                            <span>{videoUploading ? 'Uploading...' : 'Replace Video'}</span>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              onChange={(e) => handleUploadBundleVideo(e, editingItem.id)}
+                              disabled={videoUploading || loading}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBundleVideo(editingItem.id)}
+                            disabled={videoUploading || loading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg transition-colors text-xs font-medium"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete Video</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer w-fit">
+                          <Upload size={16} />
+                          <span className="text-sm font-medium">
+                            {videoUploading ? 'Uploading Video...' : 'Add Video'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={(e) => handleUploadBundleVideo(e, editingItem.id)}
+                            disabled={videoUploading || loading}
+                          />
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">Upload MP4, MOV, or WebM video for this bundle.</p>
                       </div>
                     )}
                   </div>
