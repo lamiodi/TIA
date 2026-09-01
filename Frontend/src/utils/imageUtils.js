@@ -171,13 +171,13 @@ export function optimizeCloudinaryVideoUrl(url, options = {}) {
   }
 
   const {
-    width = 600,
+    width = 550,
     quality = 'auto:eco',
     crop = 'limit',
   } = options;
 
   const transforms = [
-    'f_auto',
+    'f_mp4',
     `q_${quality}`,
     'vc_auto',
     `w_${Math.round(width)}`,
@@ -203,6 +203,9 @@ export function optimizeCloudinaryVideoUrl(url, options = {}) {
   ) {
     suffix = segments.slice(1).join('/');
   }
+
+  // Force .mp4 container extension so all desktop & mobile browsers decode HTML5 video
+  suffix = suffix.replace(/\.(mov|m4v|webm|mkv)(\?.*)?$/i, '.mp4$2');
 
   return `${prefix}${transformString}/${suffix}`;
 }

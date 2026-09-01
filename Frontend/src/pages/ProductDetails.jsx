@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react"
+import { useEffect, useState, useContext, useMemo, useRef } from "react"
 import { useParams, useSearchParams, useNavigate, useLocation, Link } from "react-router-dom"
 import Navbar2 from "../components/Navbar2"
 import axios from "axios"
@@ -16,6 +16,11 @@ import {
   Package,
   User,
   Ban,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
+  Film,
 } from "lucide-react"
 import Footer from "../components/Footer"
 import { useAuth } from "../context/AuthContext"
@@ -25,8 +30,117 @@ import DescriptionSection from "../components/DescriptionSection"
 import SmartProductSuggestions from "../components/SmartProductSuggestions"
 import { toastSuccess, toastError } from "../utils/toastConfig"
 import ProductSchema from "../components/ProductSchema"
-import { getDetailImageUrl } from "../utils/imageUtils"
+import { getDetailImageUrl, optimizeCloudinaryVideoUrl } from "../utils/imageUtils"
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://tia-backend-r331.onrender.com"
+
+const ProductVideoPlayer = ({ videoUrl, name, isAllSoldOut }) => {
+  const [isMuted, setIsMuted] = useState(true)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [hasError, setHasError] = useState(false)
+  const videoRef = useRef(null)
+
+  const optimizedVideoUrl = useMemo(() => {
+    if (!videoUrl) return null
+    return optimizeCloudinaryVideoUrl(videoUrl, { width: 1080, quality: "auto:good" })
+  }, [videoUrl])
+
+  useEffect(() => {
+    if (!videoRef.current || !optimizedVideoUrl) return
+    videoRef.current.defaultMuted = true
+    videoRef.current.muted = isMuted
+    const playPromise = videoRef.current.play()
+    if (playPromise !== undefined) {
+      playPromise.then(() => setIsPlaying(true)).catch(() => {})
+    }
+  }, [optimizedVideoUrl])
+
+  const togglePlay = () => {
+    if (!videoRef.current) return
+    if (videoRef.current.paused) {
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {})
+    } else {
+      videoRef.current.pause()
+      setIsPlaying(false)
+    }
+  }
+
+  const toggleMute = (e) => {
+    e.stopPropagation()
+    if (!videoRef.current) return
+    const nextMuted = !isMuted
+    videoRef.current.muted = nextMuted
+    setIsMuted(nextMuted)
+  }
+
+  if (!optimizedVideoUrl || hasError) return null
+
+  return (
+    <div id="product-video-section" className="relative w-full bg-stone-900 flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group aspect-[3/4] max-w-lg mx-auto">
+      <video
+        ref={videoRef}
+        src={optimizedVideoUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+        webkit-playsinline="true"
+        preload="metadata"
+        disablePictureInPicture
+        disableRemotePlayback
+        onLoadedData={() => setIsLoaded(true)}
+        onCanPlay={() => setIsLoaded(true)}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={() => setHasError(true)}
+        onClick={togglePlay}
+        className="w-full h-full object-contain cursor-pointer transition-opacity duration-300"
+      />
+
+      {/* Video Badge */}
+      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-2 z-20 pointer-events-none shadow-sm">
+        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        <span className="tracking-wider font-Manrope uppercase text-[11px]">Video Lookbook</span>
+      </div>
+
+      {/* Video Controls Overlay */}
+      <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="p-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full transition-all duration-200 hover:scale-105 shadow-md"
+          title={isMuted ? "Unmute sound" : "Mute sound"}
+          aria-label={isMuted ? "Unmute sound" : "Mute sound"}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={togglePlay}
+          className="p-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full transition-all duration-200 hover:scale-105 shadow-md"
+          title={isPlaying ? "Pause video" : "Play video"}
+          aria-label={isPlaying ? "Pause video" : "Play video"}
+        >
+          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {/* Sold Out Overlay */}
+      {isAllSoldOut && (
+        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 backdrop-blur-[2px] pointer-events-none">
+          <div className="bg-red-600/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl transform scale-110 border border-red-400/50">
+            <Ban className="w-6 h-6" />
+            <span className="text-lg font-bold tracking-wider font-Manrope uppercase">Sold Out</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const ProductDetails = () => {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
@@ -768,6 +882,9 @@ const ProductDetails = () => {
       ? selectedVariant.images
       : []
     : getBundleImages()
+  const variantVideoUrl = isProduct
+    ? (selectedVariant?.video_url || data?.video_url || null)
+    : null
   const name = data?.name || "Unnamed Product"
   const rawPrice = isProduct ? data?.price : getBundlePrice()
   const parsedPrice = Number.parseFloat(rawPrice) || 0
@@ -949,21 +1066,33 @@ const ProductDetails = () => {
         </nav>
         <div className="bg-[#f3ede4] rounded-2xl overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative items-start">
-            {/* Image Section */}
+            {/* Image & Video Gallery Section */}
             <div className="p-4 sm:p-6 lg:p-0">
               <div className="flex flex-col gap-4 lg:gap-8">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group">
+                {/* Fallback if no images and no video */}
+                {images.length === 0 && !variantVideoUrl && (
+                  <div className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden aspect-[3/4]">
                     <img
-                      src={getDetailImageUrl(img, 1000) || "https://via.placeholder.com/500"}
-                      alt={`${name} view ${idx + 1}`}
-                      loading={idx === 0 ? "eager" : "lazy"}
-                      fetchPriority={idx === 0 ? "high" : "auto"}
+                      src="https://via.placeholder.com/500"
+                      alt={name}
+                      className="w-full max-w-lg h-auto object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Primary Image */}
+                {images.length > 0 && (
+                  <div className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group">
+                    <img
+                      src={getDetailImageUrl(images[0], 1000) || "https://via.placeholder.com/500"}
+                      alt={`${name} view 1`}
+                      loading="eager"
+                      fetchPriority="high"
                       decoding="async"
                       className="w-full max-w-lg h-auto object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                     {/* Sold Out Overlay */}
-                    {idx === 0 && isAllSoldOut && (
+                    {isAllSoldOut && (
                       <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
                         <div className="bg-red-600/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-xl transform scale-110 border border-red-400/50">
                           <Ban className="w-6 h-6" />
@@ -972,12 +1101,35 @@ const ProductDetails = () => {
                       </div>
                     )}
                     {/* Bundle Badge */}
-                    {idx === 0 && !isProduct && !isAllSoldOut && (
+                    {!isProduct && !isAllSoldOut && (
                       <div className="absolute top-4 left-4 bg-gradient-to-r font-Manrope from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                         <Package className="w-4 h-4" />
                         <span>Bundle</span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Video Player */}
+                {variantVideoUrl && (
+                  <ProductVideoPlayer
+                    videoUrl={variantVideoUrl}
+                    name={name}
+                    isAllSoldOut={isAllSoldOut}
+                  />
+                )}
+
+                {/* Remaining Images */}
+                {images.slice(1).map((img, idx) => (
+                  <div key={idx + 1} className="relative w-full bg-white flex justify-center items-center rounded-xl lg:rounded-none overflow-hidden group">
+                    <img
+                      src={getDetailImageUrl(img, 1000) || "https://via.placeholder.com/500"}
+                      alt={`${name} view ${idx + 2}`}
+                      loading="lazy"
+                      fetchPriority="auto"
+                      decoding="async"
+                      className="w-full max-w-lg h-auto object-contain transition-transform duration-500 group-hover:scale-105"
+                    />
                   </div>
                 ))}
               </div>
@@ -1016,6 +1168,18 @@ const ProductDetails = () => {
                         <span className="text-xs text-gray-500 font-Jost bg-gray-100 px-2 py-1 rounded-full">
                           Pay 50% Deposit
                         </span>
+                      )}
+                      {variantVideoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            document.getElementById('product-video-section')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="text-xs font-medium px-2.5 py-1 rounded-full bg-stone-900 text-white flex items-center gap-1.5 hover:bg-black transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+                        >
+                          <Film className="w-3 h-3 text-red-400" />
+                          <span>Watch Video</span>
+                        </button>
                       )}
                       {!isProduct && (
                         <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-Jost whitespace-nowrap">

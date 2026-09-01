@@ -628,7 +628,7 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { rootMargin: '200px 0px', threshold: 0.1 }
+      { rootMargin: '300px 0px', threshold: 0.05 }
     );
 
     observer.observe(cardRef.current);
@@ -638,11 +638,13 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
   // Safely manage video playback when in viewport
   useEffect(() => {
     if (!hasVideo || !videoRef.current) return;
+    videoRef.current.defaultMuted = true;
+    videoRef.current.muted = true;
     if (isInView) {
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // Autoplay policy prevented playback
+          // Autoplay policy prevented playback until user interaction
         });
       }
     } else {
@@ -650,9 +652,25 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
     }
   }, [isInView, hasVideo]);
 
+  const setVideoRef = (el) => {
+    videoRef.current = el;
+    if (el) {
+      el.defaultMuted = true;
+      el.muted = true;
+      if (isInView) {
+        el.play().catch(() => {});
+      }
+    }
+  };
+
   return (
     <div 
       ref={cardRef}
+      onMouseEnter={() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(() => {});
+        }
+      }}
       className="group bg-white shadow-sm hover:shadow-xl rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-gray-100 relative"
     >
       <Link to={productUrl} className="block relative overflow-hidden flex-1">
@@ -676,20 +694,24 @@ const ProductCard = ({ product, onImageError, priority = false }) => {
           />
 
           {/* Optimized Variant Video */}
-          {hasVideo && isInView && (
+          {hasVideo && (
             <video
-              ref={videoRef}
+              ref={setVideoRef}
               src={optimizedVideo}
               autoPlay
               muted
               loop
               playsInline
+              webkit-playsinline="true"
               preload="metadata"
               disablePictureInPicture
               disableRemotePlayback
+              onLoadedData={() => setVideoReady(true)}
               onCanPlay={() => setVideoReady(true)}
+              onPlay={() => setVideoReady(true)}
+              onPlaying={() => setVideoReady(true)}
               onError={() => setVideoFailed(true)}
-              className={`absolute inset-0 w-full h-full object-cover object-center pointer-events-none group-hover:scale-105 transition-all duration-700 ease-out ${
+              className={`absolute inset-0 w-full h-full object-cover object-center pointer-events-none group-hover:scale-105 transition-opacity duration-500 ease-out ${
                 videoReady ? 'opacity-100' : 'opacity-0'
               }`}
             />

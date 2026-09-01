@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
-import { getCardImageUrl } from '../utils/imageUtils';
+import { getCardImageUrl, optimizeCloudinaryVideoUrl } from '../utils/imageUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
@@ -203,9 +203,14 @@ const NewReleaseGrid = () => {
 };
 
 const ProductCard = ({ product, onImageError, priority }) => {
-  const { name, price, image, productId, variantId, sizes, allow_preorder } = product;
+  const { name, price, image, video_url, productId, variantId, sizes, allow_preorder } = product;
   const { currency, exchangeRate, country } = useContext(CurrencyContext);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const cardRef = useRef(null);
+  const videoRef = useRef(null);
   
   // Clean name to remove "– Something" or "(Color)" parts
   let displayName = name || 'Unnamed Product';
@@ -228,10 +233,61 @@ const ProductCard = ({ product, onImageError, priority }) => {
   const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
   const displayCurrency = isUSD ? 'USD' : 'NGN';
   
-  const optimizedImage = React.useMemo(() => getCardImageUrl(image, 480), [image]);
+  const optimizedImage = useMemo(() => getCardImageUrl(image, 480), [image]);
+  const optimizedVideo = useMemo(() => {
+    if (!video_url) return null;
+    return optimizeCloudinaryVideoUrl(video_url, { width: 480, quality: 'auto:eco' });
+  }, [video_url]);
+
+  const hasVideo = !!optimizedVideo && !videoFailed;
+
+  useEffect(() => {
+    if (!hasVideo || !cardRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { rootMargin: '300px 0px', threshold: 0.05 }
+    );
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [hasVideo]);
+
+  useEffect(() => {
+    if (!hasVideo || !videoRef.current) return;
+    videoRef.current.defaultMuted = true;
+    videoRef.current.muted = true;
+    if (isInView) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isInView, hasVideo]);
+
+  const setVideoRef = (el) => {
+    videoRef.current = el;
+    if (el) {
+      el.defaultMuted = true;
+      el.muted = true;
+      if (isInView) {
+        el.play().catch(() => {});
+      }
+    }
+  };
 
   return (
-    <div className="group w-[calc(100vw-2rem)] sm:w-[calc(50vw-1.5rem)] md:min-w-[240px] md:max-w-[240px] bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col flex-shrink-0">
+    <div 
+      ref={cardRef}
+      onMouseEnter={() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(() => {});
+        }
+      }}
+      className="group w-[calc(100vw-2rem)] sm:w-[calc(50vw-1.5rem)] md:min-w-[240px] md:max-w-[240px] bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col flex-shrink-0"
+    >
       <Link to={`/product/${productId}?variant=${variantId}`} className="block">
         <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
           {!imageLoaded && (
@@ -250,6 +306,30 @@ const ProductCard = ({ product, onImageError, priority }) => {
             width={240}
             height={300}
           />
+
+          {/* Variant Video */}
+          {hasVideo && (
+            <video
+              ref={setVideoRef}
+              src={optimizedVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              webkit-playsinline="true"
+              preload="metadata"
+              disablePictureInPicture
+              disableRemotePlayback
+              onLoadedData={() => setVideoReady(true)}
+              onCanPlay={() => setVideoReady(true)}
+              onPlay={() => setVideoReady(true)}
+              onPlaying={() => setVideoReady(true)}
+              onError={() => setVideoFailed(true)}
+              className={`absolute inset-0 w-full h-full object-contain object-center pointer-events-none group-hover:scale-105 transition-opacity duration-500 ease-out ${
+                videoReady ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          )}
           
           {/* Status Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
