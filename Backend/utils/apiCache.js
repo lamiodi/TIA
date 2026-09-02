@@ -53,7 +53,7 @@ export const cacheMiddleware = (durationInSeconds = 60) => {
 
     if (cachedResponse) {
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', `public, max-age=${durationInSeconds}`);
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       return res.status(cachedResponse.status || 200).json(cachedResponse.data);
     }
 
@@ -64,7 +64,7 @@ export const cacheMiddleware = (durationInSeconds = 60) => {
         cacheInstance.set(key, { status: res.statusCode, data }, durationInSeconds);
       }
       res.setHeader('X-Cache', 'MISS');
-      res.setHeader('Cache-Control', `public, max-age=${durationInSeconds}`);
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       return originalJson(data);
     };
 

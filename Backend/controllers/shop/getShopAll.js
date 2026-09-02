@@ -17,7 +17,7 @@ export const getShopAll = async (req, res) => {
           SELECT pi.image_url 
           FROM product_images pi 
           WHERE pi.variant_id = pv.id
-          ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC
+          ORDER BY COALESCE(pi.sort_order, 0) ASC, pi.is_primary DESC, pi.id ASC
           LIMIT 1
         ) AS primary_image,
         c.color_name,
@@ -58,7 +58,7 @@ export const getShopAll = async (req, res) => {
           SELECT bi.image_url
           FROM bundle_images bi
           WHERE bi.bundle_id = b.id
-          ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
+          ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
           LIMIT 1
         ) AS image
       FROM bundles b

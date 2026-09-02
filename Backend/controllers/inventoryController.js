@@ -2,6 +2,7 @@ import sql from '../db/index.js';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
+import { invalidateCache } from '../utils/apiCache.js';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -52,7 +53,7 @@ export const getProducts = async (req, res) => {
                   'id', pi.id,
                   'image_url', pi.image_url,
                   'is_primary', pi.is_primary
-                ) ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC
+                ) ORDER BY COALESCE(pi.sort_order, 0) ASC, pi.is_primary DESC, pi.id ASC
               )
               FROM product_images pi
               WHERE pi.variant_id = pv.id
@@ -104,7 +105,7 @@ export const getBundles = async (req, res) => {
             'id', bi.id,
             'image_url', bi.image_url,
             'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
+          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
         )
          FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
@@ -155,7 +156,7 @@ export const getBundle = async (req, res) => {
             'id', bi.id,
             'image_url', bi.image_url,
             'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
+          ) ORDER BY COALESCE(bi.sort_order, 0) ASC, bi.is_primary DESC, bi.id ASC
         )
          FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
@@ -307,13 +308,15 @@ export const updateProduct = async (req, res) => {
             }
           }
           
-          // Update image primary status
+          // Update image primary status and sort_order according to array sequence
           if (variant.images && variant.images.length > 0) {
-            for (const image of variant.images) {
+            for (let idx = 0; idx < variant.images.length; idx++) {
+              const image = variant.images[idx];
               if (image.id) { // Only update existing images
                 await sql`
                   UPDATE product_images
-                  SET is_primary = ${image.is_primary}
+                  SET is_primary = ${idx === 0},
+                      sort_order = ${idx}
                   WHERE id = ${image.id}
                 `;
               }
@@ -322,6 +325,8 @@ export const updateProduct = async (req, res) => {
         }
       }
     });
+
+    invalidateCache();
 
     res.json({ success: true });
   } catch (err) {
@@ -347,19 +352,22 @@ export const updateBundle = async (req, res) => {
             await sql`UPDATE bundles SET description = ${description} WHERE id = ${id}`;
         }
         
-        // Update image primary status if images array is provided
+        // Update image primary status and sort_order if images array is provided
         if (images && images.length > 0) {
-            for (const image of images) {
+            for (let idx = 0; idx < images.length; idx++) {
+                const image = images[idx];
                 if (image.id) {
                     await sql`
                         UPDATE bundle_images
-                        SET is_primary = ${image.is_primary}
+                        SET is_primary = ${idx === 0},
+                            sort_order = ${idx}
                         WHERE id = ${image.id} AND bundle_id = ${id}
                     `;
                 }
             }
         }
     });
+    invalidateCache();
     res.json({ success: true });
   } catch (err) {
     console.error('Error updating bundle:', err);
@@ -399,6 +407,7 @@ export const addBundleImages = async (req, res) => {
       }
     }
 
+    invalidateCache();
     res.status(201).json({ 
       message: `${uploadedImages.length} image(s) added`,
       images: uploadedImages 
@@ -436,6 +445,7 @@ export const deleteBundleImage = async (req, res) => {
     // Delete from DB
     await sql`DELETE FROM bundle_images WHERE id = ${imageId} AND bundle_id = ${id}`;
 
+    invalidateCache();
     res.json({ success: true, message: 'Image deleted' });
   } catch (err) {
     console.error('Error deleting bundle image:', err);
@@ -457,15 +467,18 @@ export const reorderBundleImages = async (req, res) => {
       // Add sort_order column if it doesn't exist (safe to run multiple times)
       await sql`ALTER TABLE bundle_images ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0`;
 
-      // Update sort_order for each image based on array position
+      // Update sort_order for each image based on array position, first is primary
       for (let i = 0; i < imageIds.length; i++) {
         await sql`
           UPDATE bundle_images
-          SET sort_order = ${i}
+          SET sort_order = ${i},
+              is_primary = ${i === 0}
           WHERE id = ${imageIds[i]} AND bundle_id = ${id}
         `;
       }
     });
+
+    invalidateCache();
 
     res.json({ success: true });
   } catch (err) {
@@ -505,6 +518,7 @@ export const addVariantImages = async (req, res) => {
       }
     }
 
+    invalidateCache();
     res.status(201).json({
       message: `${uploadedImages.length} image(s) added`,
       images: uploadedImages,
@@ -539,6 +553,7 @@ export const deleteVariantImage = async (req, res) => {
 
     await sql`DELETE FROM product_images WHERE id = ${imageId}`;
 
+    invalidateCache();
     res.json({ success: true, message: 'Image deleted' });
   } catch (err) {
     console.error('Error deleting variant image:', err);
@@ -562,11 +577,14 @@ export const reorderVariantImages = async (req, res) => {
       for (let i = 0; i < imageIds.length; i++) {
         await sql`
           UPDATE product_images
-          SET sort_order = ${i}
+          SET sort_order = ${i},
+              is_primary = ${i === 0}
           WHERE id = ${imageIds[i]} AND variant_id = ${variantId}
         `;
       }
     });
+
+    invalidateCache();
 
     res.json({ success: true });
   } catch (err) {

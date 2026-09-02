@@ -208,10 +208,24 @@ const InventoryManager = () => {
       
       const updatedVariants = prev.variants.map((v) => {
         if (v.id === variantId) {
-          const updatedImages = (v.images || []).map((img) => ({
+          const currentImages = [...(v.images || [])];
+          const selectedIdx = currentImages.findIndex((img) => img.id === imageId);
+          if (selectedIdx === -1) return v;
+
+          // Move selected image to position 0 (first in sequence)
+          const [selectedImg] = currentImages.splice(selectedIdx, 1);
+          const reordered = [selectedImg, ...currentImages];
+
+          const updatedImages = reordered.map((img, idx) => ({
             ...img,
-            is_primary: img.id === imageId,
+            is_primary: idx === 0,
           }));
+
+          const imageIds = updatedImages.map((img) => img.id);
+          api.put(`/products/variants/${variantId}/images/reorder`, { imageIds }).catch((err) => {
+            console.error('Error persisting primary image reorder:', err);
+          });
+
           return { ...v, images: updatedImages };
         }
         return v;
@@ -224,10 +238,24 @@ const InventoryManager = () => {
     setEditingItem((prev) => {
       if (!prev || !prev.images) return prev;
       
-      const updatedImages = prev.images.map((img) => ({
+      const currentImages = [...prev.images];
+      const selectedIdx = currentImages.findIndex((img) => img.id === imageId);
+      if (selectedIdx === -1) return prev;
+
+      // Move selected image to position 0 (first in sequence)
+      const [selectedImg] = currentImages.splice(selectedIdx, 1);
+      const reordered = [selectedImg, ...currentImages];
+
+      const updatedImages = reordered.map((img, idx) => ({
         ...img,
-        is_primary: img.id === imageId,
+        is_primary: idx === 0,
       }));
+
+      const imageIds = updatedImages.map((img) => img.id);
+      api.put(`/bundles/${prev.id}/images/reorder`, { imageIds }).catch((err) => {
+        console.error('Error saving bundle image order:', err);
+      });
+
       return { ...prev, images: updatedImages };
     });
   };
@@ -258,12 +286,18 @@ const InventoryManager = () => {
     const temp = images[index];
     images[index] = images[newIndex];
     images[newIndex] = temp;
+
+    // Slot 0 is primary
+    const updatedImages = images.map((img, idx) => ({
+      ...img,
+      is_primary: idx === 0,
+    }));
     
-    setEditingItem((prev) => ({ ...prev, images }));
+    setEditingItem((prev) => ({ ...prev, images: updatedImages }));
     
     // Persist reorder to backend
     try {
-      const imageIds = images.map((img) => img.id);
+      const imageIds = updatedImages.map((img) => img.id);
       await api.put(`/bundles/${editingItem.id}/images/reorder`, { imageIds });
     } catch (err) {
       console.error('Error reordering images:', err);
@@ -337,13 +371,19 @@ const InventoryManager = () => {
           images[index] = images[newIndex];
           images[newIndex] = temp;
 
-          // Persist reorder
-          const imageIds = images.map((img) => img.id);
+          // In our system, the first image (index 0) is always the primary hero image
+          const updatedImages = images.map((img, idx) => ({
+            ...img,
+            is_primary: idx === 0,
+          }));
+
+          // Persist reorder to backend
+          const imageIds = updatedImages.map((img) => img.id);
           api.put(`/products/variants/${variantId}/images/reorder`, { imageIds }).catch((err) => {
             console.error('Error reordering variant images:', err);
           });
 
-          return { ...v, images };
+          return { ...v, images: updatedImages };
         }
         return v;
       });

@@ -12,7 +12,8 @@ const connectionOptions = {
   ssl: isProduction ? 'require' : false, // Only use SSL in production
   max: 10, // Maximum number of connections in the pool
   idle_timeout: 30, // How long a connection can be idle before being closed
-  connect_timeout: 10 // Connection timeout in seconds
+  connect_timeout: 10, // Connection timeout in seconds
+  onnotice: () => {} // Silences routine notices (like "relation already exists, skipping")
 }
 
 // Use local database URL for development if DATABASE_URL is not available
