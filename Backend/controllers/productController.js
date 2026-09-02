@@ -170,7 +170,7 @@ export const getProductById = async (req, res) => {
                 'name', pv.name,
                 'video_url', pv.video_url,
                 'images', (
-                  SELECT COALESCE(json_agg(image_url), '[]'::json)
+                  SELECT COALESCE(json_agg(image_url ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC), '[]'::json)
                   FROM product_images pi
                   WHERE pi.variant_id = pv.id
                 ),
@@ -249,7 +249,7 @@ export const getProductById = async (req, res) => {
           ), '[]'::json
         ) AS items,
         COALESCE(
-          (SELECT COALESCE(json_agg(image_url), '[]'::json) FROM bundle_images bi2 WHERE bi2.bundle_id = b.id),
+          (SELECT COALESCE(json_agg(image_url ORDER BY bi2.is_primary DESC, COALESCE(bi2.sort_order, bi2.id) ASC), '[]'::json) FROM bundle_images bi2 WHERE bi2.bundle_id = b.id),
           '[]'::json
         ) AS images
       FROM bundles b
@@ -289,7 +289,7 @@ export const getProductById = async (req, res) => {
               'name', pv.name,
               'video_url', pv.video_url,
               'images', (
-                SELECT COALESCE(json_agg(image_url), '[]'::json)
+                SELECT COALESCE(json_agg(image_url ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC), '[]'::json)
                 FROM product_images pi
                 WHERE pi.variant_id = pv.id
               ),
@@ -341,7 +341,7 @@ export const getSiblingBundle = async (req, res) => {
     if (!currentBundle) return res.status(404).json({ error: 'Bundle not found' });
     const [sibling] = await sql`
       SELECT b.id, b.bundle_price AS price, b.bundle_type,
-        COALESCE((SELECT COALESCE(json_agg(image_url), '[]'::json) FROM bundle_images bi WHERE bi.bundle_id = b.id), '[]'::json) AS images
+        COALESCE((SELECT COALESCE(json_agg(image_url ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC), '[]'::json) FROM bundle_images bi WHERE bi.bundle_id = b.id), '[]'::json) AS images
       FROM bundles b
       WHERE b.product_id = ${currentBundle.product_id} AND b.bundle_type = ${targetType} AND b.is_active = TRUE
       LIMIT 1`;

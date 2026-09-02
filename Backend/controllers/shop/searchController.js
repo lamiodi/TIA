@@ -36,7 +36,8 @@ export const searchProducts = async (req, res) => {
         (
           SELECT pi.image_url 
           FROM product_images pi 
-          WHERE pi.variant_id = pv.id AND pi.is_primary = TRUE
+          WHERE pi.variant_id = pv.id
+          ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC
           LIMIT 1
         ) AS primary_image,
         c.color_name,
@@ -111,15 +112,12 @@ export const searchProducts = async (req, res) => {
         MIN(b.video_url) AS video_url,
         ARRAY_AGG(DISTINCT b.bundle_type) AS bundle_types,
         p.category,
-        COALESCE(
-          (SELECT bi.image_url
-           FROM bundle_images bi
-           WHERE bi.bundle_id = MIN(b.id) AND bi.is_primary = TRUE
-           LIMIT 1),
-          (SELECT bi.image_url
-           FROM bundle_images bi
-           WHERE bi.bundle_id = MIN(b.id)
-           LIMIT 1)
+        (
+          SELECT bi.image_url
+          FROM bundle_images bi
+          WHERE bi.bundle_id = MIN(b.id)
+          ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
+          LIMIT 1
         ) AS image,
         FALSE AS is_product,
         p.created_at,

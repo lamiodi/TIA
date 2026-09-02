@@ -16,7 +16,8 @@ export const getShopAll = async (req, res) => {
         (
           SELECT pi.image_url 
           FROM product_images pi 
-          WHERE pi.variant_id = pv.id AND pi.is_primary = TRUE
+          WHERE pi.variant_id = pv.id
+          ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC
           LIMIT 1
         ) AS primary_image,
         c.color_name,
@@ -53,15 +54,12 @@ export const getShopAll = async (req, res) => {
         p.is_new_release,
         CASE WHEN p.is_new_release = TRUE THEN TRUE ELSE p.allow_preorder END AS allow_preorder,
         ARRAY_AGG(b.bundle_type) AS bundle_types,
-        COALESCE(
-          (SELECT bi.image_url
-           FROM bundle_images bi
-           WHERE bi.bundle_id = b.id AND bi.is_primary = TRUE
-           LIMIT 1),
-          (SELECT bi.image_url
-           FROM bundle_images bi
-           WHERE bi.bundle_id = b.id
-           LIMIT 1)
+        (
+          SELECT bi.image_url
+          FROM bundle_images bi
+          WHERE bi.bundle_id = b.id
+          ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
+          LIMIT 1
         ) AS image
       FROM bundles b
       JOIN products p ON b.product_id = p.id

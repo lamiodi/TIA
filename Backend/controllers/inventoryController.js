@@ -52,7 +52,7 @@ export const getProducts = async (req, res) => {
                   'id', pi.id,
                   'image_url', pi.image_url,
                   'is_primary', pi.is_primary
-                ) ORDER BY pi.is_primary DESC, pi.id ASC
+                ) ORDER BY pi.is_primary DESC, COALESCE(pi.sort_order, pi.id) ASC
               )
               FROM product_images pi
               WHERE pi.variant_id = pv.id
@@ -104,7 +104,7 @@ export const getBundles = async (req, res) => {
             'id', bi.id,
             'image_url', bi.image_url,
             'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, bi.id ASC
+          ) ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
         )
          FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
@@ -155,7 +155,7 @@ export const getBundle = async (req, res) => {
             'id', bi.id,
             'image_url', bi.image_url,
             'is_primary', bi.is_primary
-          ) ORDER BY bi.is_primary DESC, bi.id ASC
+          ) ORDER BY bi.is_primary DESC, COALESCE(bi.sort_order, bi.id) ASC
         )
          FROM bundle_images bi
          WHERE bi.bundle_id = b.id) AS images,
