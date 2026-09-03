@@ -256,15 +256,17 @@ const ShopAllPage = () => {
         break;
       default:
         // Default sort: 
-        // 1. Gift Cards (if any)
-        // 2. New Arrivals (top priority)
-        // 3. Available Products (standard)
-        // 4. Sold Out Products (last)
+        // 1. New Releases (top priority)
+        // 2. Available Products (standard)
+        // 3. Priority: Espresso Martini
+        // 4. Gift Cards
+        // 5. Briefs priority if 'ALL' filter
+        // 6. Creation date (Newest first)
         
         filtered.sort((a, b) => {
-             // Gift Cards always first
-             if (a.is_gift_card && !b.is_gift_card) return -1;
-             if (!a.is_gift_card && b.is_gift_card) return 1;
+             // 1. New Release Priority (always show new releases at top)
+             if (a.is_new_release && !b.is_new_release) return -1;
+             if (!a.is_new_release && b.is_new_release) return 1;
 
              // Check Sold Out status (Treat Pre-order as Available)
              const aSoldOut = isProductSoldOut(a) && !a.allow_preorder;
@@ -280,11 +282,11 @@ const ShopAllPage = () => {
              if (aIsEspresso && !bIsEspresso) return -1;
              if (!aIsEspresso && bIsEspresso) return 1;
 
-             // If both available (or both sold out), prioritize New Arrivals
-             if (a.is_new_release && !b.is_new_release) return -1;
-             if (!a.is_new_release && b.is_new_release) return 1;
+             // Gift Cards
+             if (a.is_gift_card && !b.is_gift_card) return -1;
+             if (!a.is_gift_card && b.is_gift_card) return 1;
 
-             // Fallback to Briefs logic if 'ALL' filter (optional, keeping existing preference if needed, or remove)
+             // Fallback to Briefs logic if 'ALL' filter
              if (currentFilter === 'ALL') {
                 const aBrief = isBrief(a);
                 const bBrief = isBrief(b);
@@ -292,7 +294,7 @@ const ShopAllPage = () => {
                 if (!aBrief && bBrief) return 1;
              }
              
-             return 0;
+             return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         });
         break;
     }
@@ -348,7 +350,9 @@ const ShopAllPage = () => {
 
     // Only inject on page 1, and only if filter is ALL or 5 IN 1
     if (page === 1 && promoCards.length > 0 && (currentFilter === 'ALL' || currentFilter === '5 IN 1')) {
-      return [...promoCards, ...baseProducts];
+      const newReleases = baseProducts.filter(p => p.is_new_release);
+      const otherProducts = baseProducts.filter(p => !p.is_new_release);
+      return [...newReleases, ...promoCards, ...otherProducts];
     }
     
     return baseProducts;

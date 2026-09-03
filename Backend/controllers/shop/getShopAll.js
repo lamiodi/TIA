@@ -157,17 +157,17 @@ export const getShopAll = async (req, res) => {
     // Combine
     const allItems = [...formattedProducts, ...formattedBundles];
 
-    // Sort: Featured (Espresso Martini) -> New Releases -> Creation date (newest first)
+    // Sort: New Releases -> Featured (Espresso Martini) -> Creation date (newest first)
     allItems.sort((a, b) => {
-      // 1. Featured priority: Espresso Martini
+      // 1. New Release Priority
+      if (a.is_new_release && !b.is_new_release) return -1;
+      if (!a.is_new_release && b.is_new_release) return 1;
+
+      // 2. Featured priority: Espresso Martini
       const aIsEspresso = (a.name || '').toLowerCase().includes('espresso martini');
       const bIsEspresso = (b.name || '').toLowerCase().includes('espresso martini');
       if (aIsEspresso && !bIsEspresso) return -1;
       if (!aIsEspresso && bIsEspresso) return 1;
-
-      // 2. New Release Priority
-      if (a.is_new_release && !b.is_new_release) return -1;
-      if (!a.is_new_release && b.is_new_release) return 1;
 
       // 3. Creation Date (Newest first)
       return new Date(b.created_at) - new Date(a.created_at);
