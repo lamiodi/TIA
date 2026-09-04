@@ -82,6 +82,11 @@ export const getProductById = async (req, res) => {
   
   console.log('🔥 DEBUG: getProductById called with id:', id, 'type:', type, 'raw query:', req.query);
   
+  if (!id || !/^\d+$/.test(String(id).trim())) {
+    console.log('⚠️ Invalid product/bundle id format:', id);
+    return res.status(404).json({ error: 'Product not found' });
+  }
+
   try {
     // If type is explicitly specified as 'bundle', check bundle first
     if (type === 'bundle') {
@@ -333,6 +338,9 @@ export const getProductById = async (req, res) => {
 export const getSiblingBundle = async (req, res) => {
   const { id } = req.params;
   const { targetType } = req.query;
+  if (!id || !/^\d+$/.test(String(id).trim())) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
   if (!targetType || !['3-in-1', '5-in-1'].includes(targetType)) {
     return res.status(400).json({ error: 'Invalid targetType' });
   }

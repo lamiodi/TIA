@@ -342,8 +342,8 @@ const ProductDetails = () => {
     // Check if user is guest
     setIsGuest(!isAuthenticated())
     const fetchProduct = async () => {
-      if (!id) {
-        setError("Product ID is missing")
+      if (!id || !/^\d+$/.test(String(id).trim())) {
+        setError("Product not found")
         setLoading(false)
         return
       }
@@ -1471,8 +1471,12 @@ const ProductDetails = () => {
           <SmartProductSuggestions 
             type="frequently-bought-together" 
             currentProductId={id} 
-            currentProductPrice={displayPrice} 
+            currentProductPrice={parsedPrice} 
             currentProductName={name} 
+            currentProductImage={images?.[0] || data?.images?.[0] || ''}
+            currentVariant={selectedVariant}
+            currentSize={selectedSize}
+            isProduct={isProduct}
           />
 
           <ReviewSection productId={isProduct ? id : null} bundleId={isProduct ? null : id} productName={name} />

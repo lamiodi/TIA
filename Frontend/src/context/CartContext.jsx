@@ -401,6 +401,129 @@ export const CartProvider = ({ children }) => {
     }
   }, [isGuest, saveGuestCart, getToken, getUserId, fetchCart]);
 
+  // Add single item to cart
+  const addItem = useCallback(
+    async (itemToAdd) => {
+      const token = getToken();
+      const userId = getUserId();
+      const isAuth = Boolean(token && userId);
+
+      const quantity = Number(itemToAdd.quantity) || 1;
+      const productType = itemToAdd.product_type || 'single';
+      const price = Number(itemToAdd.price) || 0;
+
+      // Prepare standardized item payload for UI consumption across Cart, Drawer, and Checkout
+      const standardItem = {
+        id: itemToAdd.id || Date.now() + Math.floor(Math.random() * 1000),
+        quantity,
+        price,
+        product_type: productType,
+        variant_id: itemToAdd.variant_id || null,
+        size_id: itemToAdd.size_id || null,
+        bundle_id: itemToAdd.bundle_id || null,
+        is_preorder: Boolean(itemToAdd.is_preorder),
+        name: itemToAdd.name || 'Product',
+        image: itemToAdd.image || '',
+        color: itemToAdd.color || '',
+        size: itemToAdd.size || '',
+        item: {
+          id: itemToAdd.id || itemToAdd.variant_id || itemToAdd.bundle_id || Date.now(),
+          name: itemToAdd.name || 'Product',
+          price,
+          original_price: itemToAdd.originalPrice || price,
+          image: itemToAdd.image || '',
+          color: itemToAdd.color || 'Classic',
+          size: itemToAdd.size || 'L',
+          is_product: productType !== 'bundle',
+          stock_quantity: itemToAdd.stock_quantity ?? 999,
+          is_preorder: Boolean(itemToAdd.is_preorder),
+          items: itemToAdd.items || [],
+        },
+      };
+
+      if (isAuth && itemToAdd.variant_id && itemToAdd.size_id && productType === 'single') {
+        try {
+          await cartApi.post(
+            '/cart',
+            {
+              user_id: userId,
+              product_type: 'single',
+              variant_id: itemToAdd.variant_id,
+              size_id: itemToAdd.size_id,
+              quantity,
+              is_preorder: Boolean(itemToAdd.is_preorder),
+              price,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'X-User-Country': country,
+              },
+            }
+          );
+          await fetchCart(true);
+          window.dispatchEvent(new Event('cartUpdated'));
+          return;
+        } catch (apiErr) {
+          console.warn('Backend cart add failed, falling back to local cart update:', apiErr);
+        }
+      }
+
+      // Guest / local fallback update
+      setCart((prevCart) => {
+        const currentItems = Array.isArray(prevCart?.items) ? [...prevCart.items] : [];
+        const existingIdx = currentItems.findIndex((ci) => {
+          if (productType === 'single') {
+            if (standardItem.variant_id && ci.variant_id) {
+              return ci.variant_id === standardItem.variant_id && ci.size_id === standardItem.size_id;
+            }
+            return (
+              (ci.item?.name || ci.name) === standardItem.name &&
+              (ci.item?.color || ci.color) === standardItem.color &&
+              (ci.item?.size || ci.size) === standardItem.size
+            );
+          }
+          return ci.bundle_id === standardItem.bundle_id;
+        });
+
+        let updatedItems;
+        if (existingIdx >= 0) {
+          updatedItems = currentItems.map((ci, idx) =>
+            idx === existingIdx ? { ...ci, quantity: ci.quantity + quantity } : ci
+          );
+        } else {
+          updatedItems = [...currentItems, standardItem];
+        }
+
+        const { subtotal, tax, total } = computeTotals(updatedItems);
+        const validation = validateBriefQuantity(updatedItems);
+        let warning = null;
+        if (validation.hasInsufficientBriefs) {
+          const rem = 3 - validation.totalBriefQuantity;
+          warning = `Minimum order quantity for briefs is 3 units. Please add ${rem} more brief${rem > 1 ? 's' : ''} to meet the requirement.`;
+        }
+
+        const newCart = { ...prevCart, items: updatedItems, subtotal, tax, total, warning };
+        saveGuestCart(newCart);
+        return newCart;
+      });
+
+      window.dispatchEvent(new Event('cartUpdated'));
+    },
+    [getToken, getUserId, country, fetchCart, computeTotals, validateBriefQuantity, saveGuestCart]
+  );
+
+  // Add multiple items in batch
+  const addItems = useCallback(
+    async (itemsToAdd) => {
+      if (!Array.isArray(itemsToAdd) || itemsToAdd.length === 0) return;
+      for (const item of itemsToAdd) {
+        await addItem(item);
+      }
+    },
+    [addItem]
+  );
+
   // Total item count across all lines
   const cartCount = cart.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
 
@@ -416,6 +539,8 @@ export const CartProvider = ({ children }) => {
         isCartLoading,
         isUpdatingItem,
         isGuest,
+        addItem,
+        addItems,
         updateQuantity,
         removeItem,
         clearCart,

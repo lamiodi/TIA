@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Plus, Check, ShoppingBag, ArrowRight, Zap, Star } from 'lucide-react';
+import axios from 'axios';
+import { Sparkles, Plus, Check, ShoppingBag, ArrowRight, Zap, Star, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { CurrencyContext } from '../pages/CurrencyContext';
 import imgWhite from '../assets/im/IMG_6222.PNG';
@@ -8,10 +9,14 @@ import imgBlack from '../assets/im/IMG_6254.PNG';
 import imgGrey from '../assets/im/IMG_6255.PNG';
 import { getThumbnailUrl, getCardImageUrl } from '../utils/imageUtils';
 
-// Curated high-converting catalog for smart recommendations
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
+
+// Curated high-converting catalog with REAL database product and variant IDs
 const DEFAULT_SUGGESTIONS = [
   {
-    id: 'rec-brief-black',
+    id: 17,
+    variant_id: 8,
+    size_id: 4,
     name: 'TIA Signature Boxers (Obsidian Black)',
     category: 'BRIEFS',
     price: 75000,
@@ -23,7 +28,9 @@ const DEFAULT_SUGGESTIONS = [
     description: 'Ultra-breathable micro-modal stretch for everyday luxury.'
   },
   {
-    id: 'rec-lounge-set',
+    id: 24,
+    variant_id: 16,
+    size_id: 4,
     name: 'TIA Luxe Lounge Set (Minimalist Grey)',
     category: 'LOUNGE SETS',
     price: 103850,
@@ -35,7 +42,9 @@ const DEFAULT_SUGGESTIONS = [
     description: 'Coordinated organic cotton fleece set tailored for relaxed elegance.'
   },
   {
-    id: 'rec-brief-white',
+    id: 23,
+    variant_id: 9,
+    size_id: 4,
     name: 'TIA Pure Cotton Briefs (Classic White)',
     category: 'BRIEFS',
     price: 75000,
@@ -53,12 +62,25 @@ export const SmartProductSuggestions = ({
   currentProductId = null,
   currentProductPrice = 0,
   currentProductName = '',
+  currentProductImage = '',
+  currentVariant = null,
+  currentSize = null,
+  isProduct = true,
   className = '' 
 }) => {
-  const { addItem, isCartLoading } = useCart();
+  const cartContext = useCart() || {};
+  const addItem = cartContext.addItem;
+  const addItems = cartContext.addItems;
+  const openCart = cartContext.openCart;
+  const isCartLoading = cartContext.isCartLoading;
+
   const { currency, exchangeRate } = useContext(CurrencyContext) || {};
+  const [liveCatalog, setLiveCatalog] = useState([]);
   const [addedItems, setAddedItems] = useState({});
+  const [isMainSelected, setIsMainSelected] = useState(true);
   const [selectedBundleIds, setSelectedBundleIds] = useState([]);
+  const [isAddingBundle, setIsAddingBundle] = useState(false);
+  const [bundleSuccess, setBundleSuccess] = useState(false);
 
   // Price formatter
   const formatPrice = (amount) => {
@@ -70,31 +92,123 @@ export const SmartProductSuggestions = ({
     return `₦${numericAmount.toLocaleString('en-NG')}`;
   };
 
-  // Filter out current product if provided
-  const recommendations = DEFAULT_SUGGESTIONS.filter(item => item.id !== currentProductId);
+  // Safe fallback to add items to guest cart in localStorage if context is not yet mounted
+  const addToGuestCartDirect = (itemToAdd) => {
+    try {
+      const cartData = localStorage.getItem('guestCart');
+      const guestCart = cartData ? JSON.parse(cartData) : { items: [], subtotal: 0, tax: 0, total: 0 };
+      guestCart.items = Array.isArray(guestCart.items) ? guestCart.items : [];
+      guestCart.items.push({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        quantity: itemToAdd.quantity || 1,
+        price: itemToAdd.price,
+        product_type: itemToAdd.product_type || 'single',
+        variant_id: itemToAdd.variant_id || null,
+        size_id: itemToAdd.size_id || null,
+        is_preorder: false,
+        name: itemToAdd.name,
+        image: itemToAdd.image,
+        color: itemToAdd.color || 'Classic',
+        size: itemToAdd.size || 'L',
+        item: {
+          id: itemToAdd.id,
+          name: itemToAdd.name,
+          price: itemToAdd.price,
+          original_price: itemToAdd.originalPrice || itemToAdd.price,
+          image: itemToAdd.image,
+          color: itemToAdd.color || 'Classic',
+          size: itemToAdd.size || 'L',
+          is_product: true,
+          stock_quantity: 999
+        }
+      });
+      guestCart.subtotal = guestCart.items.reduce((acc, ci) => acc + (Number(ci.price) || 0) * (ci.quantity || 1), 0);
+      guestCart.tax = 0;
+      guestCart.total = guestCart.subtotal;
+      localStorage.setItem('guestCart', JSON.stringify(guestCart));
+    } catch (err) {
+      console.warn('Direct guestCart write fallback error:', err);
+    }
+  };
+
+  // Optionally fetch real live products from catalog
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCatalog = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/shopall`);
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const formatted = res.data
+            .filter(p => p.id && /^\d+$/.test(String(p.id)))
+            .map(p => ({
+              id: p.id,
+              variant_id: p.variantId || null,
+              size_id: 4,
+              name: p.name,
+              category: p.category,
+              price: Number(p.price) || 0,
+              originalPrice: Math.round((Number(p.price) || 0) * 1.15),
+              image: p.image || imgBlack,
+              rating: 4.9,
+              reviewsCount: 88,
+              badge: p.is_new_release ? 'New' : 'Popular',
+              description: `${p.category || 'Luxury essential'} crafted for timeless style and comfort.`
+            }));
+          if (isMounted && formatted.length > 0) {
+            setLiveCatalog(formatted);
+          }
+        }
+      } catch {
+        // Silently use curated catalog on error or offline
+      }
+    };
+
+    fetchCatalog();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Filter out current product if provided, using live catalog or curated catalog with real IDs
+  const activeCatalog = liveCatalog.length >= 3 ? liveCatalog : DEFAULT_SUGGESTIONS;
+  const recommendations = activeCatalog.filter(item => String(item.id) !== String(currentProductId));
 
   // Initialize bundle selections
   useEffect(() => {
     if (type === 'frequently-bought-together') {
+      setIsMainSelected(true);
       setSelectedBundleIds(recommendations.slice(0, 2).map(item => item.id));
     }
-  }, [type, currentProductId]);
+  }, [type, currentProductId, recommendations.length]);
 
   const handleQuickAdd = async (product, e) => {
     if (e) e.preventDefault();
     try {
       setAddedItems(prev => ({ ...prev, [product.id]: 'loading' }));
-      await addItem({
+
+      const payload = {
         id: product.id,
+        variant_id: product.variant_id || null,
+        size_id: product.size_id || 4,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
         product_type: 'single',
-        color: 'Classic',
-        size: 'L',
+        color: product.color || 'Classic',
+        size: currentSize || 'L',
         quantity: 1
-      });
+      };
+
+      if (typeof addItem === 'function') {
+        await addItem(payload);
+      } else {
+        addToGuestCartDirect(payload);
+      }
+
       setAddedItems(prev => ({ ...prev, [product.id]: 'success' }));
+      if (typeof openCart === 'function') openCart();
+      window.dispatchEvent(new Event('cartUpdated'));
+      window.dispatchEvent(new Event('openCartModal'));
+
       setTimeout(() => {
         setAddedItems(prev => ({ ...prev, [product.id]: false }));
       }, 2500);
@@ -110,20 +224,8 @@ export const SmartProductSuggestions = ({
     );
   };
 
-  const handleAddBundleToCart = async () => {
-    const selectedProducts = recommendations.filter(item => selectedBundleIds.includes(item.id));
-    for (const item of selectedProducts) {
-      await addItem({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        image: item.image,
-        product_type: 'single',
-        color: 'Classic',
-        size: 'L',
-        quantity: 1
-      });
-    }
+  const handleToggleMainItem = () => {
+    setIsMainSelected(prev => !prev);
   };
 
   // Mode 1: Cart Drawer Compact Recommendation List
@@ -153,7 +255,8 @@ export const SmartProductSuggestions = ({
                 <div className="flex items-center gap-3 min-w-0">
                   <img 
                     src={getThumbnailUrl(product.image, 120)} 
-                    alt={product.name} 
+                    alt="" 
+                    aria-hidden="true"
                     loading="lazy"
                     decoding="async"
                     className="w-11 h-13 object-cover rounded-md border border-stone-200 shrink-0 bg-stone-100"
@@ -189,6 +292,11 @@ export const SmartProductSuggestions = ({
                       <Check className="w-3 h-3 text-emerald-700" />
                       Added
                     </>
+                  ) : isLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin text-stone-600" />
+                      Adding
+                    </>
                   ) : (
                     <>
                       <Plus className="w-3 h-3" />
@@ -207,9 +315,97 @@ export const SmartProductSuggestions = ({
   // Mode 2: Frequently Bought Together (Product Details Page)
   if (type === 'frequently-bought-together') {
     const selectedItems = recommendations.filter(item => selectedBundleIds.includes(item.id));
-    const bundleTotal = Number(currentProductPrice || 0) + selectedItems.reduce((acc, curr) => acc + curr.price, 0);
-    const bundleSavings = selectedItems.length > 0 ? Math.round(bundleTotal * 0.1) : 0;
+    const totalSelectedCount = (isMainSelected ? 1 : 0) + selectedItems.length;
+    // Set 10% discount applies when 2 or more complementary items are selected
+    const bundleDiscountRate = totalSelectedCount >= 2 ? 0.10 : 0;
+
+    const mainPrice = isMainSelected ? Number(currentProductPrice || 0) : 0;
+    const recommendationsPrice = selectedItems.reduce((acc, curr) => acc + curr.price, 0);
+    const bundleTotal = mainPrice + recommendationsPrice;
+    const bundleSavings = bundleDiscountRate > 0 ? Math.round(bundleTotal * bundleDiscountRate) : 0;
     const finalBundlePrice = bundleTotal - bundleSavings;
+
+    const handleAddBundleToCart = async () => {
+      if (totalSelectedCount === 0 || isAddingBundle) return;
+      try {
+        setIsAddingBundle(true);
+
+        const itemsToAdd = [];
+
+        // Add main product if selected
+        if (isMainSelected) {
+          const rawPrice = Number(currentProductPrice) || 0;
+          const discountedPrice = bundleDiscountRate > 0 
+            ? Math.round(rawPrice * (1 - bundleDiscountRate))
+            : rawPrice;
+
+          itemsToAdd.push({
+            id: currentProductId ? `prod-${currentProductId}` : 'current-product',
+            variant_id: currentVariant?.variant_id || (currentProductId == 64 ? 57 : null),
+            size_id: currentVariant?.sizes?.find(s => s.size_name === currentSize)?.size_id || 4,
+            name: currentProductName || 'Current Item',
+            price: discountedPrice,
+            originalPrice: rawPrice,
+            image: currentProductImage || '',
+            color: currentVariant?.color_name || 'Obsidian',
+            size: currentSize || 'L',
+            product_type: isProduct ? 'single' : 'bundle',
+            quantity: 1,
+          });
+        }
+
+        // Add selected complementary recommendations
+        for (const item of selectedItems) {
+          const rawPrice = item.price;
+          const discountedPrice = bundleDiscountRate > 0 
+            ? Math.round(rawPrice * (1 - bundleDiscountRate))
+            : rawPrice;
+
+          itemsToAdd.push({
+            id: item.id,
+            variant_id: item.variant_id || null,
+            size_id: item.size_id || 4,
+            name: item.name,
+            price: discountedPrice,
+            originalPrice: rawPrice,
+            image: item.image,
+            color: 'Classic',
+            size: currentSize || 'L',
+            product_type: 'single',
+            quantity: 1,
+          });
+        }
+
+        if (typeof addItems === 'function') {
+          await addItems(itemsToAdd);
+        } else if (typeof addItem === 'function') {
+          for (const item of itemsToAdd) {
+            await addItem(item);
+          }
+        } else {
+          for (const item of itemsToAdd) {
+            addToGuestCartDirect(item);
+          }
+        }
+
+        setBundleSuccess(true);
+
+        // Open cart drawer immediately to provide immediate feedback
+        if (typeof openCart === 'function') {
+          openCart();
+        }
+        window.dispatchEvent(new Event('openCartModal'));
+        window.dispatchEvent(new Event('cartUpdated'));
+
+        setTimeout(() => {
+          setBundleSuccess(false);
+        }, 3000);
+      } catch (err) {
+        console.error('Failed to add bundle to cart:', err);
+      } finally {
+        setIsAddingBundle(false);
+      }
+    };
 
     return (
       <div className={`my-12 p-6 bg-gradient-to-br from-stone-900/90 to-stone-950/90 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md text-stone-100 ${className}`}>
@@ -229,15 +425,34 @@ export const SmartProductSuggestions = ({
           {/* Items Preview List */}
           <div className="lg:col-span-2 space-y-3">
             {/* Main Product Item */}
-            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-amber-400/30">
-              <div className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center text-black shrink-0">
-                <Check className="w-3 h-3 stroke-[3]" />
+            <div 
+              onClick={handleToggleMainItem}
+              className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none ${
+                isMainSelected 
+                  ? 'bg-white/5 border-amber-400/50 text-stone-100 shadow-sm'
+                  : 'bg-white/[0.02] border-white/5 text-stone-400 hover:border-white/20'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                isMainSelected ? 'bg-amber-400 border-amber-400 text-black' : 'border-white/30 bg-transparent'
+              }`}>
+                {isMainSelected && <Check className="w-3 h-3 stroke-[3]" />}
               </div>
+              {currentProductImage && (
+                <img 
+                  src={getThumbnailUrl(currentProductImage, 100)} 
+                  alt="" 
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  className="w-10 h-12 object-cover rounded bg-stone-900 shrink-0 border border-white/10" 
+                />
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-stone-200 truncate font-Jost">
-                  {currentProductName || 'Current Selected Item'} <span className="text-[10px] text-amber-400 font-mono">(This Item)</span>
+                  {currentProductName || 'Current Selected Item'} <span className="text-[10px] text-amber-400 font-mono font-normal">(This Item)</span>
                 </p>
-                <p className="text-xs font-mono text-stone-400 mt-0.5">
+                <p className="text-xs font-mono text-amber-300 mt-0.5">
                   {formatPrice(currentProductPrice)}
                 </p>
               </div>
@@ -250,9 +465,9 @@ export const SmartProductSuggestions = ({
                 <div 
                   key={item.id}
                   onClick={() => handleToggleBundleItem(item.id)}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none ${
                     isChecked 
-                      ? 'bg-white/5 border-amber-400/40 text-stone-100'
+                      ? 'bg-white/5 border-amber-400/40 text-stone-100 shadow-sm'
                       : 'bg-white/[0.02] border-white/5 text-stone-400 hover:border-white/20'
                   }`}
                 >
@@ -263,10 +478,11 @@ export const SmartProductSuggestions = ({
                   </div>
                   <img 
                     src={getThumbnailUrl(item.image, 100)} 
-                    alt={item.name} 
+                    alt="" 
+                    aria-hidden="true"
                     loading="lazy"
                     decoding="async"
-                    className="w-10 h-12 object-cover rounded bg-stone-900 shrink-0" 
+                    className="w-10 h-12 object-cover rounded bg-stone-900 shrink-0 border border-white/10" 
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate font-Jost">{item.name}</p>
@@ -302,10 +518,31 @@ export const SmartProductSuggestions = ({
 
             <button
               onClick={handleAddBundleToCart}
-              className="w-full py-3 px-4 bg-amber-400 hover:bg-amber-300 text-black text-xs font-semibold uppercase tracking-wider rounded-xl transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-amber-400/10 cursor-pointer"
+              disabled={totalSelectedCount === 0 || isAddingBundle}
+              className={`w-full py-3 px-4 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 shadow-lg cursor-pointer ${
+                bundleSuccess 
+                  ? 'bg-emerald-400 text-black shadow-emerald-400/20'
+                  : totalSelectedCount === 0
+                  ? 'bg-stone-800 text-stone-500 cursor-not-allowed border border-white/5'
+                  : 'bg-amber-400 hover:bg-amber-300 text-black shadow-amber-400/10'
+              }`}
             >
-              <ShoppingBag className="w-4 h-4" />
-              Add Selected to Bag
+              {isAddingBundle ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  Adding to Bag...
+                </>
+              ) : bundleSuccess ? (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  Added to Bag!
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="w-4 h-4" />
+                  {totalSelectedCount === 0 ? 'Select Items to Add' : 'Add Selected to Bag'}
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -337,7 +574,7 @@ export const SmartProductSuggestions = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recommendations.map((product) => (
+          {recommendations.slice(0, 6).map((product) => (
             <div 
               key={product.id}
               className="group bg-stone-900/60 border border-white/10 rounded-2xl overflow-hidden hover:border-amber-400/40 transition-all duration-300 flex flex-col justify-between"
@@ -346,7 +583,8 @@ export const SmartProductSuggestions = ({
               <div className="relative aspect-[4/5] bg-stone-950 overflow-hidden">
                 <img 
                   src={getCardImageUrl(product.image, 500)} 
-                  alt={product.name}
+                  alt="" 
+                  aria-hidden="true"
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -359,10 +597,21 @@ export const SmartProductSuggestions = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                   <button
                     onClick={(e) => handleQuickAdd(product, e)}
-                    className="w-full py-2.5 bg-white text-black hover:bg-amber-400 font-semibold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xl"
+                    disabled={addedItems[product.id] === 'loading'}
+                    className="w-full py-2.5 bg-white text-black hover:bg-amber-400 font-semibold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-95"
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    Quick Add to Bag
+                    {addedItems[product.id] === 'loading' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    ) : addedItems[product.id] === 'success' ? (
+                      <Check className="w-4 h-4 stroke-[3] text-emerald-800" />
+                    ) : (
+                      <ShoppingBag className="w-4 h-4" />
+                    )}
+                    {addedItems[product.id] === 'loading'
+                      ? 'Adding...'
+                      : addedItems[product.id] === 'success'
+                      ? 'Added to Bag!'
+                      : 'Quick Add to Bag'}
                   </button>
                 </div>
               </div>
@@ -372,8 +621,8 @@ export const SmartProductSuggestions = ({
                 <div>
                   <div className="flex items-center gap-1.5 text-amber-400 text-xs mb-1.5">
                     <Star className="w-3.5 h-3.5 fill-amber-400 stroke-none" />
-                    <span className="font-mono font-bold text-stone-200">{product.rating}</span>
-                    <span className="text-stone-500 text-[11px] font-mono">({product.reviewsCount})</span>
+                    <span className="font-mono font-bold text-stone-200">{product.rating || 4.9}</span>
+                    <span className="text-stone-500 text-[11px] font-mono">({product.reviewsCount || 42})</span>
                   </div>
                   <h4 className="text-sm font-semibold text-stone-100 font-Jost tracking-wide group-hover:text-amber-300 transition-colors">
                     {product.name}
@@ -389,7 +638,7 @@ export const SmartProductSuggestions = ({
                   </span>
                   <Link
                     to={`/product/${product.id}`}
-                    className="text-xs font-mono text-stone-400 hover:text-white underline underline-offset-4"
+                    className="text-xs font-mono text-stone-400 hover:text-white underline underline-offset-4 cursor-pointer"
                   >
                     View Details
                   </Link>

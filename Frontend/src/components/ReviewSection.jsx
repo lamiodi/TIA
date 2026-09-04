@@ -74,6 +74,14 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
   
   // Fetch reviews with pagination
   const fetchReviews = useCallback(async () => {
+    const isValidId = (v) => Boolean(v && /^\d+$/.test(String(v).trim()));
+    if (!isValidId(productId) && !isValidId(bundleId)) {
+      setReviews([]);
+      setTotalReviews(0);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);

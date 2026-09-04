@@ -10,6 +10,18 @@ export const getReviewsByProductId = async (req, res) => {
     return res.status(400).json({ error: 'Product ID or Bundle ID is required' });
   }
 
+  const isValidNum = (v) => Boolean(v && /^\d+$/.test(String(v).trim()));
+  if ((product_id && !isValidNum(product_id)) || (bundle_id && !isValidNum(bundle_id))) {
+    return res.status(200).json({
+      reviews: [],
+      total: 0,
+      page: parseInt(page) || 1,
+      totalPages: 0,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      overallAverageRating: 0
+    });
+  }
+
   try {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const reviews = await sql`

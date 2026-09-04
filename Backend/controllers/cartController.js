@@ -376,6 +376,13 @@ export const addToCart = async (req, res) => {
       console.error('Missing required fields:', { user_id, product_type, variant_id, size_id, quantity, bundle_id, items });
       return res.status(400).json({ error: 'Missing required fields.' });
     }
+
+    if (product_type === 'single' && (!/^\d+$/.test(String(variant_id)) || !/^\d+$/.test(String(size_id)))) {
+      return res.status(400).json({ error: 'Invalid variant_id or size_id format.' });
+    }
+    if (product_type === 'bundle' && (!/^\d+$/.test(String(bundle_id)))) {
+      return res.status(400).json({ error: 'Invalid bundle_id format.' });
+    }
     
     if (quantity < 1) {
       console.error('Invalid quantity:', quantity);
