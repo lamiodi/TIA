@@ -50,14 +50,14 @@ const Cart = () => {
   // Safely access CurrencyContext with error handling
   const currencyContext = useContext(CurrencyContext) || {
     currency: 'NGN',
-    exchangeRate: 1,
+    exchangeRate: 1529.26,
     country: 'Nigeria',
     contextLoading: false,
   };
   
   const {
     currency = 'NGN',
-    exchangeRate = 1,
+    exchangeRate = 1529.26,
     country = 'Nigeria',
     contextLoading = false,
   } = currencyContext;
@@ -757,9 +757,10 @@ const Cart = () => {
   
   // Format values for display
   const isUSD = currency === 'USD' || country !== 'Nigeria';
-  const displaySubtotal = isUSD ? subtotal / (exchangeRate || 1529.26) : subtotal;
-  const displayTax = isUSD ? tax / (exchangeRate || 1529.26) : tax;
-  const displayTotal = isUSD ? total / (exchangeRate || 1529.26) : total;
+  const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+  const displaySubtotal = isUSD ? subtotal / safeRate : subtotal;
+  const displayTax = isUSD ? tax / safeRate : tax;
+  const displayTotal = isUSD ? total / safeRate : total;
   
   // Memoized Cart Item Component
   const CartItem = useCallback(
@@ -767,7 +768,7 @@ const Cart = () => {
         const bundleItems = item.item.is_product ? [] : item.item.items || [];
         console.log(`Cart: Rendering cart_item_id ${item.id}, bundle items:`, JSON.stringify(bundleItems, null, 2));
         const basePrice = Number(item.item.price) || 0;
-        const displayPrice = isUSD ? basePrice / (exchangeRate || 1529.26) : basePrice;
+        const displayPrice = isUSD ? basePrice / safeRate : basePrice;
         const formattedPrice = displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
           style: 'currency',
           currency: isUSD ? 'USD' : 'NGN',
@@ -1173,10 +1174,10 @@ const Cart = () => {
                   <div className="flex justify-between text-sm">
                     <span className="font-Jost text-gray-600">Items ({cart.items.length})</span>
                     <span className="font-medium font-Jost text-gray-900">
-                      {displaySubtotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                      {displaySubtotal.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                         style: 'currency',
-                        currency: currency,
-                        minimumFractionDigits: 0,
+                        currency: isUSD ? 'USD' : 'NGN',
+                        minimumFractionDigits: isUSD ? 2 : 0,
                       })}
                     </span>
                   </div>
@@ -1194,10 +1195,10 @@ const Cart = () => {
                     <div className="flex justify-between text-sm">
                       <span className="font-Jost text-gray-600">Tax (5%)</span>
                       <span className="font-medium font-Jost text-gray-900">
-                        {displayTax.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                        {displayTax.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                           style: 'currency',
-                          currency: currency,
-                          minimumFractionDigits: 0,
+                          currency: isUSD ? 'USD' : 'NGN',
+                          minimumFractionDigits: isUSD ? 2 : 0,
                         })}
                       </span>
                     </div>
@@ -1208,10 +1209,10 @@ const Cart = () => {
                     <div className="flex justify-between text-lg font-bold">
                       <span className="font-Manrope text-gray-900">Total</span>
                       <span className="font-Jost text-gray-900">
-                        {displayTotal.toLocaleString(country === 'Nigeria' ? 'en-NG' : 'en-US', {
+                        {displayTotal.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                           style: 'currency',
-                          currency: currency,
-                          minimumFractionDigits: 0,
+                          currency: isUSD ? 'USD' : 'NGN',
+                          minimumFractionDigits: isUSD ? 2 : 0,
                         })}
                       </span>
                     </div>

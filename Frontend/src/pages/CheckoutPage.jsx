@@ -283,7 +283,7 @@ const CheckoutPage = () => {
     console.error('Error accessing CurrencyContext:', error);
     currencyContext = {
       currency: 'NGN',
-      exchangeRate: 1,
+      exchangeRate: 1529.26,
       country: 'Nigeria',
       contextLoading: false
     };
@@ -291,7 +291,7 @@ const CheckoutPage = () => {
 
   const {
     currency = 'NGN',
-    exchangeRate = 1,
+    exchangeRate = 1529.26,
     country = 'Nigeria',
     contextLoading = false
   } = currencyContext || {};

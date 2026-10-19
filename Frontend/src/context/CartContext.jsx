@@ -27,10 +27,10 @@ export const CartProvider = ({ children }) => {
   const { user, logout } = useAuth();
   const currencyContext = useContext(CurrencyContext) || {
     currency: 'NGN',
-    exchangeRate: 1,
+    exchangeRate: 1529.26,
     country: 'Nigeria',
   };
-  const { currency = 'NGN', exchangeRate = 1, country = 'Nigeria' } = currencyContext;
+  const { currency = 'NGN', exchangeRate = 1529.26, country = 'Nigeria' } = currencyContext;
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [], warning: null });

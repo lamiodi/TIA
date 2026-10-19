@@ -20,14 +20,14 @@ const LandingPage = () => {
   // Access currency context for dynamic price formatting
   const currencyContext = useContext(CurrencyContext) || {
     currency: 'NGN',
-    exchangeRate: 1,
+    exchangeRate: 1529.26,
     country: 'Nigeria',
     contextLoading: false,
   };
   
   const {
     currency = 'NGN',
-    exchangeRate = 1,
+    exchangeRate = 1529.26,
     country = 'Nigeria',
     contextLoading = false,
   } = currencyContext;
@@ -36,7 +36,8 @@ const LandingPage = () => {
   const formatPrice = (priceInNaira) => {
     const parsedPrice = parseFloat(priceInNaira.replace(/[₦,]/g, '')) || 0;
     const isUSD = currency === 'USD' || country !== 'Nigeria';
-    const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+    const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+    const displayPrice = isUSD ? (parsedPrice / safeRate) : parsedPrice;
     const displayCurrency = isUSD ? 'USD' : 'NGN';
     
     return displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {

@@ -19,12 +19,16 @@ const countryCurrencyMap = {
   default: { currency: "USD", name: "International" },
 }
 
+const FALLBACK_EXCHANGE_RATE = 1529.26;
+
 const exchangeRateCache = new Map()
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 const LocationPopup = React.memo(() => {
-  const [showPopup, setShowPopup] = useState(true)
-  const [selectedCountry, setSelectedCountry] = useState("NG")
+  const [showPopup, setShowPopup] = useState(() => {
+    return !sessionStorage.getItem("dismissedLocationPopup");
+  })
+  const [selectedCountry, setSelectedCountry] = useState(() => localStorage.getItem("selectedCountry") || "NG")
   const [isFetching, setIsFetching] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const popupRef = useRef(null)
@@ -59,32 +63,35 @@ const LocationPopup = React.memo(() => {
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
+    sessionStorage.setItem("dismissedLocationPopup", "true")
     setTimeout(() => setShowPopup(false), 200) // Reduced animation time
   }, [])
 
-  const fetchExchangeRate = useCallback(async (currency) => {
-    const cacheKey = `${currency}_NGN`
-    const cached = exchangeRateCache.get(cacheKey)
+  const fetchExchangeRate = useCallback(async () => {
+    const cached = exchangeRateCache.get("USD_NGN")
 
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION && cached.rate >= 100) {
       return cached.rate
     }
 
     try {
       const apiKey = import.meta.env.VITE_EXCHANGERATE_API_KEY
-      if (!apiKey) throw new Error("API key missing")
+      const url = apiKey
+        ? `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`
+        : `https://api.exchangerate-api.com/v4/latest/USD`;
 
-      const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/NGN`)
+      const response = await fetch(url)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
       const data = await response.json()
-      const rate = currency === "NGN" ? 1 : data.conversion_rates.USD || 0.00065311
+      const rate = data.conversion_rates?.NGN || data.rates?.NGN || FALLBACK_EXCHANGE_RATE
+      const validRate = (typeof rate === "number" && rate >= 100) ? rate : FALLBACK_EXCHANGE_RATE
 
-      exchangeRateCache.set(cacheKey, { rate, timestamp: Date.now() })
-      return rate
+      exchangeRateCache.set("USD_NGN", { rate: validRate, timestamp: Date.now() })
+      return validRate
     } catch (err) {
-      console.error("Exchange rate fetch failed:", err.message)
-      return currency === "NGN" ? 1 : 0.00065311
+      console.warn("Exchange rate fetch failed, using fallback:", err.message)
+      return FALLBACK_EXCHANGE_RATE
     }
   }, [])
 
@@ -95,18 +102,18 @@ const LocationPopup = React.memo(() => {
 
       setSelectedCountry(code)
       localStorage.setItem("selectedCountry", code)
+      sessionStorage.setItem("dismissedLocationPopup", "true")
 
       setCurrency(currency)
       setCountry(name)
 
-      const rate = await fetchExchangeRate(currency)
+      const rate = await fetchExchangeRate()
       setExchangeRate(rate)
       localStorage.setItem(
         "exchangeRate",
         JSON.stringify({
           rate,
           timestamp: Date.now(),
-          currency,
         }),
       )
 

@@ -148,7 +148,7 @@ const ProductDetails = () => {
   const location = useLocation()
   const { user, loading: authLoading } = useAuth()
   const currencyContext = useContext(CurrencyContext)
-  const { currency = "NGN", exchangeRate = 1, country = "Nigeria", contextLoading = false } = currencyContext || {}
+  const { currency = "NGN", exchangeRate = 1529.26, country = "Nigeria", contextLoading = false } = currencyContext || {}
   const variantParam = searchParams.get("variant")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -966,7 +966,8 @@ const ProductDetails = () => {
 
   const depositPrice = isPreorderActive ? parsedPrice * 0.5 : parsedPrice;
   const isUSD = currency === "USD" || country !== "Nigeria";
-  const displayPrice = isUSD ? (depositPrice / (exchangeRate || 1529.26)) : depositPrice;
+  const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+  const displayPrice = isUSD ? (depositPrice / safeRate) : depositPrice;
   const displayCurrency = isUSD ? "USD" : "NGN";
   const description = data?.description || "No description available"
   const colorOptions = isProduct
@@ -1149,10 +1150,10 @@ const ProductDetails = () => {
                   </div>
                   <div className="flex flex-wrap items-baseline gap-2">
                     <p className="text-xl font-bold text-gray-900 font-Manrope">
-                      {Number.parseFloat(displayPrice).toLocaleString(country === "Nigeria" ? "en-NG" : "en-US", {
+                      {Number.parseFloat(displayPrice).toLocaleString(isUSD ? "en-US" : "en-NG", {
                         style: "currency",
                         currency: displayCurrency,
-                        minimumFractionDigits: country === "Nigeria" ? 0 : 2,
+                        minimumFractionDigits: isUSD ? 2 : 0,
                       })}
                     </p>
                     <div className="flex items-center gap-2 flex-nowrap min-w-0">

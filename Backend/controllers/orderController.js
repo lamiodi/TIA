@@ -10,6 +10,32 @@ const shippingOptions = [
   { id: 3, method: 'Outside Lagos', total_cost: 7000, estimated_delivery: '7–10 business days' },
 ];
 
+// Helper to convert base price (in NGN) to target currency
+const convertBasePrice = (priceInNaira, currency, exchangeRate) => {
+  if (currency !== 'USD' || !exchangeRate || exchangeRate <= 0) {
+    return priceInNaira;
+  }
+  // If exchangeRate is NGN per USD (e.g. 1529.26)
+  if (exchangeRate >= 100) {
+    return Number((priceInNaira / exchangeRate).toFixed(2));
+  }
+  // If exchangeRate is USD per NGN (e.g. 0.000653)
+  return Number((priceInNaira * exchangeRate).toFixed(2));
+};
+
+// Helper to convert total in target currency back to base NGN total
+const convertToNairaTotal = (totalAmount, currency, exchangeRate) => {
+  if (currency !== 'USD' || !exchangeRate || exchangeRate <= 0) {
+    return totalAmount;
+  }
+  // If exchangeRate is NGN per USD (e.g. 1529.26)
+  if (exchangeRate >= 100) {
+    return Math.round(totalAmount * exchangeRate);
+  }
+  // If exchangeRate is USD per NGN (e.g. 0.000653)
+  return Math.round(totalAmount / exchangeRate);
+};
+
 export const createOrder = async (req, res) => {
   const {
     user_id,
@@ -417,8 +443,8 @@ export const createOrder = async (req, res) => {
             const depositPrice = variant.base_price * 0.5;
 
             // Convert both to expected currency for comparison
-            const expectedFull = currency === 'USD' && exchange_rate > 0 ? Number((fullPrice * exchange_rate).toFixed(2)) : fullPrice;
-            const expectedDeposit = currency === 'USD' && exchange_rate > 0 ? Number((depositPrice * exchange_rate).toFixed(2)) : depositPrice;
+            const expectedFull = convertBasePrice(fullPrice, currency, exchange_rate);
+            const expectedDeposit = convertBasePrice(depositPrice, currency, exchange_rate);
 
             // Allow either full payment or deposit for preorder
             if (Math.abs(expectedFull - item.price) > 0.01 && Math.abs(expectedDeposit - item.price) > 0.01) {
@@ -428,9 +454,7 @@ export const createOrder = async (req, res) => {
               throw new Error(`Price mismatch for preorder variant ${item.variant_id}`);
             }
           } else {
-            const expectedPrice = currency === 'USD' && exchange_rate > 0
-              ? Number((expectedBasePrice * exchange_rate).toFixed(2))
-              : expectedBasePrice;
+            const expectedPrice = convertBasePrice(expectedBasePrice, currency, exchange_rate);
 
             if (Math.abs(expectedPrice - item.price) > 0.01) {
               console.error(`Validation failed: Price mismatch for variant ${item.variant_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
@@ -531,9 +555,7 @@ export const createOrder = async (req, res) => {
           }
 
           // Validate bundle price
-          const expectedPrice = currency === 'USD' && exchange_rate > 0
-            ? Number((bundle.bundle_price * exchange_rate).toFixed(2))
-            : bundle.bundle_price;
+          const expectedPrice = convertBasePrice(bundle.bundle_price, currency, exchange_rate);
           if (Math.abs(expectedPrice - item.price) > 0.01) {
             console.error(`Validation failed: Price mismatch for bundle ${item.bundle_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
             throw new Error(`Price mismatch for bundle ${item.bundle_id}: expected ${expectedPrice} ${currency}, got ${item.price} ${currency}`);
@@ -572,9 +594,7 @@ export const createOrder = async (req, res) => {
       }
 
       // Validate base_currency_total
-      const expectedBaseTotal = currency === 'USD' && exchange_rate > 0
-        ? Math.round(total / exchange_rate)
-        : total;
+      const expectedBaseTotal = convertToNairaTotal(total, currency, exchange_rate);
       if (Math.abs(expectedBaseTotal - base_currency_total) > 1) {
         console.error(`Validation failed: Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);
         throw new Error(`Base currency total mismatch: expected ${expectedBaseTotal} NGN, got ${base_currency_total} NGN`);

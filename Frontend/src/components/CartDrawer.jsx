@@ -18,6 +18,7 @@ const CartDrawer = () => {
     clearCart,
     currency,
     exchangeRate,
+    country,
   } = useCart();
 
   const navigate = useNavigate();
@@ -51,8 +52,10 @@ const CartDrawer = () => {
   // Format price helper
   const formatPrice = (amount) => {
     const numericAmount = Number(amount) || 0;
-    if (currency === 'USD') {
-      const converted = numericAmount / (exchangeRate || 1529.26);
+    const isUSD = currency === 'USD' || country !== 'Nigeria';
+    const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+    if (isUSD) {
+      const converted = numericAmount / safeRate;
       return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     return `₦${numericAmount.toLocaleString('en-NG')}`;

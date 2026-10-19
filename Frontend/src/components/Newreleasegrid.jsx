@@ -230,7 +230,8 @@ const ProductCard = ({ product, onImageError, priority }) => {
   
   const parsedPrice = parseFloat(price) || 0;
   const isUSD = currency === 'USD' || country !== 'Nigeria';
-  const displayPrice = isUSD ? (parsedPrice / (exchangeRate || 1529.26)) : parsedPrice;
+  const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+  const displayPrice = isUSD ? (parsedPrice / safeRate) : parsedPrice;
   const displayCurrency = isUSD ? 'USD' : 'NGN';
   
   const optimizedImage = useMemo(() => getCardImageUrl(image, 480), [image]);

@@ -74,7 +74,7 @@ export const SmartProductSuggestions = ({
   const openCart = cartContext.openCart;
   const isCartLoading = cartContext.isCartLoading;
 
-  const { currency, exchangeRate } = useContext(CurrencyContext) || {};
+  const { currency, exchangeRate, country } = useContext(CurrencyContext) || {};
   const [liveCatalog, setLiveCatalog] = useState([]);
   const [addedItems, setAddedItems] = useState({});
   const [isMainSelected, setIsMainSelected] = useState(true);
@@ -85,8 +85,10 @@ export const SmartProductSuggestions = ({
   // Price formatter
   const formatPrice = (amount) => {
     const numericAmount = Number(amount) || 0;
-    if (currency === 'USD') {
-      const converted = numericAmount / (exchangeRate || 1529.26);
+    const isUSD = currency === 'USD' || country !== 'Nigeria';
+    const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
+    if (isUSD) {
+      const converted = numericAmount / safeRate;
       return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     return `₦${numericAmount.toLocaleString('en-NG')}`;
