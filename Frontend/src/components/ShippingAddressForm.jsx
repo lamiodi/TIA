@@ -53,17 +53,28 @@ const ShippingAddressForm = ({
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    let updated;
     // When country changes, reset state if not valid in new country
     if (name === 'country') {
       const nextStates = getStatesForCountry(value);
       const isCurrentStateValid = nextStates.some(s => s.name.toLowerCase() === (formData.state || '').toLowerCase());
-      setFormData(prev => ({
-        ...prev,
+      updated = {
+        ...formData,
         country: value,
-        state: isCurrentStateValid ? prev.state : ''
-      }));
+        state: isCurrentStateValid ? formData.state : ''
+      };
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      updated = { ...formData, [name]: value };
+    }
+
+    setFormData(updated);
+
+    // Sync immediately to parent so CheckoutPage country, rates, and totals update in real time
+    if (setState) {
+      setState(prev => ({
+        ...prev,
+        ...updated
+      }));
     }
     
     // Clear error when user starts typing or selecting

@@ -82,7 +82,7 @@ const CheckoutPage = () => {
     city: '',
     state: '',
     zip_code: '',
-    country: 'Nigeria',
+    country: country || 'Nigeria',
     phone_number: '', // Will be removed for guest users
   });
   const [billingForm, setBillingForm] = useState({
@@ -94,7 +94,7 @@ const CheckoutPage = () => {
     city: '',
     state: '',
     zip_code: '',
-    country: 'Nigeria',
+    country: country || 'Nigeria',
   });
 
   // New state for billing address option
@@ -134,6 +134,50 @@ const CheckoutPage = () => {
 
   // NEW: Generate idempotency key once per session
   const [idempotencyKey] = useState(() => uuidv4());
+
+  // Derive the active saved address (for authenticated users)
+  const selectedSavedShippingAddress = useMemo(() => {
+    if (!shippingAddresses || shippingAddresses.length === 0) return null;
+    const targetId = shippingAddressId || shippingAddresses[0]?.id;
+    return shippingAddresses.find(addr => String(addr.id) === String(targetId)) || shippingAddresses[0] || null;
+  }, [shippingAddresses, shippingAddressId]);
+
+  // Active destination country:
+  // 1. If authenticated user has a selected saved address and is NOT currently filling a new form, use that saved address country.
+  // 2. Otherwise use shippingForm.country (which updates in real-time as user picks from dropdown).
+  // 3. Fallback to CurrencyContext country, then 'Nigeria'.
+  const addressCountry = useMemo(() => {
+    if (!isGuest && selectedSavedShippingAddress && !showShippingForm) {
+      return selectedSavedShippingAddress.country || country || 'Nigeria';
+    }
+    return shippingForm.country || country || 'Nigeria';
+  }, [isGuest, selectedSavedShippingAddress, showShippingForm, shippingForm.country, country]);
+
+  const isNigeria = useMemo(() => {
+    return checkIsNigeria(addressCountry);
+  }, [addressCountry]);
+
+  const isUSD = currency === 'USD';
+  const intlShippingUSD = useMemo(() => getInternationalShippingUSD(addressCountry), [addressCountry]);
+  const intlShippingNGN = useMemo(() => getInternationalShippingNGN(addressCountry, exchangeRate), [addressCountry, exchangeRate]);
+
+  // Keep form countries in sync with CurrencyContext if user hasn't filled an address line yet
+  useEffect(() => {
+    if (country) {
+      setShippingForm(prev => {
+        if (!prev.address_line_1 && prev.country !== country) {
+          return { ...prev, country };
+        }
+        return prev;
+      });
+      setBillingForm(prev => {
+        if (!prev.address_line_1 && prev.country !== country) {
+          return { ...prev, country };
+        }
+        return prev;
+      });
+    }
+  }, [country]);
 
   // Memoize functions to prevent unnecessary re-renders
   const handleGuestFormChange = useCallback((field, value) => {
@@ -544,9 +588,6 @@ const CheckoutPage = () => {
       setLoading(false); // Reset loading state
       return;
     }
-
-    const addressCountry = shippingForm.country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
 
     if (isNigeria && !shippingMethod) {
       setError('Please select a shipping method');
@@ -1078,7 +1119,7 @@ const CheckoutPage = () => {
       city: '',
       state: '',
       zip_code: '',
-      country: 'Nigeria',
+      country: country || 'Nigeria',
       phone_number: ''
     });
     setShowShippingForm(true);
@@ -1094,7 +1135,7 @@ const CheckoutPage = () => {
       city: '',
       state: '',
       zip_code: '',
-      country: 'Nigeria'
+      country: country || 'Nigeria'
     });
     setShowBillingForm(true);
   };
@@ -1365,9 +1406,6 @@ const CheckoutPage = () => {
   }, [user, billingAddresses.length, billingForm.full_name, billingForm.email]);
 
   useEffect(() => {
-    const addressCountry = shippingForm.country || country;
-    const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-
     if (isNigeria && !shippingMethod) {
       const defaultMethod = shippingOptions[0];
       setShippingMethod(defaultMethod);
@@ -1376,7 +1414,7 @@ const CheckoutPage = () => {
     if (!isNigeria && shippingMethod) {
       setShippingMethod(null);
     }
-  }, [shippingForm, country]);
+  }, [isNigeria, shippingMethod, shippingOptions]);
 
   // Add this useEffect to check for pending orders
   useEffect(() => {
@@ -1411,11 +1449,6 @@ const CheckoutPage = () => {
       checkPendingOrder();
     }
   }, [user, authLoading, contextLoading, navigate]);
-
-  const addressCountry = shippingForm.country || country;
-  const isNigeria = addressCountry.toLowerCase() === 'nigeria';
-  const intlShippingUSD = useMemo(() => getInternationalShippingUSD(addressCountry), [addressCountry]);
-  const intlShippingNGN = useMemo(() => getInternationalShippingNGN(addressCountry, exchangeRate), [addressCountry, exchangeRate]);
 
   // Memoize expensive calculations to prevent unnecessary recalculations
   const calculatedValues = useMemo(() => {

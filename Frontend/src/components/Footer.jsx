@@ -44,14 +44,13 @@ const Footer = () => {
 
           {/* Promo Newsletter Box */}
           <div className="lg:col-span-2 bg-zinc-900 rounded-lg overflow-hidden border border-white/10 relative flex flex-col sm:flex-row">
-            <div className="sm:w-1/2 h-44 sm:h-auto relative overflow-hidden">
+            <div className="sm:w-1/2 h-56 sm:h-auto relative overflow-hidden bg-neutral-950">
               <img
                 src={Footerimage}
                 alt="The TiaBrand Campaign"
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                className="w-full h-full object-cover object-top transition-transform duration-700 hover:scale-105"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-black/60 to-transparent"></div>
             </div>
 
             <div className="sm:w-1/2 p-6 flex flex-col justify-between text-center sm:text-left">
