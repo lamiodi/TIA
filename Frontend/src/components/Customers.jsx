@@ -171,8 +171,12 @@ const Customers = () => {
           
           <div className="p-6">
             {detailsLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
+              <div className="space-y-4 animate-pulse py-4 font-Jost">
+                <div className="h-6 bg-gray-200 rounded w-1/3" />
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -316,8 +320,19 @@ const Customers = () => {
       }}
     >
       {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-Primarycolor"></div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 animate-pulse font-Jost">
+          <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <div className="h-6 bg-gray-200 rounded w-44" />
+            <div className="h-8 bg-gray-100 rounded-lg w-32" />
+          </div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex justify-between items-center py-3 border-b border-gray-50">
+              <div className="h-4 bg-gray-200 rounded w-28" />
+              <div className="h-4 bg-gray-100 rounded w-36" />
+              <div className="h-4 bg-gray-200 rounded w-24" />
+              <div className="h-4 bg-gray-100 rounded w-20" />
+            </div>
+          ))}
         </div>
       )}
       {error && (

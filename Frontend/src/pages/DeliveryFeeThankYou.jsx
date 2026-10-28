@@ -60,8 +60,13 @@ const DeliveryFeeThankYou = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-Primarycolor"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4 font-Jost">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-md w-full text-center animate-pulse space-y-4">
+          <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto" />
+          <div className="h-6 bg-gray-200 rounded-lg w-3/4 mx-auto" />
+          <div className="h-4 bg-gray-100 rounded w-5/6 mx-auto" />
+          <div className="h-11 bg-gray-200 rounded-xl w-full mt-6" />
+        </div>
       </div>
     );
   }

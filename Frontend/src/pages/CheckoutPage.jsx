@@ -1516,70 +1516,140 @@ const CheckoutPage = () => {
     toast.success('Opening WhatsApp to complete your Bitcoin payment...');
   };
 
-  if (authLoading || contextLoading) {
+  if (authLoading || contextLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-Accent">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-Primarycolor/20 border-t-Primarycolor"></div>
-          <p className="mt-2 text-sm font-Jost">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 font-Jost">
         <Navbar2 />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column - Checkout Form Skeleton */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-16">
+          {/* Breadcrumb & Header Skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-44 mb-3" />
+            <div className="flex items-center justify-between">
+              <div className="h-9 bg-gray-300 rounded-lg w-56 sm:w-64" />
+              <div className="h-6 bg-gray-200 rounded-full w-28 hidden sm:block" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column - Checkout Steps Skeleton (7 cols) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Step 1: Customer Contact Skeleton */}
+              <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-sm animate-pulse space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-Primarycolor/80 text-white text-xs font-semibold flex items-center justify-center">1</div>
+                  <div className="h-6 bg-gray-300 rounded w-44" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-28" />
+                  <div className="h-11 bg-gray-100 rounded-xl" />
+                </div>
+              </div>
+
+              {/* Step 2: Shipping Address Skeleton */}
+              <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-sm animate-pulse space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-gray-200 text-transparent text-xs font-semibold flex items-center justify-center">2</div>
+                  <div className="h-6 bg-gray-300 rounded w-48" />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <div className="h-11 bg-gray-100 rounded-xl" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                    <div className="h-11 bg-gray-100 rounded-xl" />
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </div>
+
+              {/* Step 3: Delivery Method Skeleton */}
+              <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-sm animate-pulse space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-gray-200 text-transparent text-xs font-semibold flex items-center justify-center">3</div>
+                  <div className="h-6 bg-gray-300 rounded w-52" />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <div className="h-20 bg-gray-100 rounded-xl border border-gray-200" />
+                  <div className="h-20 bg-gray-100 rounded-xl border border-gray-200" />
+                </div>
+              </div>
+
+              {/* Step 4: Payment Method Skeleton */}
+              <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-sm animate-pulse space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-gray-200 text-transparent text-xs font-semibold flex items-center justify-center">4</div>
+                  <div className="h-6 bg-gray-300 rounded w-44" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="h-14 bg-gray-100 rounded-xl border border-gray-200" />
+                  <div className="h-14 bg-gray-100 rounded-xl border border-gray-200" />
                 </div>
               </div>
             </div>
-            {/* Right Column - Order Summary Skeleton */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-                  </div>
-                  <div className="flex justify-between">
-                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between">
-                      <div className="h-5 bg-gray-200 rounded w-1/4"></div>
-                      <div className="h-5 bg-gray-200 rounded w-1/5"></div>
+
+            {/* Right Column - Order Summary Skeleton (5 cols) */}
+            <div className="lg:col-span-5">
+              <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-sm sticky top-28 animate-pulse space-y-6">
+                <div className="h-6 bg-gray-300 rounded w-36" />
+
+                {/* Cart item skeletons */}
+                <div className="space-y-3 border-b border-gray-100 pb-5">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex gap-3 p-3 rounded-xl border border-gray-100">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                        <div className="h-3 bg-gray-100 rounded w-1/3" />
+                        <div className="h-4 bg-gray-200 rounded w-1/4" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="h-12 bg-gray-200 rounded mt-6"></div>
+                  ))}
                 </div>
+
+                {/* Coupon skeleton */}
+                <div className="flex gap-2">
+                  <div className="h-10 bg-gray-100 rounded-lg flex-1" />
+                  <div className="h-10 bg-gray-200 rounded-lg w-20" />
+                </div>
+
+                {/* Price breakdown skeleton */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                    <div className="h-4 bg-gray-200 rounded w-16" />
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-16" />
+                    <div className="h-4 bg-gray-200 rounded w-14" />
+                  </div>
+                  <div className="border-t border-gray-200 pt-3 flex justify-between">
+                    <div className="h-6 bg-gray-300 rounded w-20" />
+                    <div className="h-6 bg-gray-300 rounded w-28" />
+                  </div>
+                </div>
+
+                {/* Button skeleton */}
+                <div className="h-14 bg-gray-300 rounded-xl w-full" />
               </div>
             </div>
           </div>
-        </div>
+        </main>
         <Footer />
       </div>
     );

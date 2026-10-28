@@ -35,10 +35,40 @@ const GiftCardPage = lazy(() => import('./pages/GiftCardPage'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const SearchResults = lazy(() => import('./pages/SearchResults'));
 
-const PageLoader = () => (
-  <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 bg-white">
-    <div className="w-8 h-8 rounded-full border-2 border-Primarycolor/20 border-t-Primarycolor animate-spin mb-3" />
-    <span className="text-[11px] font-Manrope tracking-widest uppercase text-Accent">Loading</span>
+const PageSkeleton = () => (
+  <div className="min-h-screen bg-white font-Jost">
+    {/* Top Navbar Skeleton */}
+    <div className="h-20 border-b border-gray-100 px-6 sm:px-12 flex items-center justify-between animate-pulse">
+      <div className="h-6 bg-gray-200 rounded w-28" />
+      <div className="hidden md:flex gap-8">
+        <div className="h-4 bg-gray-100 rounded w-16" />
+        <div className="h-4 bg-gray-100 rounded w-20" />
+        <div className="h-4 bg-gray-100 rounded w-16" />
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-gray-100" />
+        <div className="w-8 h-8 rounded-full bg-gray-100" />
+      </div>
+    </div>
+
+    {/* Hero / Page Content Skeleton */}
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-pulse space-y-8">
+      <div className="space-y-3">
+        <div className="h-4 bg-gray-100 rounded w-32" />
+        <div className="h-9 bg-gray-200 rounded-xl w-64" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="space-y-3">
+            <div className="aspect-[3/4] bg-gray-100 rounded-2xl" />
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-3 bg-gray-100 rounded w-1/2" />
+            <div className="h-4 bg-gray-200 rounded w-1/3" />
+          </div>
+        ))}
+      </div>
+    </main>
   </div>
 );
 
@@ -52,7 +82,7 @@ function App() {
               <ScrollProgress />
               <ScrollToTop />
               <CartDrawer />
-              <Suspense fallback={<PageLoader />}>
+              <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="/search" element={<SearchResults />} />
                   <Route path="/home" element={<LandingPage />} />

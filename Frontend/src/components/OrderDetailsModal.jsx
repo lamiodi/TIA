@@ -146,8 +146,13 @@ const OrderDetailsModal = ({
         </div>
         <div className="p-6">
           {detailsLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+            <div className="space-y-4 animate-pulse py-4 font-Jost">
+              <div className="h-6 bg-gray-200 rounded w-1/3" />
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+              </div>
+              <div className="h-28 bg-gray-50 rounded-xl" />
             </div>
           ) : (
             <div className="space-y-6">

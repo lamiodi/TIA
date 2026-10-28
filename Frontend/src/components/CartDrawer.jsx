@@ -129,9 +129,17 @@ const CartDrawer = () => {
           {/* Body Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar bg-white">
             {isCartLoading ? (
-              <div className="h-64 flex flex-col items-center justify-center gap-3 text-stone-500">
-                <Loader2 className="w-7 h-7 animate-spin text-stone-900" />
-                <p className="text-xs uppercase tracking-widest font-mono text-stone-600">Updating Bag...</p>
+              <div className="space-y-3 animate-pulse py-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex gap-3.5 p-3 rounded-2xl border border-stone-100 bg-stone-50/70">
+                    <div className="w-20 h-24 bg-stone-200 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 space-y-2 py-1">
+                      <div className="h-4 bg-stone-200 rounded w-3/4" />
+                      <div className="h-3 bg-stone-100 rounded w-1/2" />
+                      <div className="h-4 bg-stone-200 rounded w-1/3 mt-3" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : cart.items.length === 0 ? (
               <div className="h-80 flex flex-col items-center justify-center text-center px-4 space-y-4">

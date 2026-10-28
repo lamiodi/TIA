@@ -322,10 +322,25 @@ const ReviewSection = ({ productId, bundleId, productName }) => {
   );
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center text-gray-600">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
-          <p className="mt-2 text-sm">Loading...</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-8 p-6 sm:p-8 animate-pulse space-y-6 font-Jost">
+        <div className="flex justify-between items-center">
+          <div className="h-7 bg-gray-200 rounded w-44" />
+          <div className="h-9 bg-gray-100 rounded-xl w-32" />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-4 rounded-xl border border-gray-100 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-200" />
+                <div className="space-y-1">
+                  <div className="h-4 bg-gray-200 rounded w-28" />
+                  <div className="h-3 bg-gray-100 rounded w-20" />
+                </div>
+              </div>
+              <div className="h-4 bg-gray-100 rounded w-full" />
+              <div className="h-4 bg-gray-100 rounded w-3/4" />
+            </div>
+          ))}
         </div>
       </div>
     );

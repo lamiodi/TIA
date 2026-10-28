@@ -141,8 +141,13 @@ const AdminDashboard = () => {
         </div>
       )}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-Primarycolor"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-100 p-6 space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-7 bg-gray-300 rounded w-3/4" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

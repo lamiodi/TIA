@@ -149,9 +149,7 @@ const HeroSection = () => {
       
       {/* Loading State */}
       {!videoLoaded && !videoError && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center z-10 opacity-50">
-          <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-neutral-900 to-black animate-pulse z-10 opacity-70" />
       )}
       
       {/* iOS Autoplay Notice */}

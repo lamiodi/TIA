@@ -42,10 +42,10 @@ const GiftCardThankYou = () => {
         <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center">
           
           {status === 'verifying' && (
-            <div className="py-12">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-black mx-auto mb-4"></div>
-              <h2 className="text-2xl font-semibold">Verifying Payment...</h2>
-              <p className="text-gray-500 mt-2">Please wait while we confirm your transaction.</p>
+            <div className="py-12 animate-pulse space-y-4 font-Jost">
+              <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4" />
+              <div className="h-7 bg-gray-200 rounded-lg w-1/2 mx-auto" />
+              <div className="h-4 bg-gray-100 rounded w-2/3 mx-auto" />
             </div>
           )}
 

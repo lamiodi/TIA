@@ -35,10 +35,12 @@ const CartItemSkeleton = () => (
   </div>
 );
 
-// Spinner component without text
-const Spinner = () => (
-  <div className="flex justify-center items-center py-12">
-    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
+// Skeleton loader for cart items list
+const CartItemsSkeleton = () => (
+  <div className="space-y-4">
+    <CartItemSkeleton />
+    <CartItemSkeleton />
+    <CartItemSkeleton />
   </div>
 );
 
@@ -1118,8 +1120,7 @@ const Cart = () => {
                 {/* Cart Items List */}
                 <div className="space-y-4">
                   {isCartLoading ? (
-                    // Show spinner without text while cart is loading
-                    <Spinner />
+                    <CartItemsSkeleton />
                   ) : cart.items.length === 0 ? (
                     // Empty cart state
                     <div className="text-center py-16 md:py-24">
