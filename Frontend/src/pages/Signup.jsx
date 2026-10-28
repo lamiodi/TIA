@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Mail, Lock, Phone, User, ArrowRight, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
@@ -12,6 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   // Image carousel data
   const carouselImages = [
     {
@@ -114,7 +115,14 @@ const SignupPage = () => {
         first_name: '', last_name: '',
         email: '', password: '', confirm_password: '', phone_number: ''
       });
-      setTimeout(() => navigate('/login'), 1500);
+      setTimeout(() => {
+        navigate(`/login${location.search || ''}`, {
+          state: {
+            message: 'Account created successfully! Please sign in.',
+            from: location.state?.from
+          }
+        });
+      }, 1500);
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed');
     } finally {
@@ -460,7 +468,7 @@ const SignupPage = () => {
               <div className="mt-8 text-center text-sm font-Jost">
                 <span style={{ color: '#6E6E6E' }}>Already have an account? </span>
                 <Link 
-                  to="/login"
+                  to={`/login${location.search || ''}`}
                   className="font-semibold hover:underline transition-all font-Manrope"
                   style={{ color: '#1E1E1E' }}
                 >

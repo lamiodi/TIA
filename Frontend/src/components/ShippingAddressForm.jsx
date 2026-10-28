@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Save, X } from 'lucide-react';
 import { countries } from '../utils/countries';
+import { getStatesForCountry, isZipCodeRequired, isNigeria } from '../utils/geoUtils';
 
 const ShippingAddressForm = ({ 
   address, 
@@ -40,11 +41,32 @@ const ShippingAddressForm = ({
     });
   }, [state, guestData]);
 
+  // Dynamically get states/provinces for selected country
+  const availableStates = useMemo(() => {
+    return getStatesForCountry(formData.country);
+  }, [formData.country]);
+
+  const zipRequired = useMemo(() => {
+    return isZipCodeRequired(formData.country);
+  }, [formData.country]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when user starts typing
+    // When country changes, reset state if not valid in new country
+    if (name === 'country') {
+      const nextStates = getStatesForCountry(value);
+      const isCurrentStateValid = nextStates.some(s => s.name.toLowerCase() === (formData.state || '').toLowerCase());
+      setFormData(prev => ({
+        ...prev,
+        country: value,
+        state: isCurrentStateValid ? prev.state : ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // Clear error when user starts typing or selecting
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -63,10 +85,15 @@ const ShippingAddressForm = ({
       newErrors.city = 'City is required';
     }
     if (!formData.state.trim()) {
-      newErrors.state = 'State is required';
+      newErrors.state = 'State / Province is required';
     }
     if (!formData.country.trim()) {
       newErrors.country = 'Country is required';
+    }
+    
+    // Zip code is required for ALL countries except Nigeria
+    if (zipRequired && !formData.zip_code.trim()) {
+      newErrors.zip_code = 'ZIP / Postal code is required for international delivery';
     }
     
     // Only validate phone number for authenticated users
@@ -84,15 +111,13 @@ const ShippingAddressForm = ({
     if (validateForm()) {
       setState(formData);
       onSubmit(formData);
-      // The onSubmit function (handleShippingSubmit) will handle closing the form
-      // by calling setShowShippingForm(false) after successful submission
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 font-Jost">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-Primarycolor mb-1">
           Address Title *
         </label>
         <input
@@ -100,18 +125,18 @@ const ShippingAddressForm = ({
           name="title"
           value={formData.title}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-md ${
-            errors.title ? 'border-red-500' : 'border-gray-300'
+          className={`w-full p-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+            errors.title ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
           }`}
           placeholder="e.g., Home, Office"
         />
         {errors.title && (
-          <p className="text-sm text-red-600 mt-1">{errors.title}</p>
+          <p className="text-xs text-red-600 mt-1">{errors.title}</p>
         )}
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-Primarycolor mb-1">
           Address Line 1 *
         </label>
         <input
@@ -119,109 +144,55 @@ const ShippingAddressForm = ({
           name="address_line_1"
           value={formData.address_line_1}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-md ${
-            errors.address_line_1 ? 'border-red-500' : 'border-gray-300'
+          className={`w-full p-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+            errors.address_line_1 ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
           }`}
-          placeholder="Street address, P.O. box"
+          placeholder="Street address, P.O. box, building"
         />
         {errors.address_line_1 && (
-          <p className="text-sm text-red-600 mt-1">{errors.address_line_1}</p>
+          <p className="text-xs text-red-600 mt-1">{errors.address_line_1}</p>
         )}
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 2
+        <label className="block text-sm font-medium text-Primarycolor mb-1">
+          Address Line 2 <span className="text-xs text-Accent font-normal">(Optional)</span>
         </label>
         <input
           type="text"
           name="address_line_2"
           value={formData.address_line_2}
           onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Apartment, suite, unit, building, floor, etc."
+          className="w-full p-2.5 border border-gray-200 hover:border-gray-300 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20"
+          placeholder="Apartment, suite, unit, floor, etc."
         />
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Landmark
+        <label className="block text-sm font-medium text-Primarycolor mb-1">
+          Landmark <span className="text-xs text-Accent font-normal">(Optional)</span>
         </label>
         <input
           type="text"
           name="landmark"
           value={formData.landmark}
           onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Nearby landmark (optional)"
+          className="w-full p-2.5 border border-gray-200 hover:border-gray-300 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20"
+          placeholder="Nearby landmark, gate color, intersection"
         />
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            City *
-          </label>
-          <input
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md ${
-              errors.city ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="City"
-          />
-          {errors.city && (
-            <p className="text-sm text-red-600 mt-1">{errors.city}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            State *
-          </label>
-          <input
-            type="text"
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-md ${
-              errors.state ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="State"
-          />
-          {errors.state && (
-            <p className="text-sm text-red-600 mt-1">{errors.state}</p>
-          )}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            ZIP/Postal Code
-          </label>
-          <input
-            type="text"
-            name="zip_code"
-            value={formData.zip_code}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md"
-            placeholder="ZIP/Postal code"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-Primarycolor mb-1">
             Country *
           </label>
           <select
             name="country"
             value={formData.country}
             onChange={handleChange}
-            className={`w-full p-2 border rounded-md ${
-              errors.country ? 'border-red-500' : 'border-gray-300'
+            className={`w-full p-2.5 border rounded-lg transition-all bg-white focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+              errors.country ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <option value="">Select Country</option>
@@ -232,7 +203,87 @@ const ShippingAddressForm = ({
             ))}
           </select>
           {errors.country && (
-            <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+            <p className="text-xs text-red-600 mt-1">{errors.country}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-Primarycolor mb-1">
+            City *
+          </label>
+          <input
+            type="text"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            className={`w-full p-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+              errors.city ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+            }`}
+            placeholder="City"
+          />
+          {errors.city && (
+            <p className="text-xs text-red-600 mt-1">{errors.city}</p>
+          )}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-Primarycolor mb-1">
+            {availableStates.length > 0 ? 'State / Province *' : 'State / Province *'}
+          </label>
+          {availableStates.length > 0 ? (
+            <select
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              className={`w-full p-2.5 border rounded-lg transition-all bg-white focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+                errors.state ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <option value="">Select State / Province</option>
+              {availableStates.map((s) => (
+                <option key={s.isoCode || s.name} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              className={`w-full p-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+                errors.state ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              placeholder="State / Province / Region"
+            />
+          )}
+          {errors.state && (
+            <p className="text-xs text-red-600 mt-1">{errors.state}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-Primarycolor mb-1 flex items-center justify-between">
+            <span>{zipRequired ? 'ZIP / Postal Code *' : 'ZIP / Postal Code'}</span>
+            {!zipRequired && (
+              <span className="text-xs text-gray-400 font-normal">Optional for Nigeria</span>
+            )}
+          </label>
+          <input
+            type="text"
+            name="zip_code"
+            value={formData.zip_code}
+            onChange={handleChange}
+            className={`w-full p-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${
+              errors.zip_code ? 'border-red-500 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+            }`}
+            placeholder={zipRequired ? 'Required for international' : 'Optional (e.g. 100001)'}
+          />
+          {errors.zip_code && (
+            <p className="text-xs text-red-600 mt-1">{errors.zip_code}</p>
           )}
         </div>
       </div>
@@ -283,7 +334,7 @@ const ShippingAddressForm = ({
         >
           {actionLoading ? (
             <>
-              <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+              <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-1.5"></div>
               Saving...
             </>
           ) : (

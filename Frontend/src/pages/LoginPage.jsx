@@ -58,7 +58,9 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  const from = location.state?.from?.pathname || '/home';
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const from = redirectParam || (typeof location.state?.from === 'string' ? location.state.from : location.state?.from?.pathname) || '/home';
   
   // Helper function to decode JWT token
   const decodeToken = (token) => {
@@ -370,7 +372,7 @@ const Login = () => {
           <div className="mt-8 text-center text-sm font-Jost">
             <span style={{ color: '#6E6E6E' }}>Don't have an account? </span>
             <Link
-              to="/signup"
+              to={`/signup${location.search || ''}`}
               className="font-semibold hover:underline transition-all font-Manrope"
               style={{ color: '#1E1E1E' }}
             >

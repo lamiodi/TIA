@@ -106,13 +106,6 @@ const LandingPage = () => {
             onLoadedData={() => handleVideoLoaded('Desktop')}
           />
           
-          {/* Debug overlay - shows if videos are not loading */}
-          {videoError && (
-            <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center z-30">
-              <p className="text-white text-xl font-bold">Video Loading Error</p>
-            </div>
-          )}
-          
           {/* Content overlay with transparent background */}
           <div className="relative z-30 container mx-auto lg:mx-5 h-full flex items-center md:items-end justify-start pt-12 sm:pt-16 md:pt-20 md:pb-16 lg:pt-0 lg:pb-32">
             <div className="typography flex flex-col w-full items-start space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5 z-20 ml-2 lg:ml-8">

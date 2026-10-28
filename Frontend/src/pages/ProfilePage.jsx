@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { User, Mail, Phone, Lock, Save, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
@@ -10,8 +10,9 @@ import { toast } from 'react-toastify';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
 const ProfilePage = () => {
-  const { user, updateUser } = useAuth();
+  const { user, loading: authLoading, updateUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profileForm, setProfileForm] = useState({
     first_name: '',
     last_name: '',
@@ -40,15 +41,16 @@ const ProfilePage = () => {
 
   // Fetch user data on mount
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
-      navigate('/login');
+      navigate('/login?redirect=' + encodeURIComponent(location.pathname));
       return;
     }
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          navigate('/login');
+          navigate('/login?redirect=' + encodeURIComponent(location.pathname));
           return;
         }
         const res = await axios.get(`${API_BASE_URL}/api/users/profile`, {
@@ -60,12 +62,12 @@ const ProfilePage = () => {
         console.error('Fetch profile error:', err);
         toast.error(err.response?.data?.error || 'Failed to fetch profile');
         if (err.response?.status === 401 || err.response?.status === 403) {
-          navigate('/login');
+          navigate('/login?redirect=' + encodeURIComponent(location.pathname));
         }
       }
     };
     fetchProfile();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate, location.pathname]);
 
   // Handle profile form changes
   const handleProfileChange = (e) => {

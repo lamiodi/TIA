@@ -14,259 +14,16 @@ import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import PaystackPop from '@paystack/inline-js';
 import { getThumbnailUrl } from '../utils/imageUtils';
+import { 
+  getInternationalShippingUSD, 
+  getInternationalShippingNGN,
+  INTERNATIONAL_DELIVERY_ESTIMATE,
+  isNigeria as checkIsNigeria
+} from '../utils/shippingRates';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 const WHATSAPP_NUMBER = '2348104117122';
 
-// Memoized GuestCheckoutModal component to prevent unnecessary re-renders
-const GuestCheckoutModal = React.memo(({
-  guestForm,
-  guestFormErrors,
-  existingUserType,
-  requiredForm,
-  onGuestFormChange,
-  onLoginRedirect,
-  onSubmitGuestForm,
-  loading,
-  navigate
-}) => (
-  // Backdrop with blur effects
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200">
-      {/* Simplified header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center">
-          <div className="p-2 bg-Primarycolor rounded-lg mr-3">
-            <User className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-Primarycolor font-Manrope">
-              Complete Your Order
-            </h3>
-            <p className="text-sm text-Accent font-Jost">
-              Enter your details to proceed
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => { }} // Prevent closing the modal
-          className="p-2 text-gray-400 hover:text-Accent hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
-          title="Please complete the form to continue"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-
-
-      {existingUserType && (
-        <div className={`mb-4 p-3 rounded-lg ${existingUserType === 'temporary'
-            ? 'bg-blue-50 border border-blue-200'
-            : 'bg-yellow-50 border border-yellow-200'
-          }`}>
-          <div className="flex items-start">
-            {existingUserType === 'temporary' ? (
-              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-            )}
-            <div>
-              <p className={`text-sm font-medium ${existingUserType === 'temporary'
-                  ? 'text-blue-800'
-                  : 'text-yellow-800'
-                } font-Jost`}>
-                {existingUserType === 'temporary'
-                  ? 'A temporary account with this email already exists'
-                  : 'An account with this email already exists'}
-              </p>
-              <p className={`text-xs mt-1 ${existingUserType === 'temporary'
-                  ? 'text-blue-700'
-                  : 'text-yellow-700'
-                } font-Jost`}>
-                {existingUserType === 'temporary'
-                  ? 'Please use a different email or log in if you have a password.'
-                  : 'Please log in to continue with your existing account.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {requiredForm === 'guest' && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-red-800 font-Jost">
-                Please fill in your details to continue
-              </p>
-              <p className="text-xs mt-1 text-red-700 font-Jost">
-                All fields marked with * are required
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={onSubmitGuestForm} className="space-y-4">
-        {/* Enhanced form fields with better styling */}
-        <div className="space-y-1">
-          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
-            <User className="h-4 w-4 mr-2 text-Accent" />
-            Full Name *
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              name="name"
-              value={guestForm.name}
-              onChange={(e) => onGuestFormChange('name', e.target.value)}
-              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.name
-                  ? 'border-red-400 bg-red-50 focus:border-red-500'
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
-                }`}
-              placeholder="Enter your full name"
-            />
-            {guestFormErrors.name && (
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              </div>
-            )}
-          </div>
-          {guestFormErrors.name && (
-            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              {guestFormErrors.name}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
-            <svg className="h-4 w-4 mr-2 text-Accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-            </svg>
-            Email Address *
-          </label>
-          <div className="relative">
-            <input
-              type="email"
-              name="email"
-              value={guestForm.email}
-              onChange={(e) => onGuestFormChange('email', e.target.value)}
-              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.email
-                  ? 'border-red-400 bg-red-50 focus:border-red-500'
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
-                }`}
-              placeholder="Enter your email address"
-            />
-            {guestFormErrors.email && (
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              </div>
-            )}
-          </div>
-          {guestFormErrors.email && (
-            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              {guestFormErrors.email}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-semibold text-Primarycolor mb-1 font-Jost flex items-center">
-            <Smartphone className="h-4 w-4 mr-2 text-Accent" />
-            Phone Number *
-          </label>
-          <div className="relative">
-            <input
-              type="tel"
-              name="phone_number"
-              value={guestForm.phone_number}
-              onChange={(e) => onGuestFormChange('phone_number', e.target.value)}
-              className={`w-full px-3 py-2 border-2 rounded-xl font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.phone_number
-                  ? 'border-red-400 bg-red-50 focus:border-red-500'
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 focus:border-Primarycolor focus:bg-white'
-                }`}
-              placeholder="Enter your phone number"
-            />
-            {guestFormErrors.phone_number && (
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              </div>
-            )}
-          </div>
-          {guestFormErrors.phone_number && (
-            <p className="text-xs text-red-600 mt-1 font-Jost flex items-center">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              {guestFormErrors.phone_number}
-            </p>
-          )}
-        </div>
-
-        {/* Order details info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-          <p className="text-sm text-blue-800 font-Jost leading-relaxed">
-            Your order details will be saved automatically. We'll send you order updates via email.
-          </p>
-        </div>
-
-        {existingUserType === 'permanent' && (
-          <div className="bg-Secondarycolor/10 border border-Secondarycolor/20 rounded-xl p-3 text-center">
-            <p className="text-sm text-Secondarycolor font-Jost mb-2">
-              Account already exists with this email
-            </p>
-            <button
-              type="button"
-              onClick={onLoginRedirect}
-              className="inline-flex items-center px-3 py-2 bg-Secondarycolor text-white rounded-lg hover:bg-Secondarycolor/90 font-Jost font-medium transition-colors"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Log in to your existing account
-            </button>
-          </div>
-        )}
-
-        {/* Enhanced button section with compact spacing */}
-        <div className="pt-3 space-y-2">
-          {/* Primary action button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2.5 bg-Primarycolor text-white rounded-xl hover:bg-Primarycolor/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed font-Jost font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            {loading ? (
-              <>
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                Processing...
-              </>
-            ) : (
-              <>
-                Continue to Checkout
-                <svg className="h-4 w-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </>
-            )}
-          </button>
-
-          {/* Secondary action */}
-          <button
-            type="button"
-            onClick={() => navigate('/cart')}
-            className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-Accent hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center font-Jost font-medium transition-all duration-200"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Return to Cart
-          </button>
-
-
-        </div>
-      </form>
-    </div>
-  </div>
-));
 
 const CheckoutPage = () => {
   // Get user data from both AuthContext and our custom hook
@@ -356,13 +113,12 @@ const CheckoutPage = () => {
   const [userDataRefreshed, setUserDataRefreshed] = useState(false);
 
   // Guest user states
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState(() => !localStorage.getItem('token'));
   const [guestForm, setGuestForm] = useState({
     name: '',
     email: '',
     phone_number: ''
   });
-  const [showGuestModal, setShowGuestModal] = useState(true); // Changed to showGuestModal
   const [guestFormErrors, setGuestFormErrors] = useState({});
   const [createdUserId, setCreatedUserId] = useState(null);
   const [existingUserType, setExistingUserType] = useState(null); // 'temporary', 'permanent', or null
@@ -624,11 +380,13 @@ const CheckoutPage = () => {
 
   // Handle guest form submission
   const handleGuestFormSubmit = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
 
     if (!validateGuestForm()) {
       setRequiredForm('guest');
-      return;
+      return false;
     }
 
     setLoading(true);
@@ -637,9 +395,9 @@ const CheckoutPage = () => {
     try {
       // Call the createTemporaryUser API endpoint
       const response = await axios.post(`${API_BASE_URL}/api/auth/create-temp-user`, {
-        name: guestForm.name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number
+        name: guestForm.name.trim(),
+        email: guestForm.email.trim(),
+        phone_number: guestForm.phone_number.trim()
       });
 
       const { user, isExisting } = response.data;
@@ -647,43 +405,26 @@ const CheckoutPage = () => {
 
       // Update all state at once
       setCreatedUserId(userId);
-      // Keep isGuest as true for both new and existing temporary users
-      setShowGuestModal(false); // Close the modal instead of setting showGuestForm
       setGuestFormSubmitted(true);
 
       if (isExisting) {
         setExistingUserType('temporary');
-        toast.success('Welcome back! We found your temporary account.');
       } else {
         setExistingUserType(null);
-        toast.success('Account created successfully!');
       }
 
-      // Update shipping and billing forms with guest information
+      // Update shipping and billing forms preserving already entered address fields
       setShippingForm(prev => ({
         ...prev,
-        title: 'Home', // Add default title
-        address_line_1: '',
-        // address_line_2 removed
-        landmark: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        country: 'Nigeria',
-        phone_number: guestForm.phone_number
+        title: prev.title || 'Home',
+        phone_number: prev.phone_number || guestForm.phone_number
       }));
 
       setBillingForm(prev => ({
         ...prev,
-        full_name: guestForm.name,
-        email: guestForm.email,
-        phone_number: guestForm.phone_number,
-        address_line_1: '',
-        // address_line_2 removed
-        city: '',
-        state: '',
-        zip_code: '',
-        country: 'Nigeria',
+        full_name: prev.full_name || guestForm.name,
+        email: prev.email || guestForm.email,
+        phone_number: prev.phone_number || guestForm.phone_number
       }));
 
       // Set the billing address option to 'same' by default
@@ -823,6 +564,9 @@ const CheckoutPage = () => {
     try {
       const orderCurrency = 'NGN'; // Force NGN due to Paystack limitation
 
+      const intlShippingUSD = getInternationalShippingUSD(addressCountry);
+      const intlShippingNGN = getInternationalShippingNGN(addressCountry, exchangeRate);
+
       // Calculate amounts in NGN
       const baseSubtotal = Number(cart?.subtotal) || 0;
       const baseFirstOrderDiscount = firstOrderDiscount; // Use the calculated discount
@@ -830,7 +574,7 @@ const CheckoutPage = () => {
       const baseTotalDiscount = Number((baseFirstOrderDiscount + baseCouponDiscount).toFixed(2));
       const baseFinalDiscount = Math.min(baseTotalDiscount, baseSubtotal);
       const baseTax = isNigeria ? 0 : Number((baseSubtotal * 0.05).toFixed(2));
-      const baseShippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+      const baseShippingCost = isNigeria ? (shippingMethod?.total_cost || 0) : intlShippingNGN;
       const baseDiscountedSubtotal = Number((baseSubtotal - baseFinalDiscount).toFixed(2));
       const baseTotal = Number((baseDiscountedSubtotal + baseTax + baseShippingCost).toFixed(2));
 
@@ -1445,7 +1189,6 @@ const CheckoutPage = () => {
 
     // Update billing form state
     setBillingForm(billingAddress);
-    toast.success('Billing address updated to match shipping address');
   };
 
   useEffect(() => {
@@ -1467,7 +1210,6 @@ const CheckoutPage = () => {
           const guestCart = JSON.parse(guestCartData);
           setCart(guestCart);
           setIsGuest(true);
-          setShowGuestModal(true);
           setLoading(false);
           return;
         } catch (err) {
@@ -1476,7 +1218,6 @@ const CheckoutPage = () => {
       }
       setCart({ cartId: null, subtotal: 0, tax: 0, total: 0, items: [] });
       setIsGuest(true);
-      setShowGuestModal(true);
       setLoading(false);
       return;
     }
@@ -1567,8 +1308,6 @@ const CheckoutPage = () => {
         console.error('Error fetching billing addresses:', billingResult.reason);
         setBillingAddresses([]);
       }
-
-      toast.success('Checkout data loaded successfully');
     } catch (err) {
       const errorMessage = err.message || 'Unknown error';
       setError(`Failed to load checkout data: ${errorMessage}`);
@@ -1675,12 +1414,14 @@ const CheckoutPage = () => {
 
   const addressCountry = shippingForm.country || country;
   const isNigeria = addressCountry.toLowerCase() === 'nigeria';
+  const intlShippingUSD = useMemo(() => getInternationalShippingUSD(addressCountry), [addressCountry]);
+  const intlShippingNGN = useMemo(() => getInternationalShippingNGN(addressCountry, exchangeRate), [addressCountry, exchangeRate]);
 
   // Memoize expensive calculations to prevent unnecessary recalculations
   const calculatedValues = useMemo(() => {
     const subtotal = Number(cart?.subtotal) || 0;
     const tax = isNigeria ? 0 : Number((subtotal * 0.05).toFixed(2));
-    const shippingCost = isNigeria ? shippingMethod?.total_cost || 0 : 0;
+    const shippingCost = isNigeria ? (shippingMethod?.total_cost || 0) : intlShippingNGN;
 
     // Calculate total discount (first order + coupon)
     const totalDiscount = Number((firstOrderDiscount + couponDiscount).toFixed(2));
@@ -1702,7 +1443,7 @@ const CheckoutPage = () => {
       displayTax: tax,
       displayTotal: total
     };
-  }, [cart?.subtotal, isNigeria, shippingMethod?.total_cost, firstOrderDiscount, couponDiscount]);
+  }, [cart?.subtotal, isNigeria, shippingMethod?.total_cost, intlShippingNGN, firstOrderDiscount, couponDiscount]);
 
   const {
     subtotal,
@@ -1746,7 +1487,7 @@ const CheckoutPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-Accent">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-Primarycolor"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-Primarycolor/20 border-t-Primarycolor"></div>
           <p className="mt-2 text-sm font-Jost">Loading...</p>
         </div>
       </div>
@@ -1932,100 +1673,217 @@ const CheckoutPage = () => {
           </div>
         )}
 
-        {/* Guest Modal */}
-        {isGuest && showGuestModal && (
-          <GuestCheckoutModal
-            guestForm={guestForm}
-            guestFormErrors={guestFormErrors}
-            existingUserType={existingUserType}
-            requiredForm={requiredForm}
-            onGuestFormChange={handleGuestFormChange}
-            onLoginRedirect={handleLoginRedirect}
-            onSubmitGuestForm={handleGuestFormSubmit}
-            loading={loading}
-            navigate={navigate}
-          />
-        )}
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - Forms */}
+          <div className="lg:col-span-7 space-y-8">
 
-        {/* Only show the checkout content if the guest form has been submitted or user is authenticated */}
-        {(!isGuest || guestFormSubmitted) && (
-          <>
-            {/* Updated to two-column layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column - Forms */}
-              <div className="lg:col-span-7 space-y-8">
-                {/* Address Forms - Different for guests and logged-in users */}
-                {isGuest ? (
-                  // Guest Address Forms
-                  <>
-                    {/* Shipping Address Form for Guests */}
-                    <div id="shipping-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
-                      <h3 className="text-xl font-semibold text-Primarycolor mb-4 font-Manrope">Shipping Address</h3>
+            {/* Step 1: Customer Contact Information */}
+            <div id="contact-section" className="p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-Primarycolor text-white text-xs font-Manrope font-semibold">
+                    1
+                  </span>
+                  <h3 className="text-lg md:text-xl font-semibold text-Primarycolor font-Manrope">
+                    Contact Information
+                  </h3>
+                </div>
+                {isAuthenticated() ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-Jost font-medium">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Signed In
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleLoginRedirect}
+                    className="text-xs text-Primarycolor hover:underline font-Jost font-medium flex items-center gap-1"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    Already have an account? Sign In
+                  </button>
+                )}
+              </div>
 
-                      {requiredForm === 'shipping' && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                          <div className="flex items-start">
-                            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-red-800 font-Jost">
-                                Please add a shipping address
-                              </p>
-                              <p className="text-xs mt-1 text-red-700 font-Jost">
-                                This information is required to deliver your order
-                              </p>
-                            </div>
-                          </div>
+              {isAuthenticated() ? (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-Primarycolor font-Manrope">
+                      {user?.name || user?.full_name || 'Valued Customer'}
+                    </p>
+                    <p className="text-xs text-Accent font-Jost mt-0.5">{user?.email}</p>
+                    {user?.phone_number && (
+                      <p className="text-xs text-Accent font-Jost mt-0.5">{user?.phone_number}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLoginRedirect}
+                    className="text-xs text-Primarycolor hover:text-black underline font-Jost font-medium text-left sm:text-right"
+                  >
+                    Switch Account
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {existingUserType && (
+                    <div className={`p-3.5 rounded-xl text-xs font-Jost ${existingUserType === 'temporary' ? 'bg-blue-50 text-blue-800 border border-blue-200' : 'bg-amber-50 text-amber-900 border border-amber-200'}`}>
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold">
+                            {existingUserType === 'temporary' ? 'Existing Guest Profile Found' : 'Account Already Exists'}
+                          </p>
+                          <p className="mt-0.5">
+                            {existingUserType === 'temporary'
+                              ? 'We will automatically attach this order to your previous guest purchases.'
+                              : 'An account is already registered with this email. You may sign in to use saved addresses, or proceed seamlessly as a guest.'}
+                          </p>
                         </div>
-                      )}
+                      </div>
+                    </div>
+                  )}
 
-                      {!showShippingForm ? (
-                        shippingForm.address_line_1 ? (
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div className="flex items-start">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-Primarycolor font-Manrope mb-2">Shipping Address</h4>
-                                <div className="text-sm text-black font-Jost">
-                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.address_line_1}</p>
-                                  {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
-                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
-                                  <p className="text-sm text-Primarycolor font-Manrope">{shippingForm.country}</p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => setShowShippingForm(true)}
-                                className="ml-4 p-2 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors"
-                                title="Edit shipping address"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <button
-                              onClick={() => setShowShippingForm(true)}
-                              className="px-6 py-3 bg-Primarycolor text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                            >
-                              <MapPin className="h-5 w-5 inline mr-2" />
-                              Add Shipping Address
-                            </button>
-                          </div>
-                        )
-                      ) : (
-                        <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 rounded"></div>}>
-                          <ShippingAddressForm
-                            address={{ state: shippingForm, setState: setShippingForm }}
-                            onSubmit={handleShippingSubmit}
-                            onCancel={() => setShowShippingForm(false)}
-                            formErrors={formErrors}
-                            setFormErrors={setFormErrors}
-                            actionLoading={loading}
-                            isGuest={true}
-                            guestData={guestForm}
-                          />
-                        </React.Suspense>
+                  {requiredForm === 'guest' && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-red-800 font-Jost">Please fill in your contact details</p>
+                        <p className="text-[11px] text-red-600 font-Jost">Your name, email, and phone number are required for order updates</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-Primarycolor font-Manrope uppercase tracking-wider mb-1.5">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={guestForm.name}
+                        onChange={(e) => handleGuestFormChange('name', e.target.value)}
+                        placeholder="e.g. Jane Doe"
+                        className={`w-full px-3.5 py-2.5 text-sm rounded-xl border font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.name ? 'border-red-400 bg-red-50/40 focus:border-red-500' : 'border-gray-200 bg-white hover:border-gray-300 focus:border-Primarycolor'}`}
+                      />
+                      {guestFormErrors.name && (
+                        <p className="text-xs text-red-600 mt-1 font-Jost flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {guestFormErrors.name}
+                        </p>
                       )}
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-Primarycolor font-Manrope uppercase tracking-wider mb-1.5">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={guestForm.email}
+                        onChange={(e) => handleGuestFormChange('email', e.target.value)}
+                        placeholder="e.g. jane@example.com"
+                        className={`w-full px-3.5 py-2.5 text-sm rounded-xl border font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.email ? 'border-red-400 bg-red-50/40 focus:border-red-500' : 'border-gray-200 bg-white hover:border-gray-300 focus:border-Primarycolor'}`}
+                      />
+                      {guestFormErrors.email && (
+                        <p className="text-xs text-red-600 mt-1 font-Jost flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {guestFormErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-Primarycolor font-Manrope uppercase tracking-wider mb-1.5">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone_number"
+                        value={guestForm.phone_number}
+                        onChange={(e) => handleGuestFormChange('phone_number', e.target.value)}
+                        placeholder="e.g. +234 810 123 4567"
+                        className={`w-full px-3.5 py-2.5 text-sm rounded-xl border font-Jost transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-Primarycolor/20 ${guestFormErrors.phone_number ? 'border-red-400 bg-red-50/40 focus:border-red-500' : 'border-gray-200 bg-white hover:border-gray-300 focus:border-Primarycolor'}`}
+                      />
+                      {guestFormErrors.phone_number && (
+                        <p className="text-xs text-red-600 mt-1 font-Jost flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {guestFormErrors.phone_number}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-Accent font-Jost">
+                    We'll send your invoice, delivery tracking updates, and receipt to this contact.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Shipping Address */}
+            {isGuest ? (
+              // Guest Address Forms
+              <>
+                <div id="shipping-section" className="p-5 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-Primarycolor text-white text-xs font-Manrope font-semibold">
+                      2
+                    </span>
+                    <h3 className="text-lg md:text-xl font-semibold text-Primarycolor font-Manrope">
+                      Shipping Address
+                    </h3>
+                  </div>
+
+                  {requiredForm === 'shipping' && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-red-800 font-Jost">Please add a shipping address</p>
+                        <p className="text-[11px] text-red-600 font-Jost">Destination address is required to calculate and dispatch your delivery</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(!shippingForm.address_line_1 || showShippingForm) ? (
+                    <React.Suspense fallback={<div className="animate-pulse h-64 bg-gray-100 rounded-xl"></div>}>
+                      <ShippingAddressForm
+                        address={{ state: shippingForm, setState: setShippingForm }}
+                        onSubmit={handleShippingSubmit}
+                        onCancel={() => {
+                          if (shippingForm.address_line_1) setShowShippingForm(false);
+                        }}
+                        formErrors={formErrors}
+                        setFormErrors={setFormErrors}
+                        actionLoading={loading}
+                        isGuest={true}
+                        guestData={guestForm}
+                      />
+                    </React.Suspense>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-Primarycolor font-Manrope mb-1 text-sm">Delivery Address</h4>
+                        <div className="text-sm text-Accent font-Jost space-y-0.5">
+                          <p className="text-Primarycolor font-medium">{shippingForm.address_line_1}</p>
+                          {shippingForm.landmark && <p>{shippingForm.landmark}</p>}
+                          <p>{shippingForm.city}, {shippingForm.state} {shippingForm.zip_code}</p>
+                          <p className="text-Primarycolor font-medium">{shippingForm.country}</p>
+                          {shippingForm.phone_number && <p>{shippingForm.phone_number}</p>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowShippingForm(true)}
+                        className="p-2 bg-Primarycolor text-white rounded-lg hover:bg-black transition-colors"
+                        title="Edit shipping address"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                     {/* Billing Address Form for Guests */}
                     <div id="billing-section" className="p-5 md:p-6 bg-white rounded-lg shadow-md">
@@ -2490,24 +2348,53 @@ const CheckoutPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <MapPin className="h-5 w-5 text-blue-600" />
+                    <div className="p-6 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl border-2 border-Primarycolor/30 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2.5 bg-Primarycolor text-white rounded-lg mt-0.5">
+                            <Truck className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-Primarycolor font-Manrope text-base">
+                                Express Courier International Delivery
+                              </h4>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 font-Jost">
+                                {addressCountry}
+                              </span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-Accent font-Jost mt-1">
+                              Tracked door-to-door express delivery from Lagos, Nigeria via DHL / FedEx.
+                            </p>
+                            <div className="mt-2 flex items-center gap-2 text-xs text-blue-700 font-Jost">
+                              <Clock className="h-3.5 w-3.5" />
+                              <span>Estimated transit: {INTERNATIONAL_DELIVERY_ESTIMATE}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-Primarycolor font-Manrope">
-                            International Shipping to {addressCountry}
-                          </h4>
+
+                        <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-200">
+                          <div className="font-bold text-Primarycolor text-xl font-Manrope">
+                            {isUSD ? (
+                              <>
+                                <span>${intlShippingUSD.toFixed(2)}</span>
+                                <span className="block text-xs font-normal text-Accent font-Jost">
+                                  ≈ ₦{intlShippingNGN.toLocaleString()}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span>₦{intlShippingNGN.toLocaleString()}</span>
+                                <span className="block text-xs font-normal text-Accent font-Jost">
+                                  (${intlShippingUSD.toFixed(2)} USD)
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <span className="inline-block mt-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded font-Jost">
+                            Included in total
+                          </span>
                         </div>
-                      </div>
-                      <p className="text-sm text-Accent font-Jost mb-2">
-                        You will receive a separate email with payment instructions for international shipping fees.
-                        Note: Payments are processed in NGN due to current system limitations.
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-blue-600 font-Jost">
-                        <Clock className="h-3 w-3" />
-                        <span>Estimated delivery: 10-21 business days</span>
                       </div>
                     </div>
                   )}
@@ -2779,7 +2666,7 @@ const CheckoutPage = () => {
 
                       <div className="flex justify-between text-sm text-Accent font-Jost">
                         <span>Shipping</span>
-                        <span>
+                        <span className="font-medium text-Primarycolor">
                           {isNigeria ? (
                             (shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
                               style: 'currency',
@@ -2787,7 +2674,11 @@ const CheckoutPage = () => {
                               minimumFractionDigits: 2,
                             })
                           ) : (
-                            'TBD'
+                            isUSD ? (
+                              `$${intlShippingUSD.toFixed(2)} (₦${intlShippingNGN.toLocaleString()})`
+                            ) : (
+                              `₦${intlShippingNGN.toLocaleString()} ($${intlShippingUSD.toFixed(2)} USD)`
+                            )
                           )}
                         </span>
                       </div>
@@ -2820,9 +2711,9 @@ const CheckoutPage = () => {
                     </div>
 
                     {!isNigeria && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-blue-700 font-Jost">
-                          <strong>Note:</strong> International shipping fees will be calculated and invoiced separately. All payments are processed in NGN.
+                      <div className="mt-3 p-3 bg-blue-50/80 rounded-lg border border-blue-100">
+                        <p className="text-xs text-blue-800 font-Jost">
+                          <strong>International Order:</strong> Shipping fee (${intlShippingUSD} USD) is included in your checkout total. Payment is processed securely in NGN (₦{intlShippingNGN.toLocaleString()}) via Paystack.
                         </p>
                       </div>
                     )}
@@ -2873,7 +2764,7 @@ const CheckoutPage = () => {
                     >
                       {isProcessing || loading ? (
                         <div className="flex items-center justify-center">
-                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-3"></div>
                           Processing...
                         </div>
                       ) : (
@@ -2895,8 +2786,6 @@ const CheckoutPage = () => {
                 </div>
               </div>
             </div>
-          </>
-        )}
       </div>
       <React.Suspense fallback={<div></div>}>
         <WhatsAppChatWidget />

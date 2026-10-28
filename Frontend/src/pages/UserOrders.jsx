@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Package, ChevronDown, ChevronUp, X, AlertCircle } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
@@ -11,8 +11,9 @@ import { getThumbnailUrl } from '../utils/imageUtils';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tia-backend-r331.onrender.com';
 
 const UserOrders = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -22,8 +23,9 @@ const UserOrders = () => {
   
   // Fetch orders on mount
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
-      navigate('/login');
+      navigate('/login?redirect=' + encodeURIComponent(location.pathname + location.search));
       return;
     }
     const fetchOrders = async () => {
@@ -49,7 +51,7 @@ const UserOrders = () => {
       }
     };
     fetchOrders();
-  }, [user, navigate, searchParams]);
+  }, [user, authLoading, navigate, searchParams, location]);
   
   // Handle image navigation
   const handleImageChange = (itemId, index) => {

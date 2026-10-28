@@ -230,6 +230,7 @@ const ThankYou = () => {
   };
 
   const isInternational = order && order.shipping_country !== 'Nigeria';
+  const hasUpfrontShipping = !isInternational || Number(order?.shipping_fee) > 0 || !!order?.delivery_fee_paid;
 
   if (loading) {
     return (
@@ -410,8 +411,8 @@ const ThankYou = () => {
         <div className="text-center">
           <CheckCircle className="h-12 w-12 md:h-16 md:w-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl md:text-3xl font-bold text-Primarycolor mb-4 font-Manrope">
-            {isInternational && !order.delivery_fee_paid
-              ? 'Order Received - Awaiting Delivery Fee Email'
+            {isInternational && !hasUpfrontShipping
+              ? 'Order Received - Delivery Fee Pending'
               : 'Order Confirmed'}
           </h2>
           
@@ -476,12 +477,12 @@ const ThankYou = () => {
           
           <div className="max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
             <p className="text-sm md:text-base text-Accent mb-4 font-Jost">
-              {isInternational && !order.delivery_fee_paid
+              {isInternational && !hasUpfrontShipping
                 ? 'Thank you for your order! We will send you a delivery fee quote for your international order soon.'
                 : 'Thank you for your order! You\'ll receive a confirmation email soon.'}
             </p>
             
-            {isInternational && !order.delivery_fee_paid && (
+            {isInternational && !hasUpfrontShipping && (
               <p className="text-sm md:text-base text-Accent mb-6 font-Jost">
                 Please check your email for the delivery fee payment link.
               </p>
@@ -517,9 +518,9 @@ const ThankYou = () => {
                 <div>
                   <p className="text-sm text-Accent font-Jost">Delivery Fee</p>
                   <p className={`text-sm md:text-base font-medium ${
-                    order.delivery_fee_paid ? 'text-green-600' : 'text-yellow-600'
+                    hasUpfrontShipping ? 'text-green-600' : 'text-yellow-600'
                   } font-Jost`}>
-                    {order.delivery_fee_paid ? 'Paid' : 'Pending'}
+                    {hasUpfrontShipping ? 'Paid with Order' : 'Pending Quote'}
                   </p>
                 </div>
               )}

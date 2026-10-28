@@ -1308,7 +1308,7 @@ const Cart = () => {
                     <p className="text-xs text-gray-600 font-Jost text-center">
                       {country === 'Nigeria'
                         ? '🚚 Local delivery fees will be calculated at checkout based on your location.'
-                        : '✈️ International shipping fees will be provided via email after order confirmation.'}
+                        : '✈️ Express international shipping fees are calculated upfront at checkout.'}
                     </p>
                   </div>
                   

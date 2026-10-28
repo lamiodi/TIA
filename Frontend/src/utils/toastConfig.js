@@ -1,35 +1,33 @@
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'sonner';
 
+export { toast };
 
-export const toastSuccess = (message) => {
-  toast.success(message, {
-    position: 'top-center',
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    className: 'custom-toast custom-toast-success',
-    bodyClassName: 'text-sm font-medium text-Secondarycolor',
-    icon: '🛒',
-    role: 'alert', // Accessibility
-    'aria-live': 'assertive',
+export const toastSuccess = (message, options = {}) => {
+  return toast.success(message, {
+    duration: 3500,
+    ...options,
   });
 };
 
-export const toastError = (message) => {
-  toast.error(message, {
-    position: 'top-center',
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    className: 'custom-toast custom-toast-error',
-    bodyClassName: 'text-sm font-medium text-white',
-    icon: '❌',
-    role: 'alert',
-    'aria-live': 'assertive',
+export const toastError = (message, options = {}) => {
+  return toast.error(message, {
+    duration: 4000,
+    ...options,
   });
 };
+
+export const toastInfo = (message, options = {}) => {
+  return toast.info(message, {
+    duration: 3500,
+    ...options,
+  });
+};
+
+export const toastWarning = (message, options = {}) => {
+  return toast.warning(message, {
+    duration: 3500,
+    ...options,
+  });
+};
+
+export default toast;

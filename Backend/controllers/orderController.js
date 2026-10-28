@@ -2,7 +2,13 @@ import sql from '../db/index.js';
 import dotenv from 'dotenv';
 import { Country } from 'country-state-city';
 import { sendAdminDeliveryFeeNotification } from '../utils/emailService.js';
+import { getInternationalShippingUSD } from '../utils/shippingRates.js';
 dotenv.config();
+
+// Sanity band for the NGN-per-USD rate the client used to convert the
+// international delivery fee. Override the floor via env if the naira moves.
+const MIN_NGN_PER_USD = Number(process.env.MIN_NGN_PER_USD) || 1000;
+const MAX_NGN_PER_USD = 10000;
 
 const shippingOptions = [
   { id: 1, method: 'Delivery within Lagos Island', total_cost: 4000, estimated_delivery: '3–5 business days' },
@@ -582,7 +588,17 @@ export const createOrder = async (req, res) => {
         }
         calculatedSubtotal += shipping_cost;
       } else if (delivery_option === 'international') {
-        calculatedSubtotal += 0; // Shipping cost TBD
+        const intlCost = Number(shipping_cost) || 0;
+        if (intlCost > 0) {
+          // Fee is charged upfront: verify it against our own rate table.
+          const expectedUsd = getInternationalShippingUSD(address.country);
+          if (intlCost < expectedUsd * MIN_NGN_PER_USD || intlCost > expectedUsd * MAX_NGN_PER_USD) {
+            console.error(`Validation failed: International shipping cost ${intlCost} NGN outside expected band for ${address.country} ($${expectedUsd})`);
+            throw new Error('Invalid international shipping cost');
+          }
+          calculatedSubtotal += intlCost;
+        }
+        // intlCost === 0: legacy client, fee invoiced separately (delivery_fee_paid = false)
       }
 
       const calculatedTax = tax || (delivery_option === 'international' ? Number((calculatedSubtotal * 0.05).toFixed(2)) : 0);
@@ -614,7 +630,7 @@ export const createOrder = async (req, res) => {
             ${calculatedTax}, ${shipping_method_id}, ${shipping_cost},
             ${address.country}, ${payment_method}, 'pending', 'pending', ${currency}, ${reference}, ${note}, 
             ${exchange_rate}, ${base_currency_total}, ${converted_total}, 
-            ${address.country.toLowerCase() === 'nigeria' ? true : false}, ${idempotencyKey || null}
+            ${address.country.toLowerCase() === 'nigeria' || (delivery_option === 'international' && Number(shipping_cost) > 0)}, ${idempotencyKey || null}
           )
           RETURNING id
         `;
@@ -783,8 +799,8 @@ export const createOrder = async (req, res) => {
         console.log(`✅ Updated first_order status for user ${user_id}`);
       }
 
-      // Send notification for international orders
-      if (address.country.toLowerCase() !== 'nigeria') {
+      // Send notification for international orders whose delivery fee still needs invoicing
+      if (address.country.toLowerCase() !== 'nigeria' && !(Number(shipping_cost) > 0)) {
         try {
           await sendAdminDeliveryFeeNotification(
             orderId,

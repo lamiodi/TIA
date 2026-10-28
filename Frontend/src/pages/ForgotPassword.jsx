@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import { toast } from '../utils/toastConfig';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle, UserPlus } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
