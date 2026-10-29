@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext, useMemo, useCallback } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus, CreditCard } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Trash2, Bitcoin, MessageCircle, Smartphone, Truck, Clock, MapPin, Gift, X, Copy, User, RefreshCw, Edit, Plus, CreditCard, Scale, ShieldCheck } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
 import Footer from '../components/Footer';
 const BillingAddressForm = React.lazy(() => import('../components/BillingAddressForm'));
@@ -1823,6 +1823,43 @@ const CheckoutPage = () => {
           </div>
         )}
 
+        {/* Premium Top Dispatch & Weight Policy Banner */}
+        <div className="mb-6 sm:mb-8 relative overflow-hidden rounded-2xl border border-amber-200/80 bg-gradient-to-r from-[#FFFBF2] via-[#FFFDF9] to-[#FFF8EC] p-4 sm:p-5 shadow-xs transition-all duration-300 hover:shadow-sm">
+          {/* Subtle decorative glow */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-44 h-44 rounded-full bg-amber-200/20 blur-2xl pointer-events-none" />
+
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-sm flex-shrink-0 ring-4 ring-amber-100/70">
+                <Scale className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold tracking-wider uppercase bg-amber-100/90 text-amber-900 font-Manrope">
+                    <Truck className="h-3 w-3" />
+                    Shipping & Weight Notice
+                  </span>
+                  <span className="text-xs text-amber-700/60 font-Jost hidden sm:inline">•</span>
+                  <span className="text-xs font-medium text-amber-800/80 font-Jost">Applicable to all delivery zones</span>
+                </div>
+                <p className="text-xs sm:text-sm text-stone-800 font-Jost leading-relaxed">
+                  <strong className="font-semibold text-Primarycolor font-Manrope">Heads Up:</strong> Orders above 2kg may incur additional shipping charges. Our team will contact you before dispatch if any extra fees apply to your order.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex sm:flex-col items-center md:items-end gap-1.5 flex-shrink-0 w-full md:w-auto pt-2.5 md:pt-0 border-t md:border-t-0 border-amber-200/60">
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-2.5 py-1 rounded-lg font-Jost">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                Zero surprise charges
+              </span>
+              <span className="text-[11px] text-amber-800/80 font-Jost hidden md:inline">
+                Pre-dispatch confirmation
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Forms */}
@@ -2583,9 +2620,9 @@ const CheckoutPage = () => {
                   )}
 
                   {/* Heads up notice for orders above 2kg */}
-                  <div className="mt-5 p-4 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-start gap-3 shadow-xs">
-                    <div className="p-1.5 bg-amber-100 text-amber-800 rounded-lg mt-0.5 flex-shrink-0">
-                      <AlertCircle className="h-4 w-4" />
+                  <div className="mt-5 p-4 bg-gradient-to-r from-amber-50/90 via-[#FFFDF8] to-orange-50/70 border border-amber-200/80 rounded-xl flex items-start gap-3 shadow-xs">
+                    <div className="p-2 bg-amber-100 text-amber-800 rounded-lg mt-0.5 flex-shrink-0">
+                      <Scale className="h-4 w-4" />
                     </div>
                     <p className="text-xs sm:text-sm text-amber-950 font-Jost leading-relaxed">
                       <strong className="font-semibold font-Manrope">Heads Up:</strong> Orders above 2kg may incur additional shipping charges. Our team will contact you before dispatch if any extra fees apply to your order.
