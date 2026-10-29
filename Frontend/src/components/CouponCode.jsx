@@ -85,8 +85,8 @@ const CouponCode = ({ subtotal, onDiscountApplied }) => {
               </div>
               <p className="text-sm text-green-700 mt-1">
                 You saved {appliedDiscount.type === 'percentage' 
-                  ? `${appliedDiscount.value}% (₦${appliedDiscount.amount.toFixed(2)})` 
-                  : `₦${appliedDiscount.amount.toFixed(2)}`}
+                  ? `${appliedDiscount.value}% (₦${Math.round(appliedDiscount.amount).toLocaleString('en-NG')})` 
+                  : `₦${Math.round(appliedDiscount.amount).toLocaleString('en-NG')}`}
               </p>
             </div>
             <button 

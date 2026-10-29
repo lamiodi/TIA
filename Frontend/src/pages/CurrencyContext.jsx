@@ -130,9 +130,9 @@ export const CurrencyProvider = ({ children }) => {
     const safeRate = isValidExchangeRate(exchangeRate) ? exchangeRate : FALLBACK_EXCHANGE_RATE;
     if (isUSD) {
       const converted = numericAmount / safeRate;
-      return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     }
-    return `₦${numericAmount.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
+    return `₦${numericAmount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }, [isUSD, exchangeRate]);
 
   const convertPrice = useCallback((amountInNaira) => {

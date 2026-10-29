@@ -1496,19 +1496,23 @@ const CheckoutPage = () => {
     const message = `Hello, I would like to pay for my order with Bitcoin.\n\nOrder Details:\n- Subtotal: ${displaySubtotal.toLocaleString('en-NG', {
       style: 'currency',
       currency: 'NGN',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })}\n${displayFirstOrderDiscount > 0 ? `- First Order Discount (5%): -${displayFirstOrderDiscount.toLocaleString('en-NG', {
       style: 'currency',
       currency: 'NGN',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })}\n` : ''}${displayCouponDiscount > 0 ? `- Coupon Discount: -${displayCouponDiscount.toLocaleString('en-NG', {
       style: 'currency',
       currency: 'NGN',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })}\n` : ''}- Total Amount: ${displayTotal.toLocaleString('en-NG', {
       style: 'currency',
       currency: 'NGN',
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })}\n- Currency: NGN\n- Order Reference: order_${createdUserId || getUserId()}_${Date.now()}\n\nI have attached a screenshot of my checkout for your reference.`;
 
     const encodedMessage = encodeURIComponent(message);
@@ -2428,7 +2432,8 @@ const CheckoutPage = () => {
                                       {option.total_cost.toLocaleString('en-NG', {
                                         style: 'currency',
                                         currency: 'NGN',
-                                        minimumFractionDigits: 2,
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0,
                                       })}
                                     </div>
                                   </div>
@@ -2480,7 +2485,7 @@ const CheckoutPage = () => {
                           <div className="font-bold text-Primarycolor text-xl font-Manrope">
                             {isUSD ? (
                               <>
-                                <span>${intlShippingUSD.toFixed(2)}</span>
+                                <span>${intlShippingUSD % 1 === 0 ? intlShippingUSD : intlShippingUSD.toFixed(2)}</span>
                                 <span className="block text-xs font-normal text-Accent font-Jost">
                                   ≈ ₦{intlShippingNGN.toLocaleString()}
                                 </span>
@@ -2489,7 +2494,7 @@ const CheckoutPage = () => {
                               <>
                                 <span>₦{intlShippingNGN.toLocaleString()}</span>
                                 <span className="block text-xs font-normal text-Accent font-Jost">
-                                  (${intlShippingUSD.toFixed(2)} USD)
+                                  (${intlShippingUSD % 1 === 0 ? `$${intlShippingUSD}` : `$${intlShippingUSD.toFixed(2)}`} USD)
                                 </span>
                               </>
                             )}
@@ -2585,14 +2590,16 @@ const CheckoutPage = () => {
                                   {price.toLocaleString('en-NG', {
                                     style: 'currency',
                                     currency: 'NGN',
-                                    minimumFractionDigits: 2,
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0,
                                   })} each
                                 </span>
                                 <span className="font-semibold text-Primarycolor font-Manrope">
                                   {itemTotal.toLocaleString('en-NG', {
                                     style: 'currency',
                                     currency: 'NGN',
-                                    minimumFractionDigits: 2,
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0,
                                   })}
                                 </span>
                               </div>
@@ -2620,8 +2627,8 @@ const CheckoutPage = () => {
                             </div>
                             <p className="text-sm text-green-700 font-Jost mt-1">
                               You saved {appliedCoupon.type === 'percentage'
-                                ? `${appliedCoupon.value}% (₦${appliedCoupon.amount.toFixed(2)})`
-                                : `₦${appliedCoupon.amount.toFixed(2)}`}
+                                ? `${appliedCoupon.value}% (₦${Math.round(appliedCoupon.amount).toLocaleString('en-NG')})`
+                                : `₦${Math.round(appliedCoupon.amount).toLocaleString('en-NG')}`}
                             </p>
                           </div>
                           <button
@@ -2736,7 +2743,8 @@ const CheckoutPage = () => {
                           {displaySubtotal.toLocaleString('en-NG', {
                             style: 'currency',
                             currency: 'NGN',
-                            minimumFractionDigits: 2,
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
                           })}
                         </span>
                       </div>
@@ -2748,7 +2756,8 @@ const CheckoutPage = () => {
                             -{displayFirstOrderDiscount.toLocaleString('en-NG', {
                               style: 'currency',
                               currency: 'NGN',
-                              minimumFractionDigits: 2,
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
                             })}
                           </span>
                         </div>
@@ -2761,7 +2770,8 @@ const CheckoutPage = () => {
                             -{displayCouponDiscount.toLocaleString('en-NG', {
                               style: 'currency',
                               currency: 'NGN',
-                              minimumFractionDigits: 2,
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
                             })}
                           </span>
                         </div>
@@ -2774,13 +2784,14 @@ const CheckoutPage = () => {
                             (shippingMethod?.total_cost || 0).toLocaleString('en-NG', {
                               style: 'currency',
                               currency: 'NGN',
-                              minimumFractionDigits: 2,
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
                             })
                           ) : (
                             isUSD ? (
-                              `$${intlShippingUSD.toFixed(2)} (₦${intlShippingNGN.toLocaleString()})`
+                              `$${intlShippingUSD % 1 === 0 ? intlShippingUSD : intlShippingUSD.toFixed(2)} (₦${intlShippingNGN.toLocaleString()})`
                             ) : (
-                              `₦${intlShippingNGN.toLocaleString()} ($${intlShippingUSD.toFixed(2)} USD)`
+                              `₦${intlShippingNGN.toLocaleString()} ($${intlShippingUSD % 1 === 0 ? intlShippingUSD : intlShippingUSD.toFixed(2)} USD)`
                             )
                           )}
                         </span>
@@ -2793,7 +2804,8 @@ const CheckoutPage = () => {
                             {displayTax.toLocaleString('en-NG', {
                               style: 'currency',
                               currency: 'NGN',
-                              minimumFractionDigits: 2,
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
                             })}
                           </span>
                         </div>
@@ -2807,7 +2819,8 @@ const CheckoutPage = () => {
                           {displayTotal.toLocaleString('en-NG', {
                             style: 'currency',
                             currency: 'NGN',
-                            minimumFractionDigits: 2,
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
                           })}
                         </span>
                       </div>
@@ -2834,7 +2847,7 @@ const CheckoutPage = () => {
                         <p className="text-xs text-green-700 font-Jost">
                           🎁 <strong>Coupon Applied!</strong> You saved {appliedCoupon.type === 'percentage'
                             ? `${appliedCoupon.value}%`
-                            : `₦${appliedCoupon.amount.toFixed(2)}`} with coupon code {appliedCoupon.code}.
+                            : `₦${Math.round(appliedCoupon.amount).toLocaleString('en-NG')}`} with coupon code {appliedCoupon.code}.
                         </p>
                       </div>
                     )}

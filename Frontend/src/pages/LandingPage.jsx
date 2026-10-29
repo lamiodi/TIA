@@ -43,7 +43,8 @@ const LandingPage = () => {
     return displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
       style: 'currency',
       currency: displayCurrency,
-      minimumFractionDigits: isUSD ? 2 : 0
+      minimumFractionDigits: 0,
+      maximumFractionDigits: isUSD ? 2 : 0
     });
   };
 

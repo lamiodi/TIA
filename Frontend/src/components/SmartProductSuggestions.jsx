@@ -89,9 +89,9 @@ export const SmartProductSuggestions = ({
     const safeRate = (typeof exchangeRate === 'number' && exchangeRate >= 100) ? exchangeRate : 1529.26;
     if (isUSD) {
       const converted = numericAmount / safeRate;
-      return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `$${converted.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     }
-    return `₦${numericAmount.toLocaleString('en-NG')}`;
+    return `₦${numericAmount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   // Safe fallback to add items to guest cart in localStorage if context is not yet mounted

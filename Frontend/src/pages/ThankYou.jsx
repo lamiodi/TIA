@@ -221,10 +221,10 @@ const ThankYou = () => {
     if (!order) return '';
     
     if (order.currency === 'NGN') {
-      return `₦${order.total.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`;
+      return `₦${order.total.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else if (order.currency === 'USD') {
       const totalAmount = order.total > 1000 ? order.total / 100 : order.total;
-      return `$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      return `$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     }
     return `${order.total} ${order.currency}`;
   };

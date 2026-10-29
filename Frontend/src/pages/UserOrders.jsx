@@ -61,10 +61,10 @@ const UserOrders = () => {
   // Format currency
   const formatCurrency = (amount, currency) => {
     if (currency === 'NGN') {
-      return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`;
+      return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else if (currency === 'USD') {
       const totalAmount = amount > 1000 ? amount / 100 : amount;
-      return `$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      return `$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     }
     return `${amount} ${currency}`;
   };

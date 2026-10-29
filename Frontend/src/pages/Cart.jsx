@@ -774,13 +774,15 @@ const Cart = () => {
         const formattedPrice = displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
           style: 'currency',
           currency: isUSD ? 'USD' : 'NGN',
-          minimumFractionDigits: isUSD ? 2 : 0,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: isUSD ? 2 : 0,
         });
         const totalPrice = displayPrice * item.quantity;
         const formattedTotalPrice = totalPrice.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
           style: 'currency',
           currency: isUSD ? 'USD' : 'NGN',
-          minimumFractionDigits: isUSD ? 2 : 0,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: isUSD ? 2 : 0,
         });
         const isPreorder = item.is_preorder || item.item.is_preorder;
         const isOutOfStock = item.item.stock_quantity === 0 && !isPreorder;
@@ -1178,7 +1180,8 @@ const Cart = () => {
                       {displaySubtotal.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                         style: 'currency',
                         currency: isUSD ? 'USD' : 'NGN',
-                        minimumFractionDigits: isUSD ? 2 : 0,
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: isUSD ? 2 : 0,
                       })}
                     </span>
                   </div>
@@ -1199,7 +1202,8 @@ const Cart = () => {
                         {displayTax.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                           style: 'currency',
                           currency: isUSD ? 'USD' : 'NGN',
-                          minimumFractionDigits: isUSD ? 2 : 0,
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: isUSD ? 2 : 0,
                         })}
                       </span>
                     </div>
@@ -1213,7 +1217,8 @@ const Cart = () => {
                         {displayTotal.toLocaleString(isUSD ? 'en-US' : 'en-NG', {
                           style: 'currency',
                           currency: isUSD ? 'USD' : 'NGN',
-                          minimumFractionDigits: isUSD ? 2 : 0,
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: isUSD ? 2 : 0,
                         })}
                       </span>
                     </div>
