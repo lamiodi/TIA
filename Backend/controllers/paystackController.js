@@ -182,6 +182,7 @@ export const verifyPayment = async (req, res) => {
         UPDATE orders
         SET payment_status = 'completed',
             status = 'processing',
+            delivery_fee_paid = true,
             updated_at = NOW()
         WHERE reference = ${reference} AND deleted_at IS NULL
         RETURNING id, user_id, total, currency, cart_id
@@ -362,8 +363,10 @@ export const initializeDeliveryFeePayment = async (req, res) => {
 
 export const verifyDeliveryFeePayment = async (req, res) => {
   try {
-    // Handle both GET (query params) and POST (request body) requests
-    const reference = req.method === 'GET' ? req.query.reference : req.body.reference;
+    // Handle both GET (query params) and POST (request body) requests, supporting both reference and trxref
+    const reference = req.method === 'GET' 
+      ? (req.query.reference || req.query.trxref) 
+      : (req.body.reference || req.body.trxref);
     
     if (!reference) {
       console.error('Missing reference for delivery fee payment verification');

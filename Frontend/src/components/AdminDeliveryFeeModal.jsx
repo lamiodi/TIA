@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, X, Link, Copy, Mail } from 'lucide-react';
+import { DollarSign, X, Link, Copy, Mail, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -96,6 +96,26 @@ const AdminDeliveryFeeModal = ({
       setLoading(false);
     }
   };
+
+  const markAsPaidManually = async () => {
+    try {
+      setLoading(true);
+      const authApi = getAuthApi();
+      await authApi.put(`/api/admin/orders/${selectedOrder.id}/delivery-fee/paid`);
+      toast.success('Delivery fee successfully marked as paid!');
+      setOrders(prev => prev.map(order => 
+        order.id === selectedOrder.id 
+          ? { ...order, delivery_fee_paid: true } 
+          : order
+      ));
+      setShowDeliveryFeeModal(false);
+    } catch (err) {
+      console.error('Error marking delivery fee as paid:', err);
+      toast.error(err.response?.data?.error || 'Failed to mark delivery fee as paid');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const copyToClipboard = () => {
     if (paymentLink) {
@@ -134,13 +154,19 @@ const AdminDeliveryFeeModal = ({
         </div>
         
         <div className="p-6">
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-2">
             <p className="text-sm text-blue-800">
               Order #{selectedOrder.id} for {selectedOrder.first_name} {selectedOrder.last_name}
             </p>
             <p className="text-sm text-blue-800">
               Shipping to: {selectedOrder.shipping_country}
             </p>
+            <div className="flex items-center justify-between pt-1 border-t border-blue-200/60 text-xs">
+              <span className="text-blue-700 font-medium">Delivery Status:</span>
+              <span className={`px-2 py-0.5 rounded-full font-semibold ${selectedOrder.delivery_fee_paid ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                {selectedOrder.delivery_fee_paid ? '✓ Delivery Fee Paid' : '⏳ Delivery Fee Pending'}
+              </span>
+            </div>
           </div>
           
           {!paymentLink ? (
@@ -180,17 +206,31 @@ const AdminDeliveryFeeModal = ({
                 </div>
               </div>
               
-              <button
-                onClick={generatePaymentLink}
-                disabled={loading || deliveryFee <= 0}
-                className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors duration-200 ${
-                  loading || deliveryFee <= 0
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {loading ? 'Generating...' : 'Generate Payment Link'}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={generatePaymentLink}
+                  disabled={loading || deliveryFee <= 0}
+                  className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors duration-200 ${
+                    loading || deliveryFee <= 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {loading ? 'Generating...' : 'Generate Payment Link'}
+                </button>
+                
+                {!selectedOrder.delivery_fee_paid && (
+                  <button
+                    type="button"
+                    onClick={markAsPaidManually}
+                    disabled={loading}
+                    className="w-full py-2 px-4 rounded-md text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 font-medium transition-colors text-sm flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Mark Delivery Fee as Paid Manually
+                  </button>
+                )}
+              </div>
             </>
           ) : (
             <div className="space-y-4">

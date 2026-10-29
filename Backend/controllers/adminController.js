@@ -550,9 +550,13 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     
+    const isCompletedStatus = ['processing', 'shipped', 'delivered'].includes(status);
     const [updatedOrder] = await sql`
       UPDATE orders 
-      SET status = ${status}, updated_at = NOW() 
+      SET status = ${status}, 
+          payment_status = ${isCompletedStatus ? 'completed' : order.payment_status},
+          delivery_fee_paid = ${isCompletedStatus ? true : order.delivery_fee_paid},
+          updated_at = NOW() 
       WHERE id = ${orderId} 
       RETURNING *
     `;
@@ -565,11 +569,11 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// Add this new controller function for setting delivery fee
+// Add this controller function for setting delivery fee
 export const setDeliveryFee = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { delivery_fee } = req.body;
+    const { delivery_fee, delivery_fee_paid } = req.body;
     
     if (!orderId || isNaN(orderId)) {
       return res.status(400).json({ error: 'Invalid order ID' });
@@ -596,18 +600,49 @@ export const setDeliveryFee = async (req, res) => {
       return res.status(400).json({ error: 'Order payment must be completed' });
     }
     
+    const shouldMarkPaid = delivery_fee_paid !== undefined ? Boolean(delivery_fee_paid) : order.delivery_fee_paid;
+
     const [updatedOrder] = await sql`
       UPDATE orders
-      SET delivery_fee = ${delivery_fee}, updated_at = NOW()
+      SET delivery_fee = ${delivery_fee}, 
+          delivery_fee_paid = ${shouldMarkPaid},
+          updated_at = NOW()
       WHERE id = ${orderId}
       RETURNING *
     `;
     
-    console.log(`setDeliveryFee: Set fee ${delivery_fee} for order ${orderId}`);
+    console.log(`setDeliveryFee: Set fee ${delivery_fee} for order ${orderId}, delivery_fee_paid: ${shouldMarkPaid}`);
     res.json(updatedOrder);
   } catch (error) {
     console.error('setDeliveryFee error:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to set delivery fee' });
+  }
+};
+
+// Dedicated controller function to directly mark delivery fee as paid (e.g. manual bank transfer or cash confirmation)
+export const markDeliveryFeePaid = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId || isNaN(orderId)) {
+      return res.status(400).json({ error: 'Invalid order ID' });
+    }
+    
+    const [updatedOrder] = await sql`
+      UPDATE orders
+      SET delivery_fee_paid = true, updated_at = NOW()
+      WHERE id = ${orderId}
+      RETURNING *
+    `;
+    
+    if (!updatedOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log(`markDeliveryFeePaid: Marked delivery fee as paid for order ${orderId}`);
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('markDeliveryFeePaid error:', error.message);
+    res.status(500).json({ error: 'Failed to mark delivery fee as paid' });
   }
 };
 

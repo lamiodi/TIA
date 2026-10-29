@@ -251,9 +251,13 @@ const OrderDetailsModal = ({
                     <div>
                       <p className="text-sm text-gray-500">Delivery Fee</p>
                       <p className="font-medium">
-                        {orderData.delivery_fee ? 
-                          `${formatCurrency(orderData.delivery_fee, orderData.currency)} (${orderData.delivery_fee_paid ? 'Paid' : 'Pending'})` : 
-                          'Not Set'}
+                        {orderData.delivery_fee ? (
+                          `${formatCurrency(orderData.delivery_fee, orderData.currency)} (${orderData.delivery_fee_paid ? 'Paid' : 'Pending'})`
+                        ) : orderData.shipping_cost > 0 ? (
+                          `${formatCurrency(orderData.shipping_cost, orderData.currency)} (${orderData.delivery_fee_paid || orderData.payment_status === 'completed' ? 'Paid' : 'Pending'})`
+                        ) : (
+                          orderData.delivery_fee_paid || orderData.payment_status === 'completed' ? 'Included in Total (Paid)' : 'Included in Total'
+                        )}
                       </p>
                     </div>
                   </div>
