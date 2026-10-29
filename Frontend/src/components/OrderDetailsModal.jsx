@@ -44,10 +44,15 @@ const OrderDetailsModal = ({
         description: 'Reliable delivery within Lagos Mainland',
         estimated: '5-7 business days'
       },
+      'Delivery to Other States (Outside Lagos)': { 
+        icon: <MapPin className="w-4 h-4" />, 
+        description: 'Nationwide delivery outside Lagos state',
+        estimated: '5-7 business days'
+      },
       'Outside Lagos': { 
         icon: <MapPin className="w-4 h-4" />, 
         description: 'Delivery outside Lagos state',
-        estimated: '7-10 business days'
+        estimated: '5-7 business days'
       },
       'International': { 
         icon: <Globe className="w-4 h-4" />, 

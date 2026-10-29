@@ -157,6 +157,19 @@ const CheckoutPage = () => {
     return checkIsNigeria(addressCountry);
   }, [addressCountry]);
 
+  // Active destination state/province in shipping address
+  const addressState = useMemo(() => {
+    if (!isGuest && selectedSavedShippingAddress && !showShippingForm) {
+      return (selectedSavedShippingAddress.state || '').trim();
+    }
+    return (shippingForm.state || '').trim();
+  }, [isGuest, selectedSavedShippingAddress, showShippingForm, shippingForm.state]);
+
+  const isLagos = useMemo(() => {
+    if (!addressState || !isNigeria) return null;
+    return addressState.toLowerCase().includes('lagos');
+  }, [addressState, isNigeria]);
+
   const isUSD = currency === 'USD';
   const intlShippingUSD = useMemo(() => getInternationalShippingUSD(addressCountry), [addressCountry]);
   const intlShippingNGN = useMemo(() => getInternationalShippingNGN(addressCountry, exchangeRate), [addressCountry, exchangeRate]);
@@ -354,14 +367,16 @@ const CheckoutPage = () => {
     setCouponSuccess('');
   };
 
-  const shippingOptions = [
+  const shippingOptions = useMemo(() => [
     {
       id: 1,
       method: 'Delivery within Lagos Island',
       total_cost: 4000,
       estimated_delivery: '3–5 business days',
       icon: 'truck',
-      description: 'Fast delivery within Lagos Island'
+      description: 'Fast delivery within Lagos Island',
+      lagosOnly: true,
+      tag: 'Lagos Island',
     },
     {
       id: 2,
@@ -369,17 +384,31 @@ const CheckoutPage = () => {
       total_cost: 6000,
       estimated_delivery: '5–7 business days',
       icon: 'package',
-      description: 'Reliable delivery within Lagos Mainland'
+      description: 'Reliable delivery within Lagos Mainland',
+      lagosOnly: true,
+      tag: 'Lagos Mainland',
     },
     {
       id: 3,
-      method: 'Outside Lagos',
-      total_cost: 7000,
-      estimated_delivery: '7–10 business days',
+      method: 'Delivery to Other States (Outside Lagos)',
+      total_cost: 10000,
+      estimated_delivery: '5–7 business days',
       icon: 'home',
-      description: 'Delivery outside Lagos state'
+      description: 'Nationwide delivery to all states outside Lagos',
+      lagosOnly: false,
+      tag: 'Nationwide',
     },
-  ];
+  ], []);
+
+  const availableShippingOptions = useMemo(() => {
+    if (isLagos === true) {
+      return shippingOptions.filter(opt => opt.lagosOnly);
+    }
+    if (isLagos === false) {
+      return shippingOptions.filter(opt => !opt.lagosOnly);
+    }
+    return shippingOptions;
+  }, [isLagos, shippingOptions]);
 
   const getShippingIcon = (iconType) => {
     switch (iconType) {
@@ -1406,15 +1435,29 @@ const CheckoutPage = () => {
   }, [user, billingAddresses.length, billingForm.full_name, billingForm.email]);
 
   useEffect(() => {
-    if (isNigeria && !shippingMethod) {
-      const defaultMethod = shippingOptions[0];
-      setShippingMethod(defaultMethod);
+    if (!isNigeria) {
+      if (shippingMethod) {
+        setShippingMethod(null);
+      }
+      return;
     }
 
-    if (!isNigeria && shippingMethod) {
-      setShippingMethod(null);
+    // Auto-select correct shipping method based on state
+    if (isLagos === false) {
+      // User address is in a state outside Lagos -> auto-select option 3 (10k)
+      if (shippingMethod?.id !== 3) {
+        setShippingMethod(shippingOptions[2]);
+      }
+    } else if (isLagos === true) {
+      // User address is in Lagos -> ensure a Lagos option (1 or 2) is selected
+      if (shippingMethod?.id === 3 || !shippingMethod) {
+        setShippingMethod(shippingOptions[0]);
+      }
+    } else if (!shippingMethod) {
+      // State not yet selected, default to Lagos Island
+      setShippingMethod(shippingOptions[0]);
     }
-  }, [isNigeria, shippingMethod, shippingOptions]);
+  }, [isNigeria, isLagos, shippingMethod, shippingOptions]);
 
   // Add this useEffect to check for pending orders
   useEffect(() => {
@@ -2383,77 +2426,109 @@ const CheckoutPage = () => {
                     Choose Delivery Method
                   </h3>
                   {isNigeria ? (
-                    <div className="grid gap-4">
-                      {shippingOptions.map((option) => (
-                        <label
-                          key={option.id}
-                          className={`
-                            relative cursor-pointer rounded-xl border-2 transition-all duration-200
-                            ${shippingMethod?.id === option.id
-                              ? 'border-Primarycolor bg-gradient-to-r from-gray-50 to-blue-50 shadow-md'
-                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                            }
-                          `}
-                        >
-                          <div className="p-4 sm:p-5">
-                            <div className="flex items-start gap-4">
-                              <input
-                                type="radio"
-                                name="shippingMethod"
-                                value={option.id}
-                                checked={shippingMethod?.id === option.id}
-                                onChange={() => setShippingMethod(option)}
-                                className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
-                              />
+                    <div>
+                      {isLagos === false && addressState && (
+                        <div className="mb-4 p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs sm:text-sm text-blue-900 font-Jost">
+                          <span className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-blue-600" />
+                            <span>Delivery to <strong>{addressState}</strong></span>
+                          </span>
+                          <span className="font-semibold text-blue-800 bg-blue-100/70 px-2.5 py-0.5 rounded-full text-xs">
+                            Nationwide (Outside Lagos)
+                          </span>
+                        </div>
+                      )}
+                      {isLagos === true && addressState && (
+                        <div className="mb-4 p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs sm:text-sm text-blue-900 font-Jost">
+                          <span className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-blue-600" />
+                            <span>Delivery to <strong>Lagos State</strong></span>
+                          </span>
+                          <span className="font-semibold text-blue-800 bg-blue-100/70 px-2.5 py-0.5 rounded-full text-xs">
+                            Lagos Rates
+                          </span>
+                        </div>
+                      )}
 
-                              <div className="flex-1">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`
-                                      p-2 rounded-lg
-                                      ${shippingMethod?.id === option.id
-                                        ? 'bg-Primarycolor text-white'
-                                        : 'bg-gray-100 text-Accent'
-                                      }
-                                    `}>
-                                      {getShippingIcon(option.icon)}
+                      <div className="grid gap-4">
+                        {availableShippingOptions.map((option) => (
+                          <label
+                            key={option.id}
+                            className={`
+                              relative cursor-pointer rounded-xl border-2 transition-all duration-200
+                              ${shippingMethod?.id === option.id
+                                ? 'border-Primarycolor bg-gradient-to-r from-gray-50 to-blue-50 shadow-md'
+                                : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                              }
+                            `}
+                          >
+                            <div className="p-4 sm:p-5">
+                              <div className="flex items-start gap-4">
+                                <input
+                                  type="radio"
+                                  name="shippingMethod"
+                                  value={option.id}
+                                  checked={shippingMethod?.id === option.id}
+                                  onChange={() => setShippingMethod(option)}
+                                  className="mt-1 h-4 w-4 text-Primarycolor focus:ring-2 focus:ring-Primarycolor"
+                                />
+
+                                <div className="flex-1">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`
+                                        p-2 rounded-lg
+                                        ${shippingMethod?.id === option.id
+                                          ? 'bg-Primarycolor text-white'
+                                          : 'bg-gray-100 text-Accent'
+                                        }
+                                      `}>
+                                        {getShippingIcon(option.icon)}
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-semibold text-Primarycolor text-sm sm:text-base font-Manrope">
+                                            {option.method}
+                                          </h4>
+                                          {option.tag && (
+                                            <span className="inline-block text-[11px] font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-Jost">
+                                              {option.tag}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-Accent font-Jost">
+                                          {option.description}
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <h4 className="font-semibold text-Primarycolor text-sm sm:text-base font-Manrope">
-                                        {option.method}
-                                      </h4>
-                                      <p className="text-xs sm:text-sm text-Accent font-Jost">
-                                        {option.description}
-                                      </p>
+                                    <div className="text-right">
+                                      <div className="font-bold text-Primarycolor text-lg font-Manrope">
+                                        {option.total_cost.toLocaleString('en-NG', {
+                                          style: 'currency',
+                                          currency: 'NGN',
+                                          minimumFractionDigits: 0,
+                                          maximumFractionDigits: 0,
+                                        })}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="text-right">
-                                    <div className="font-bold text-Primarycolor text-lg font-Manrope">
-                                      {option.total_cost.toLocaleString('en-NG', {
-                                        style: 'currency',
-                                        currency: 'NGN',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                      })}
-                                    </div>
+                                  <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-Accent font-Jost">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{option.estimated_delivery}</span>
                                   </div>
-                                </div>
-                                <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-Accent font-Jost">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{option.estimated_delivery}</span>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          {shippingMethod?.id === option.id && (
-                            <div className="absolute top-3 right-3">
-                              <div className="bg-Primarycolor text-white rounded-full p-1">
-                                <CheckCircle className="h-4 w-4" />
+                            {shippingMethod?.id === option.id && (
+                              <div className="absolute top-3 right-3">
+                                <div className="bg-Primarycolor text-white rounded-full p-1">
+                                  <CheckCircle className="h-4 w-4" />
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </label>
-                      ))}
+                            )}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <div className="p-6 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl border-2 border-Primarycolor/30 shadow-sm">
@@ -2506,6 +2581,17 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Heads up notice for orders above 2kg */}
+                  <div className="mt-5 p-4 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-start gap-3 shadow-xs">
+                    <div className="p-1.5 bg-amber-100 text-amber-800 rounded-lg mt-0.5 flex-shrink-0">
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <p className="text-xs sm:text-sm text-amber-950 font-Jost leading-relaxed">
+                      <strong className="font-semibold font-Manrope">Heads Up:</strong> Orders above 2kg may incur additional shipping charges. Our team will contact you before dispatch if any extra fees apply to your order.
+                    </p>
+                  </div>
+
                   {formErrors.shippingMethod && (
                     <p className="text-sm text-red-600 mt-2 font-Jost">{formErrors.shippingMethod}</p>
                   )}

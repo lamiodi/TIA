@@ -13,7 +13,7 @@ const MAX_NGN_PER_USD = 10000;
 const shippingOptions = [
   { id: 1, method: 'Delivery within Lagos Island', total_cost: 4000, estimated_delivery: '3–5 business days' },
   { id: 2, method: 'Delivery within Lagos Mainland', total_cost: 6000, estimated_delivery: '5–7 business days' },
-  { id: 3, method: 'Outside Lagos', total_cost: 7000, estimated_delivery: '7–10 business days' },
+  { id: 3, method: 'Delivery to Other States (Outside Lagos)', total_cost: 10000, estimated_delivery: '5–7 business days' },
 ];
 
 // Helper to convert base price (in NGN) to target currency

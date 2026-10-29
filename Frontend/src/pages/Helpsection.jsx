@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, Truck, Ruler, HelpCircle, MessageCircle, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Mail, Phone, Clock, Package, Truck, Ruler, HelpCircle, MessageCircle, ChevronRight, AlertCircle } from 'lucide-react';
 import Navbar2 from '../components/Navbar2';
 import ContactWhatsAppWidget from '../components/contactWhatsAppWidget';
 
@@ -191,7 +191,7 @@ const HelpPage = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Cost:</span>
-                    <span className="font-semibold font-Jost">₦7,000</span>
+                    <span className="font-semibold font-Jost">₦10,000</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-Jost text-gray-600">Available:</span>
@@ -199,6 +199,16 @@ const HelpPage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Heads Up Notice */}
+            <div className="p-4 sm:p-5 bg-amber-50/90 border border-amber-200/90 rounded-xl flex items-start gap-3 shadow-xs">
+              <div className="p-1.5 bg-amber-100 text-amber-800 rounded-lg mt-0.5 flex-shrink-0">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <p className="text-xs sm:text-sm text-amber-950 font-Jost leading-relaxed">
+                <strong className="font-semibold font-Manrope">Heads Up:</strong> Orders above 2kg may incur additional shipping charges. Our team will contact you before dispatch if any extra fees apply to your order.
+              </p>
             </div>
             <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100">
               <h4 className="text-xl font-semibold font-Manrope text-Primarycolor mb-6">Shipping Locations for Nigeria</h4>
